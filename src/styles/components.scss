@@ -1,0 +1,680 @@
+// 通用组件样式
+.common-components {
+  // 应用头部
+  .app-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: $header-height;
+    background: $bg-color-white;
+    border-bottom: $border-width solid $border-color-light;
+    z-index: $z-index-sticky;
+    @include flex(center, space-between, center);
+    padding: 0 $spacing-4;
+    @include safe-area-inset-top;
+
+    .header-title {
+      font-size: $font-size-lg;
+      font-weight: $font-weight-semibold;
+      color: $text-color-primary;
+    }
+
+    .header-actions {
+      @include flex(row, flex-end, center);
+      gap: $spacing-2;
+    }
+  }
+
+  // 应用底部
+  .app-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: $footer-height;
+    background: $bg-color-white;
+    border-top: $border-width solid $border-color-light;
+    z-index: $z-index-sticky;
+    @include flex(center, space-around, center);
+    @include safe-area-inset-bottom;
+
+    .footer-item {
+      @include flex(column, center, center);
+      gap: $spacing-1;
+      padding: $spacing-2;
+      color: $colors.gray.base;
+      text-decoration: none;
+      @include transition(all, $transition-fast);
+      min-width: 60px;
+
+      &:hover {
+        color: $colors.primary;
+      }
+
+      &.active {
+        color: $colors.primary;
+      }
+
+      .footer-icon {
+        font-size: $font-size-xl;
+      }
+
+      .footer-text {
+        font-size: $font-size-xs;
+      }
+    }
+  }
+
+  // 版本切换器
+  .version-switcher {
+    position: fixed;
+    top: $header-height;
+    right: $spacing-4;
+    z-index: $z-index-modal;
+
+    .switch-button {
+      @include button-variant($colors.primary, $colors.white, $colors.primary-dark);
+      padding: $spacing-2 $spacing-4;
+      @include border-radius($border-radius-full);
+      @include shadow('sm');
+      @include mobile-optimized;
+      @include no-select;
+
+      &:hover {
+        opacity: 0.9;
+      }
+
+      &:active {
+        @include scale(0.95);
+      }
+    }
+  }
+
+  // 加载动画
+  .loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid $colors.gray.lighter;
+    border-top-color: $colors.primary;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  }
+
+  // 全局加载组件
+  .loading-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: $z-index-modal;
+
+    .loading-content {
+      background: $bg-color-white;
+      padding: $spacing-8;
+      @include border-radius($border-radius-lg);
+      @include flex(column, center, center);
+      gap: $spacing-4;
+    }
+
+    .loading-text {
+      color: $text-color-primary;
+      font-size: $font-size-base;
+    }
+  }
+
+  // 错误提示组件
+  .error-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: $bg-color-white;
+    padding: $spacing-6 $spacing-8;
+    @include border-radius($border-radius-lg);
+    box-shadow: $shadow-lg;
+    z-index: $z-index-modal;
+    max-width: 80%;
+    @include text-truncate-lines(3);
+
+    .error-title {
+      font-size: $font-size-lg;
+      font-weight: $font-weight-semibold;
+      color: $colors.danger;
+      margin-bottom: $spacing-4;
+    }
+
+    .error-content {
+      font-size: $font-size-base;
+      color: $text-color-primary;
+      margin-bottom: $spacing-4;
+    }
+
+    .error-actions {
+      @include flex(row, center, center);
+      gap: $spacing-2;
+    }
+
+    .error-button {
+      @include button-variant($colors.primary, $colors.white, $colors.primary-dark);
+      padding: $spacing-2 $spacing-6;
+      @include border-radius($border-radius-base);
+      font-size: $font-size-base;
+    }
+  }
+
+  // 商户模式特殊样式
+  .merchant-mode {
+    .app-header {
+      background: $bg-color-gray;
+      border-bottom-color: $border-color;
+
+      .header-title {
+        color: $text-color-primary;
+      }
+    }
+
+    .app-footer {
+      background: $bg-color-gray;
+      border-top-color: $border-color;
+
+      .footer-item {
+        color: $colors.gray.base;
+
+        &.active {
+          color: $colors.primary;
+        }
+      }
+    }
+  }
+
+  // 响应式调整
+  @include respond-to-max(mobile) {
+    .app-header {
+      padding: 0 $spacing-2;
+    }
+
+    .app-footer {
+      .footer-item {
+        min-width: 50px;
+        padding: $spacing-1;
+      }
+    }
+
+    .version-switcher {
+      right: $spacing-2;
+    }
+  }
+
+  // 暗色模式支持
+  @include dark-mode {
+    .app-header,
+    .app-footer {
+      background: #1a1a1a;
+      border-color: #333;
+    }
+
+    .version-switcher {
+      .switch-button {
+        background: #333;
+        color: white;
+      }
+    }
+  }
+}
+
+// 客户版组件样式
+.customer-components {
+  // 商品卡片
+  .product-card {
+    background: $bg-color-white;
+    @include border-radius($border-radius-base);
+    @include shadow('sm');
+    margin-bottom: $spacing-4;
+    @include transition(all, $transition-fast);
+    cursor: pointer;
+    @include card();
+
+    &:hover {
+      @include shadow('base');
+      transform: translateY(-2px);
+    }
+
+    .product-image {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      @include border-radius($border-radius-base $border-radius-base 0 0);
+    }
+
+    .product-info {
+      padding: $spacing-4;
+
+      .product-name {
+        font-size: $font-size-base;
+        font-weight: $font-weight-semibold;
+        color: $text-color-primary;
+        margin-bottom: $spacing-2;
+        @include text-truncate-lines(2);
+      }
+
+      .product-price {
+        font-size: $font-size-lg;
+        font-weight: $font-weight-bold;
+        color: $colors.danger;
+        margin-bottom: $spacing-3;
+      }
+
+      .product-description {
+        font-size: $font-size-sm;
+        color: $text-color-secondary;
+        margin-bottom: $spacing-3;
+        @include text-truncate-lines(2);
+      }
+
+      .product-actions {
+        @include flex(row, space-between, center);
+        gap: $spacing-2;
+      }
+
+      .purchase-button {
+        @include button-variant($colors.primary, $colors.white, $colors.primary-dark);
+        padding: $spacing-2 $spacing-6;
+        @include border-radius($border-radius-base);
+        font-size: $font-size-base;
+        flex: 1;
+        @include no-select;
+        @include mobile-optimized;
+      }
+
+      .favorite-button {
+        @include button-variant($colors.gray.lighter, $colors.gray.dark);
+        padding: $spacing-2;
+        @include border-radius($border-radius-full);
+        font-size: $font-size-xl;
+        width: 40px;
+        height: 40px;
+        @include no-select;
+        @include mobile-optimized;
+      }
+    }
+  }
+
+  // 商品列表
+  .product-list {
+    @include flex(column, flex-start, flex-start);
+    gap: $spacing-4;
+    padding: $spacing-4;
+  }
+
+  // 商品详情
+  .product-detail {
+    .product-detail-image {
+      width: 100%;
+      height: 300px;
+      object-fit: cover;
+      @include border-radius($border-radius-base);
+      margin-bottom: $spacing-4;
+    }
+
+    .product-detail-info {
+      @include flex(column, flex-start, flex-start);
+      gap: $spacing-4;
+
+      .product-detail-title {
+        font-size: $font-size-xl;
+        font-weight: $font-weight-bold;
+        color: $text-color-primary;
+      }
+
+      .product-detail-price {
+        font-size: $font-size-xxl;
+        font-weight: $font-weight-bold;
+        color: $colors.danger;
+      }
+
+      .product-detail-description {
+        font-size: $font-size-base;
+        color: $text-color-secondary;
+        line-height: $line-height-loose;
+      }
+    }
+  }
+}
+
+// 商户版组件样式
+.merchant-components {
+  // 二维码扫描组件
+  .qr-scanner {
+    background: $bg-color-white;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+
+    .scanner-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: $spacing-4;
+    }
+
+    .scanner-area {
+      width: 300px;
+      height: 300px;
+      border: 2px dashed $colors.primary;
+      border-radius: $border-radius-lg;
+      position: relative;
+      margin-bottom: $spacing-4;
+      background: rgba(25, 137, 250, 0.05);
+
+      .scanner-frame {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 200px;
+        height: 200px;
+        border: 2px solid $colors.primary;
+        border-radius: $border-radius-base;
+        transform: translate(-50%, -50%);
+      }
+
+      .scanner-tip {
+        position: absolute;
+        bottom: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: $font-size-sm;
+        color: $colors.gray.base;
+        background: $bg-color-white;
+        padding: $spacing-1 $spacing-3;
+        @include border-radius($border-radius-full);
+        white-space: nowrap;
+      }
+    }
+
+    .scanner-actions {
+      @include flex(row, center, center);
+      gap: $spacing-2;
+    }
+
+    .scan-button {
+      @include button-variant($colors.primary, $colors.white, $colors.primary-dark);
+      padding: $spacing-3 $spacing-8;
+      @include border-radius($border-radius-base);
+      font-size: $font-size-base;
+      @include no-select;
+      @include mobile-optimized;
+    }
+
+    .stop-button {
+      @include button-variant($colors.gray.lighter, $colors.gray.dark, $colors.gray.base);
+      padding: $spacing-3 $spacing-8;
+      @include border-radius($border-radius-base);
+      font-size: $font-size-base;
+      @include no-select;
+      @include mobile-optimized;
+    }
+  }
+
+  // 订单核销组件
+  .order-verification {
+    .verification-result {
+      @include flex(column, center, center);
+      gap: $spacing-4;
+      padding: $spacing-8;
+      text-align: center;
+
+      .verification-icon {
+        font-size: $font-size-xxxl;
+        margin-bottom: $spacing-4;
+      }
+
+      .verification-title {
+        font-size: $font-size-lg;
+        font-weight: $font-weight-semibold;
+        color: $text-color-primary;
+        margin-bottom: $spacing-2;
+      }
+
+      .verification-content {
+        font-size: $font-size-base;
+        color: $text-color-secondary;
+        margin-bottom: $spacing-6;
+      }
+
+      .verification-actions {
+        @include flex(row, center, center);
+        gap: $spacing-2;
+      }
+    }
+
+    .verification-button {
+      @include button-variant($colors.primary, $colors.white, $colors.primary-dark);
+      padding: $spacing-3 $spacing-8;
+      @include border-radius($border-radius-base);
+      font-size: $font-size-base;
+      @include no-select;
+      @include mobile-optimized;
+    }
+  }
+
+  // 订单管理组件
+  .order-management {
+    .order-list {
+      @include flex(column, flex-start, flex-start);
+      gap: $spacing-4;
+    }
+
+    .order-item {
+      background: $bg-color-white;
+      @include border-radius($border-radius-base);
+      @include shadow('sm');
+      padding: $spacing-4;
+      @include transition(all, $transition-fast);
+
+      &:hover {
+        @include shadow('base');
+      }
+
+      .order-header {
+        @include flex(row, space-between, center);
+        margin-bottom: $spacing-3;
+      }
+
+      .order-id {
+        font-size: $font-size-sm;
+        color: $colors.gray.base;
+      }
+
+      .order-status {
+        @include tag($colors.success, $colors.white);
+        font-size: $font-size-xs;
+      }
+
+      .order-content {
+        @include flex(row, space-between, flex-start);
+        gap: $spacing-4;
+      }
+
+      .order-product {
+        flex: 1;
+        @include text-truncate;
+
+        .product-name {
+          font-size: $font-size-base;
+          color: $text-color-primary;
+          margin-bottom: $spacing-1;
+        }
+
+        .product-price {
+          font-size: $font-size-sm;
+          color: $colors.danger;
+        }
+      }
+
+      .order-total {
+        @include flex(column, flex-end, flex-end);
+        gap: $spacing-1;
+
+        .total-label {
+          font-size: $font-size-xs;
+          color: $colors.gray.base;
+        }
+
+        .total-amount {
+          font-size: $font-size-base;
+          color: $text-color-primary;
+          font-weight: $font-weight-semibold;
+        }
+      }
+
+      .order-actions {
+        @include flex(row, center, center);
+        gap: $spacing-2;
+        margin-top: $spacing-4;
+      }
+
+      .action-button {
+        @include button-variant($colors.warning, $colors.white, $colors.warning-dark);
+        padding: $spacing-2 $spacing-4;
+        @include border-radius($border-radius-base);
+        font-size: $font-size-sm;
+        @include no-select;
+        @include mobile-optimized;
+      }
+    }
+  }
+}
+
+// 通用按钮样式
+.button-variants {
+  .button-primary {
+    @include button-variant($colors.primary, $colors.white, $colors.primary-dark);
+  }
+
+  .button-success {
+    @include button-variant($colors.success, $colors.white, $colors.success-dark);
+  }
+
+  .button-warning {
+    @include button-variant($colors.warning, $colors.white, $colors.warning-dark);
+  }
+
+  .button-danger {
+    @include button-variant($colors.danger, $colors.white, $colors.danger-dark);
+  }
+
+  .button-default {
+    @include button-variant($colors.default, $colors.white, $colors.gray.base);
+  }
+
+  .button-text {
+    @include button-variant(transparent, $colors.primary);
+    text-decoration: none;
+  }
+}
+
+// 表单样式
+.form-styles {
+  .form-group {
+    margin-bottom: $spacing-4;
+
+    .form-label {
+      display: block;
+      font-size: $font-size-sm;
+      color: $text-color-primary;
+      margin-bottom: $spacing-1;
+      font-weight: $font-weight-medium;
+    }
+
+    .form-input {
+      @include form-input;
+    }
+
+    .form-textarea {
+      width: 100%;
+      padding: $spacing-3 $spacing-4;
+      border: $border-width solid $border-color;
+      @include border-radius($border-radius-base);
+      @include transition(all, $transition-base);
+      resize: vertical;
+      min-height: 100px;
+
+      &:focus {
+        outline: none;
+        border-color: $colors.primary;
+        box-shadow: 0 0 0 2px rgba(25, 137, 250, 0.2);
+      }
+
+      &::placeholder {
+        color: $colors.gray.base;
+      }
+    }
+
+    .form-error {
+      color: $colors.danger;
+      font-size: $font-size-xs;
+      margin-top: $spacing-1;
+    }
+
+    .form-hint {
+      color: $colors.gray.base;
+      font-size: $font-size-xs;
+      margin-top: $spacing-1;
+    }
+  }
+}
+
+// 列表样式
+.list-styles {
+  .list-item {
+    background: $bg-color-white;
+    border-bottom: $border-width solid $border-color-light;
+    padding: $spacing-4;
+    @include transition(all, $transition-fast);
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:active {
+      background: $colors.gray.lighter;
+    }
+
+    .item-header {
+      @include flex(row, space-between, center);
+      margin-bottom: $spacing-2;
+    }
+
+    .item-title {
+      font-size: $font-size-base;
+      font-weight: $font-weight-medium;
+      color: $text-color-primary;
+    }
+
+    .item-subtitle {
+      font-size: $font-size-sm;
+      color: $colors.gray.base;
+    }
+
+    .item-content {
+      @include text-truncate;
+      color: $text-color-secondary;
+      font-size: $font-size-sm;
+      line-height: $line-height-base;
+    }
+  }
+}
