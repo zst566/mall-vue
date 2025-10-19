@@ -1,4 +1,5 @@
-import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import { setupRouteGuards, setupNavigationInterceptors, type Permission } from './guards'
 
 // 路由配置
 const routes: Array<RouteRecordRaw> = [
@@ -8,6 +9,7 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/customer/Home.vue'),
     meta: {
       title: '首页',
+      permission: 'public' as Permission,
       requiresAuth: false,
       hideHeader: false,
       hideFooter: false,
@@ -20,6 +22,7 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/customer/Products.vue'),
     meta: {
       title: '商品列表',
+      permission: 'public' as Permission,
       requiresAuth: false,
       hideHeader: false,
       hideFooter: false,
@@ -32,6 +35,7 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/customer/ProductDetail.vue'),
     meta: {
       title: '商品详情',
+      permission: 'public' as Permission,
       requiresAuth: false,
       hideHeader: false,
       hideFooter: false,
@@ -44,6 +48,7 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/customer/Profile.vue'),
     meta: {
       title: '个人中心',
+      permission: 'customer' as Permission,
       requiresAuth: true,
       hideHeader: false,
       hideFooter: false,
@@ -56,6 +61,7 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/customer/Orders.vue'),
     meta: {
       title: '我的订单',
+      permission: 'customer' as Permission,
       requiresAuth: true,
       hideHeader: false,
       hideFooter: false,
@@ -68,6 +74,7 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/customer/OrderDetail.vue'),
     meta: {
       title: '订单详情',
+      permission: 'customer' as Permission,
       requiresAuth: true,
       hideHeader: false,
       hideFooter: false,
@@ -80,6 +87,7 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/customer/Address.vue'),
     meta: {
       title: '地址管理',
+      permission: 'customer' as Permission,
       requiresAuth: true,
       hideHeader: false,
       hideFooter: false,
@@ -92,6 +100,7 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/customer/AddressAdd.vue'),
     meta: {
       title: '添加地址',
+      permission: 'customer' as Permission,
       requiresAuth: true,
       hideHeader: false,
       hideFooter: false,
@@ -104,6 +113,7 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/customer/AddressEdit.vue'),
     meta: {
       title: '编辑地址',
+      permission: 'customer' as Permission,
       requiresAuth: true,
       hideHeader: false,
       hideFooter: false,
@@ -116,6 +126,7 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/customer/Login.vue'),
     meta: {
       title: '登录',
+      permission: 'public' as Permission,
       requiresAuth: false,
       hideHeader: true,
       hideFooter: true,
@@ -128,6 +139,7 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/customer/Register.vue'),
     meta: {
       title: '注册',
+      permission: 'public' as Permission,
       requiresAuth: false,
       hideHeader: true,
       hideFooter: true,
@@ -140,11 +152,12 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/merchant/Home.vue'),
     meta: {
       title: '商户中心',
+      permission: 'merchant' as Permission,
       requiresAuth: true,
-      role: ['admin', 'operator'],
       hideHeader: false,
       hideFooter: false,
-      hideVersionSwitcher: false
+      hideVersionSwitcher: false,
+      requiresMerchantAccess: true
     }
   },
   {
@@ -153,11 +166,12 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/merchant/Scan.vue'),
     meta: {
       title: '扫码核销',
+      permission: 'merchant' as Permission,
       requiresAuth: true,
-      role: ['admin', 'operator'],
       hideHeader: false,
       hideFooter: false,
-      hideVersionSwitcher: false
+      hideVersionSwitcher: false,
+      requiresMerchantAccess: true
     }
   },
   {
@@ -166,11 +180,12 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/merchant/Orders.vue'),
     meta: {
       title: '商户订单',
+      permission: 'merchant' as Permission,
       requiresAuth: true,
-      role: ['admin', 'operator'],
       hideHeader: false,
       hideFooter: false,
-      hideVersionSwitcher: false
+      hideVersionSwitcher: false,
+      requiresMerchantAccess: true
     }
   },
   {
@@ -179,11 +194,12 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/merchant/OrderDetail.vue'),
     meta: {
       title: '订单详情',
+      permission: 'merchant' as Permission,
       requiresAuth: true,
-      role: ['admin', 'operator'],
       hideHeader: false,
       hideFooter: false,
-      hideVersionSwitcher: false
+      hideVersionSwitcher: false,
+      requiresMerchantAccess: true
     }
   },
   {
@@ -192,11 +208,38 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/merchant/Settings.vue'),
     meta: {
       title: '商户设置',
+      permission: 'merchant' as Permission,
       requiresAuth: true,
-      role: ['admin'],
       hideHeader: false,
       hideFooter: false,
-      hideVersionSwitcher: false
+      hideVersionSwitcher: false,
+      requiresMerchantAccess: true
+    }
+  },
+  {
+    path: '/404',
+    name: 'NotFound',
+    component: () => import('@/views/common/NotFound.vue'),
+    meta: {
+      title: '页面不存在',
+      permission: 'public' as Permission,
+      requiresAuth: false,
+      hideHeader: true,
+      hideFooter: true,
+      hideVersionSwitcher: true
+    }
+  },
+  {
+    path: '/500',
+    name: 'ServerError',
+    component: () => import('@/views/common/ServerError.vue'),
+    meta: {
+      title: '服务器错误',
+      permission: 'public' as Permission,
+      requiresAuth: false,
+      hideHeader: true,
+      hideFooter: true,
+      hideVersionSwitcher: true
     }
   },
   {
@@ -205,6 +248,7 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/common/NotFound.vue'),
     meta: {
       title: '页面不存在',
+      permission: 'public' as Permission,
       requiresAuth: false,
       hideHeader: true,
       hideFooter: true,
@@ -225,5 +269,9 @@ const router = createRouter({
     }
   }
 })
+
+// 设置路由守卫
+setupRouteGuards(router)
+setupNavigationInterceptors()
 
 export default router

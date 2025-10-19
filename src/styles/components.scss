@@ -7,7 +7,7 @@
     left: 0;
     right: 0;
     height: $header-height;
-    background: $bg-color-white;
+    background: $white;
     border-bottom: $border-width solid $border-color-light;
     z-index: $z-index-sticky;
     @include flex(center, space-between, center);
@@ -33,7 +33,7 @@
     left: 0;
     right: 0;
     height: $footer-height;
-    background: $bg-color-white;
+    background: $white;
     border-top: $border-width solid $border-color-light;
     z-index: $z-index-sticky;
     @include flex(center, space-around, center);
@@ -43,17 +43,17 @@
       @include flex(column, center, center);
       gap: $spacing-1;
       padding: $spacing-2;
-      color: $colors.gray.base;
+      color: $gray-base;
       text-decoration: none;
       @include transition(all, $transition-fast);
       min-width: 60px;
 
       &:hover {
-        color: $colors.primary;
+        color: $primary;
       }
 
       &.active {
-        color: $colors.primary;
+        color: $primary;
       }
 
       .footer-icon {
@@ -74,7 +74,7 @@
     z-index: $z-index-modal;
 
     .switch-button {
-      @include button-variant($colors.primary, $colors.white, $colors.primary-dark);
+      @include button-variant($primary, $white, $primary-dark);
       padding: $spacing-2 $spacing-4;
       @include border-radius($border-radius-full);
       @include shadow('sm');
@@ -96,8 +96,8 @@
     display: inline-block;
     width: 20px;
     height: 20px;
-    border: 2px solid $colors.gray.lighter;
-    border-top-color: $colors.primary;
+    border: 2px solid $gray-light;
+    border-top-color: $primary;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 
@@ -121,7 +121,7 @@
     z-index: $z-index-modal;
 
     .loading-content {
-      background: $bg-color-white;
+      background: $white;
       padding: $spacing-8;
       @include border-radius($border-radius-lg);
       @include flex(column, center, center);
@@ -140,7 +140,7 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: $bg-color-white;
+    background: $white;
     padding: $spacing-6 $spacing-8;
     @include border-radius($border-radius-lg);
     box-shadow: $shadow-lg;
@@ -151,7 +151,7 @@
     .error-title {
       font-size: $font-size-lg;
       font-weight: $font-weight-semibold;
-      color: $colors.danger;
+      color: $danger;
       margin-bottom: $spacing-4;
     }
 
@@ -167,7 +167,7 @@
     }
 
     .error-button {
-      @include button-variant($colors.primary, $colors.white, $colors.primary-dark);
+      @include button-variant($primary, $white, $primary-dark);
       padding: $spacing-2 $spacing-6;
       @include border-radius($border-radius-base);
       font-size: $font-size-base;
@@ -177,23 +177,23 @@
   // 商户模式特殊样式
   .merchant-mode {
     .app-header {
-      background: $bg-color-gray;
+      background: $gray-lighter;
       border-bottom-color: $border-color;
 
       .header-title {
-        color: $text-color-primary;
+        color: $dark;
       }
     }
 
     .app-footer {
-      background: $bg-color-gray;
+      background: $gray-lighter;
       border-top-color: $border-color;
 
       .footer-item {
-        color: $colors.gray.base;
+        color: $gray-base;
 
         &.active {
-          color: $colors.primary;
+          color: $primary;
         }
       }
     }
@@ -238,7 +238,7 @@
 .customer-components {
   // 商品卡片
   .product-card {
-    background: $bg-color-white;
+    background: $white;
     @include border-radius($border-radius-base);
     @include shadow('sm');
     margin-bottom: $spacing-4;
@@ -264,7 +264,7 @@
       .product-name {
         font-size: $font-size-base;
         font-weight: $font-weight-semibold;
-        color: $text-color-primary;
+        color: $dark;
         margin-bottom: $spacing-2;
         @include text-truncate-lines(2);
       }
@@ -272,13 +272,13 @@
       .product-price {
         font-size: $font-size-lg;
         font-weight: $font-weight-bold;
-        color: $colors.danger;
+        color: $danger;
         margin-bottom: $spacing-3;
       }
 
       .product-description {
         font-size: $font-size-sm;
-        color: $text-color-secondary;
+        color: $gray-dark;
         margin-bottom: $spacing-3;
         @include text-truncate-lines(2);
       }
@@ -289,7 +289,7 @@
       }
 
       .purchase-button {
-        @include button-variant($colors.primary, $colors.white, $colors.primary-dark);
+        @include button-variant($primary, $white, $primary-dark);
         padding: $spacing-2 $spacing-6;
         @include border-radius($border-radius-base);
         font-size: $font-size-base;
@@ -299,7 +299,7 @@
       }
 
       .favorite-button {
-        @include button-variant($colors.gray.lighter, $colors.gray.dark);
+        @include button-variant($gray-lighter, $gray-dark);
         padding: $spacing-2;
         @include border-radius($border-radius-full);
         font-size: $font-size-xl;
@@ -335,18 +335,18 @@
       .product-detail-title {
         font-size: $font-size-xl;
         font-weight: $font-weight-bold;
-        color: $text-color-primary;
+        color: $dark;
       }
 
       .product-detail-price {
         font-size: $font-size-xxl;
         font-weight: $font-weight-bold;
-        color: $colors.danger;
+        color: $danger;
       }
 
       .product-detail-description {
         font-size: $font-size-base;
-        color: $text-color-secondary;
+        color: $gray-dark;
         line-height: $line-height-loose;
       }
     }
@@ -357,7 +357,7 @@
 .merchant-components {
   // 二维码扫描组件
   .qr-scanner {
-    background: $bg-color-white;
+    background: $white;
     height: 100vh;
     display: flex;
     flex-direction: column;
@@ -374,7 +374,7 @@
     .scanner-area {
       width: 300px;
       height: 300px;
-      border: 2px dashed $colors.primary;
+      border: 2px dashed $primary;
       border-radius: $border-radius-lg;
       position: relative;
       margin-bottom: $spacing-4;
@@ -386,7 +386,7 @@
         left: 50%;
         width: 200px;
         height: 200px;
-        border: 2px solid $colors.primary;
+        border: 2px solid $primary;
         border-radius: $border-radius-base;
         transform: translate(-50%, -50%);
       }
@@ -397,8 +397,8 @@
         left: 50%;
         transform: translateX(-50%);
         font-size: $font-size-sm;
-        color: $colors.gray.base;
-        background: $bg-color-white;
+        color: $gray-base;
+        background: $white;
         padding: $spacing-1 $spacing-3;
         @include border-radius($border-radius-full);
         white-space: nowrap;
@@ -411,7 +411,7 @@
     }
 
     .scan-button {
-      @include button-variant($colors.primary, $colors.white, $colors.primary-dark);
+      @include button-variant($primary, $white, $primary-dark);
       padding: $spacing-3 $spacing-8;
       @include border-radius($border-radius-base);
       font-size: $font-size-base;
@@ -420,7 +420,7 @@
     }
 
     .stop-button {
-      @include button-variant($colors.gray.lighter, $colors.gray.dark, $colors.gray.base);
+      @include button-variant($gray-lighter, $gray-dark, $gray-base);
       padding: $spacing-3 $spacing-8;
       @include border-radius($border-radius-base);
       font-size: $font-size-base;
@@ -462,7 +462,7 @@
     }
 
     .verification-button {
-      @include button-variant($colors.primary, $colors.white, $colors.primary-dark);
+      @include button-variant($primary, $white, $primary-dark);
       padding: $spacing-3 $spacing-8;
       @include border-radius($border-radius-base);
       font-size: $font-size-base;
@@ -479,7 +479,7 @@
     }
 
     .order-item {
-      background: $bg-color-white;
+      background: $white;
       @include border-radius($border-radius-base);
       @include shadow('sm');
       padding: $spacing-4;
@@ -496,11 +496,11 @@
 
       .order-id {
         font-size: $font-size-sm;
-        color: $colors.gray.base;
+        color: $gray-base;
       }
 
       .order-status {
-        @include tag($colors.success, $colors.white);
+        @include tag($success, $white);
         font-size: $font-size-xs;
       }
 
@@ -521,7 +521,7 @@
 
         .product-price {
           font-size: $font-size-sm;
-          color: $colors.danger;
+          color: $danger;
         }
       }
 
@@ -531,7 +531,7 @@
 
         .total-label {
           font-size: $font-size-xs;
-          color: $colors.gray.base;
+          color: $gray-base;
         }
 
         .total-amount {
@@ -548,7 +548,7 @@
       }
 
       .action-button {
-        @include button-variant($colors.warning, $colors.white, $colors.warning-dark);
+        @include button-variant($warning, $white, $warning-dark);
         padding: $spacing-2 $spacing-4;
         @include border-radius($border-radius-base);
         font-size: $font-size-sm;
@@ -562,27 +562,27 @@
 // 通用按钮样式
 .button-variants {
   .button-primary {
-    @include button-variant($colors.primary, $colors.white, $colors.primary-dark);
+    @include button-variant($primary, $white, $primary-dark);
   }
 
   .button-success {
-    @include button-variant($colors.success, $colors.white, $colors.success-dark);
+    @include button-variant($success, $white, $success-dark);
   }
 
   .button-warning {
-    @include button-variant($colors.warning, $colors.white, $colors.warning-dark);
+    @include button-variant($warning, $white, $warning-dark);
   }
 
   .button-danger {
-    @include button-variant($colors.danger, $colors.white, $colors.danger-dark);
+    @include button-variant($danger, $white, $danger-dark);
   }
 
   .button-default {
-    @include button-variant($colors.default, $colors.white, $colors.gray.base);
+    @include button-variant($default, $white, $gray-base);
   }
 
   .button-text {
-    @include button-variant(transparent, $colors.primary);
+    @include button-variant(transparent, $primary);
     text-decoration: none;
   }
 }
@@ -615,23 +615,23 @@
 
       &:focus {
         outline: none;
-        border-color: $colors.primary;
+        border-color: $primary;
         box-shadow: 0 0 0 2px rgba(25, 137, 250, 0.2);
       }
 
       &::placeholder {
-        color: $colors.gray.base;
+        color: $gray-base;
       }
     }
 
     .form-error {
-      color: $colors.danger;
+      color: $danger;
       font-size: $font-size-xs;
       margin-top: $spacing-1;
     }
 
     .form-hint {
-      color: $colors.gray.base;
+      color: $gray-base;
       font-size: $font-size-xs;
       margin-top: $spacing-1;
     }
@@ -641,7 +641,7 @@
 // 列表样式
 .list-styles {
   .list-item {
-    background: $bg-color-white;
+    background: $white;
     border-bottom: $border-width solid $border-color-light;
     padding: $spacing-4;
     @include transition(all, $transition-fast);
@@ -651,7 +651,7 @@
     }
 
     &:active {
-      background: $colors.gray.lighter;
+      background: $gray-lighter;
     }
 
     .item-header {
@@ -667,7 +667,7 @@
 
     .item-subtitle {
       font-size: $font-size-sm;
-      color: $colors.gray.base;
+      color: $gray-base;
     }
 
     .item-content {

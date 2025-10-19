@@ -1,4 +1,4 @@
-# 广州商场促销平台 - 移动端应用
+# 滨江宏岸商场 - 移动端应用
 
 基于 Vue 3 + TypeScript + Vite 构建的现代化移动端购物平台，支持客户版和商户版双模式。
 
@@ -73,6 +73,7 @@ npm run format
 ## 📱 双版本功能
 
 ### 客户版功能
+
 - 商品浏览和搜索
 - 商品详情展示
 - 直接购买
@@ -81,6 +82,7 @@ npm run format
 - 地址管理
 
 ### 商户版功能
+
 - 二维码扫码核销
 - 订单核销管理
 - 订单撤销
@@ -90,24 +92,30 @@ npm run format
 ## 🔧 技术栈
 
 ### 前端框架
+
 - **Vue 3** - 渐进式 JavaScript 框架
 - **TypeScript** - 类型安全的 JavaScript 超集
 - **Vite** - 现代化的构建工具
 
 ### 状态管理
+
 - **Pinia** - Vue 3 推荐的状态管理库
 
 ### UI 组件
+
 - **Vant UI** - 移动端 UI 组件库
 - **Auto Import** - 自动导入 Vue 3 API
 
 ### 路由和导航
+
 - **Vue Router 4** - 官方路由管理器
 
 ### HTTP 客户端
+
 - **Axios** - HTTP 请求库
 
 ### 开发工具
+
 - **ESLint** - JavaScript 代码检查工具
 - **Prettier** - 代码格式化工具
 - **Vue TSC** - TypeScript 类型检查
@@ -145,6 +153,7 @@ mall-vue/
 ## 🎨 设计系统
 
 项目遵循统一的设计规范，支持：
+
 - 主题颜色自定义
 - 响应式断点设计
 - 移动端触摸优化
@@ -175,6 +184,7 @@ scp -r dist/* user@server:/path/to/web/root
 ## 🔗 API 集成
 
 项目集成以下 API 服务：
+
 - 认证和用户管理
 - 商品管理和搜索
 - 订单处理
@@ -184,6 +194,7 @@ scp -r dist/* user@server:/path/to/web/root
 ## 📱 微信小程序集成
 
 项目支持微信小程序 web-view 调用：
+
 - 自动接收微信用户信息
 - JWT Token 管理和刷新
 - 版本自动切换
@@ -202,6 +213,7 @@ npm run test:e2e
 ## 📊 性能监控
 
 项目内置性能监控：
+
 - 首屏加载时间
 - API 请求性能
 - 用户交互响应
@@ -221,6 +233,7 @@ MIT License
 ## 🆘 支持
 
 如有问题或建议，请通过以下方式联系：
+
 - 创建 Issue
 - 发送邮件到项目维护者
 

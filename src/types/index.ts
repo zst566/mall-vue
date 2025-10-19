@@ -4,7 +4,7 @@
 export type AppVersion = 'customer' | 'merchant'
 
 // 用户角色类型
-export type UserRole = 'customer' | 'admin' | 'operator'
+export type UserRole = 'customer' | 'admin' | 'operator' | 'merchant'
 
 // 用户类型
 export interface User {
@@ -55,6 +55,8 @@ export interface Address {
   district: string
   detail: string
   isDefault?: boolean
+  createdAt?: string
+  updatedAt?: string
 }
 
 // 商品相关类型
@@ -87,7 +89,25 @@ export interface ProductQueryParams extends PaginationParams {
   sortOrder?: 'asc' | 'desc'
 }
 
-// 订单相关类型
+// 订单商品项
+export interface OrderItem {
+  productId: string
+  productName: string
+  productImage: string
+  specification: string
+  quantity: number
+  price: number
+}
+
+// 收货地址
+export interface ShippingAddress {
+  province: string
+  city: string
+  district: string
+  detail: string
+}
+
+// 客户订单相关类型
 export interface Order {
   id: string
   orderNo: string
@@ -117,6 +137,43 @@ export interface Order {
   refundedAt?: string
   refundedAmount?: number
 }
+
+// 商户订单相关类型
+export interface MerchantOrder {
+  id: string
+  orderNo: string
+  customerId: string
+  customerName: string
+  customerPhone: string
+  customerAvatar?: string
+  status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
+  paymentMethod: 'wechat' | 'alipay' | 'cash'
+  paymentStatus: 'unpaid' | 'paid' | 'refunded'
+  totalAmount: number
+  createdAt: string
+  updatedAt: string
+  paidAt?: string
+  confirmedAt?: string
+  shippedAt?: string
+  deliveredAt?: string
+  receiverName: string
+  receiverPhone: string
+  shippingAddress: ShippingAddress
+  items: OrderItem[]
+  notes?: string
+}
+
+// 订单状态类型
+export type OrderStatus = 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
+
+// 商户订单状态类型
+export type MerchantOrderStatus = 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
+
+// 支付方法类型
+export type PaymentMethod = 'wechat' | 'alipay' | 'cash' | 'other'
+
+// 支付状态类型
+export type PaymentStatus = 'pending' | 'success' | 'failed' | 'cancelled'
 
 // 订单状��映射
 export const OrderStatusMap = {
@@ -166,6 +223,41 @@ export interface OrderVerificationResponse {
   canRevoke: boolean
 }
 
+// 退款申请相关类��
+export interface RefundRequest {
+  orderId: string
+  amount: number
+  reason: string
+  description?: string
+  refundMethod?: 'original' | 'balance'
+  images?: string[]
+  contact?: string
+}
+
+// 退款状态类型
+export type RefundStatus = 'pending' | 'approved' | 'rejected' | 'processing' | 'completed' | 'failed'
+
+// 退款记录类型
+export interface RefundRecord {
+  id: string
+  orderId: string
+  refundNo: string
+  amount: number
+  status: RefundStatus
+  reason: string
+  description?: string
+  refundMethod: 'original' | 'balance'
+  refundTo?: string
+  images?: string[]
+  contact?: string
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+  processedAt?: string
+  processedBy?: string
+  processorNotes?: string
+}
+
 // 二维码扫描结果
 export interface QRCodeResult {
   success: boolean
@@ -180,6 +272,41 @@ export interface LoginCredentials {
   password?: string
   phone?: string
   code?: string
+}
+
+export interface LoginRequest {
+  username?: string
+  password?: string
+  phone?: string
+  code?: string
+}
+
+export interface LoginResponse {
+  success: boolean
+  data: {
+    token: string
+    refreshToken: string
+    user: User
+  }
+  message: string
+}
+
+export interface RegisterRequest {
+  username: string
+  password: string
+  phone?: string
+  email?: string
+  nickname: string
+}
+
+export interface RegisterResponse {
+  success: boolean
+  data: {
+    token: string
+    refreshToken: string
+    user: User
+  }
+  message: string
 }
 
 export interface WechatLoginData {
@@ -206,6 +333,116 @@ export interface WechatParams {
   openid?: string
   unionid?: string
   version?: AppVersion
+  userId?: string
+  from?: string
+  scene?: string
+  shareTicket?: string
+  path?: string
+  query?: Record<string, any>
+}
+
+// 二维码数据
+export interface QRCodeData {
+  type: 'order' | 'product' | 'promotion'
+  id: string
+  data?: any
+}
+
+// 核销结果
+export interface VerificationResult {
+  success: boolean
+  order?: Order
+  message: string
+  canRevoke?: boolean
+}
+
+// 商户订单统计
+export interface MerchantOrderStats {
+  total: number
+  pending: number
+  confirmed: number
+  shipped: number
+  delivered: number
+  cancelled: number
+  refunded: number
+  totalAmount: number
+}
+
+// 订单创建请求
+export interface OrderCreateRequest {
+  productId: string
+  quantity: number
+  shippingAddress: Address
+  contactName: string
+  contactPhone: string
+  notes?: string
+}
+
+// 订单支付请求
+export interface OrderPaymentRequest {
+  orderId: string
+  paymentMethod: PaymentMethod
+  amount: number
+}
+
+// 订单搜索参数
+export interface OrderSearchParams extends PaginationParams {
+  status?: OrderStatus
+  dateRange?: [string, string]
+  paymentMethod?: PaymentMethod
+  keyword?: string
+}
+
+// 支付请求
+export interface PaymentRequest {
+  orderId: string
+  amount: number
+  method: PaymentMethod
+  returnUrl?: string
+}
+
+// 支付响应
+export interface PaymentResponse {
+  success: boolean
+  paymentId: string
+  paymentUrl?: string
+  qrCode?: string
+  message: string
+}
+
+// 商品搜索参数
+export interface ProductSearchParams extends PaginationParams {
+  category?: string
+  brand?: string
+  priceRange?: [number, number]
+  tags?: string[]
+  keyword?: string
+  sortBy?: 'price' | 'sales' | 'createdAt' | 'name'
+  sortOrder?: 'asc' | 'desc'
+}
+
+// 商品列表响应
+export interface ProductListResponse {
+  products: Product[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
+
+// 分类类型
+export interface Category {
+  id: string
+  name: string
+  description?: string
+  parentId?: string
+  level: number
+  sort: number
+  icon?: string
+  image?: string
+  status: 'active' | 'inactive'
+  createdAt: string
+  updatedAt: string
 }
 
 // 环境检测类型

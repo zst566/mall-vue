@@ -1,0 +1,286 @@
+// 主题系统
+@import 'variables';
+@import 'mixins';
+
+// 客户版主题
+.theme-customer {
+  // 主色调
+  --primary-color: #{$primary};
+  --primary-light: #{$primary-light};
+  --primary-dark: #{$primary-dark};
+
+  // 背景色
+  --background-color: #{$light};
+  --background-color-secondary: #{$gray-lighter};
+  --background-color-tertiary: #{$white};
+
+  // 文字颜色
+  --text-color-primary: #{$dark};
+  --text-color-secondary: #{$gray-dark};
+  --text-color-tertiary: #{$gray-base};
+  --text-color-disabled: #{$gray-light};
+
+  // 边框颜色
+  --border-color: #{$gray-light};
+  --border-color-light: #{$gray-lighter};
+  --border-color-dark: #{$gray-dark};
+
+  // 字体大小
+  --font-size-xs: #{$font-size-xs};
+  --font-size-sm: #{$font-size-sm};
+  --font-size-base: #{$font-size-base};
+  --font-size-lg: #{$font-size-lg};
+  --font-size-xl: #{$font-size-xl};
+  --font-size-xxl: #{$font-size-xxl};
+
+  // 间距
+  --spacing-xs: #{$spacing-1};
+  --spacing-sm: #{$spacing-2};
+  --spacing-base: #{$spacing-4};
+  --spacing-lg: #{$spacing-8};
+
+  // 圆角
+  --border-radius-xs: #{$border-radius-xs};
+  --border-radius-sm: #{$border-radius-sm};
+  --border-radius-base: #{$border-radius-base};
+  --border-radius-lg: #{$border-radius-lg};
+
+  // 阴影
+  --shadow-xs: #{$shadow-xs};
+  --shadow-sm: #{$shadow-sm};
+  --shadow-base: #{$shadow-base};
+  --shadow-lg: #{$shadow-lg};
+
+  // 客户版特定的样式覆盖
+  .app-header,
+  .app-footer {
+    background: var(--background-color-tertiary);
+    border-color: var(--border-color-light);
+  }
+
+  .product-card {
+    background: var(--background-color-tertiary);
+    border: 1px solid var(--border-color-light);
+  }
+
+  .form-input,
+  .form-textarea {
+    background: var(--background-color-tertiary);
+    border-color: var(--border-color);
+    color: var(--text-color-primary);
+  }
+
+  .form-input:focus,
+  .form-textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(25, 137, 250, 0.2);
+  }
+}
+
+// 商户版主题
+.theme-merchant {
+  // 主色调（商务风格）
+  --primary-color: #{$primary};
+  --primary-light: #{$primary-light};
+  --primary-dark: #{$primary-dark};
+
+  // 背景色（更深的商务风格）
+  --background-color: #{$gray-lighter};
+  --background-color-secondary: #{$gray-light};
+  --background-color-tertiary: #{$white};
+
+  // 文字颜色
+  --text-color-primary: #{$dark};
+  --text-color-secondary: #{$gray-dark};
+  --text-color-tertiary: #{$gray-base};
+  --text-color-disabled: #{$gray-light};
+
+  // 边框颜色
+  --border-color: #{$gray-light};
+  --border-color-light: #{$gray-lighter};
+  --border-color-dark: #{$gray-dark};
+
+  // 字体大小
+  --font-size-xs: #{$font-size-xs};
+  --font-size-sm: #{$font-size-sm};
+  --font-size-base: #{$font-size-base};
+  --font-size-lg: #{$font-size-lg};
+  --font-size-xl: #{$font-size-xl};
+  --font-size-xxl: #{$font-size-xxl};
+
+  // 间距
+  --spacing-xs: #{$spacing-1};
+  --spacing-sm: #{$spacing-2};
+  --spacing-base: #{$spacing-4};
+  --spacing-lg: #{$spacing-8};
+
+  // 圆角
+  --border-radius-xs: #{$border-radius-xs};
+  --border-radius-sm: #{$border-radius-sm};
+  --border-radius-base: #{$border-radius-base};
+  --border-radius-lg: #{$border-radius-lg};
+
+  // 阴影
+  --shadow-xs: #{$shadow-xs};
+  --shadow-sm: #{$shadow-sm};
+  --shadow-base: #{$shadow-base};
+  --shadow-lg: #{$shadow-lg};
+
+  // 商户版特定的样式覆盖
+  .app-header,
+  .app-footer {
+    background: var(--background-color-secondary);
+    border-color: var(--border-color);
+  }
+
+  .product-card,
+  .order-item {
+    background: var(--background-color-tertiary);
+    border: 1px solid var(--border-color-light);
+  }
+
+  .form-input,
+  .form-textarea {
+    background: var(--background-color-tertiary);
+    border-color: var(--border-color);
+    color: var(--text-color-primary);
+  }
+
+  .form-input:focus,
+  .form-textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(25, 137, 250, 0.2);
+  }
+
+  // 商户版深色背景
+  .order-management {
+    .order-item {
+      background: var(--background-color-tertiary);
+    }
+  }
+}
+
+// 主题切换工具类
+.theme-customer-body {
+  @extend .theme-customer;
+}
+
+.theme-merchant-body {
+  @extend .theme-merchant;
+}
+
+// 动态主题变量
+:root {
+  // 默认使用客户版主题
+  @extend .theme-customer;
+}
+
+// 暗色模式主题
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary-color: #{$primary};
+    --primary-light: #{$primary-light};
+    --primary-dark: #{$primary-dark};
+
+    // 暗色模式背景
+    --background-color: #{$dark};
+    --background-color-secondary: #{$gray-dark};
+    --background-color-tertiary: #{$gray-base};
+
+    // 暗色模式文字
+    --text-color-primary: #{$light};
+    --text-color-secondary: #{$gray-light};
+    --text-color-tertiary: #{$gray-lighter};
+    --text-color-disabled: #{$gray-light};
+
+    // 暗色模式边框
+    --border-color: #{$gray-base};
+    --border-color-light: #{$gray-dark};
+    --border-color-dark: #{$gray-light};
+  }
+
+  // 暗色模式样式覆盖
+  .theme-customer-body,
+  .theme-merchant-body {
+    background: var(--background-color);
+    color: var(--text-color-primary);
+  }
+
+  .product-card,
+  .order-item,
+  .form-input,
+  .form-textarea {
+    background: var(--background-color-tertiary);
+    color: var(--text-color-primary);
+    border-color: var(--border-color-light);
+  }
+
+  .app-header,
+  .app-footer {
+    background: var(--background-color-secondary);
+    border-color: var(--border-color);
+    color: var(--text-color-primary);
+  }
+}
+
+// 响应式主题调整
+@include respond-to-max(mobile) {
+  :root {
+    --font-size-base: 13px;
+    --font-size-sm: 12px;
+
+    .theme-customer,
+    .theme-merchant {
+      --spacing-base: 12px;
+      --spacing-lg: 16px;
+    }
+  }
+}
+
+// 高对比度主题
+@media (prefers-contrast: high) {
+  :root {
+    --primary-color: #{$primary-dark};
+    --text-color-primary: #{$black};
+    --border-color: #{$gray-dark};
+
+    .theme-customer,
+    .theme-merchant {
+      --shadow-xs: none;
+      --shadow-sm: none;
+      --shadow-base: none;
+      --shadow-lg: none;
+    }
+  }
+}
+
+// 减少动画主题
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+// 主题切换工具函数
+@function get-theme-color($theme, $color) {
+  @if $theme == 'customer' {
+    @return var(--#{$color});
+  } @else if $theme == 'merchant' {
+    @return var(--#{$color});
+  } @else {
+    @return var(--#{$color});
+  }
+}
+
+// 主题混入
+@mixin theme-styles($theme: 'customer') {
+  @if $theme == 'customer' {
+    @extend .theme-customer;
+  } @else if $theme == 'merchant' {
+    @extend .theme-merchant;
+  }
+}

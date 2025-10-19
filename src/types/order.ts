@@ -111,7 +111,7 @@ export interface OrderStatusUpdateRequest {
 }
 
 // 订单状态更新响应
-export interface OrderStatusUpdateResponse extends ApiResponse<Order>> {}
+export interface OrderStatusUpdateResponse extends ApiResponse<Order> {}
 
 // 订单查询响应
 export interface OrderListResponse extends ApiResponse<PaginatedResponse<Order>> {}
@@ -183,7 +183,7 @@ export interface OrderStats {
 }
 
 // 订单统计响应
-export interface OrderStatsResponse extends ApiResponse<OrderStats>> {}
+export interface OrderStatsResponse extends ApiResponse<OrderStats> {}
 
 // 订单导出请求
 export interface OrderExportRequest {
@@ -364,7 +364,7 @@ export interface OrderCancelRequest {
 }
 
 // 订单取消响应
-export interface OrderCancelResponse extends ApiResponse<Order>> {}
+export interface OrderCancelResponse extends ApiResponse<Order> {}
 
 // 订单退款
 export interface OrderRefundRequest {
@@ -526,7 +526,7 @@ export interface OrderTimeline {
 }
 
 // 订单时间线响应
-export interface OrderTimelineResponse extends ApiResponse<OrderTimeline>> {}
+export interface OrderTimelineResponse extends ApiResponse<OrderTimeline> {}
 
 // 订单导出模板
 export interface OrderExportTemplate {
@@ -593,7 +593,7 @@ export interface OrderAnalysis {
 }
 
 // 订单分析响应
-export interface OrderAnalysisResponse extends ApiResponse<OrderAnalysis>> {}
+export interface OrderAnalysisResponse extends ApiResponse<OrderAnalysis> {}
 
 // 订单预测
 export interface OrderForecast {
@@ -618,7 +618,7 @@ export interface OrderForecast {
 }
 
 // 订单预测响应
-export interface OrderForecastResponse extends ApiResponse<OrderForecast>> {}
+export interface OrderForecastResponse extends ApiResponse<OrderForecast> {}
 
 // 订单异常处理
 export interface OrderException {

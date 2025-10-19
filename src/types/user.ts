@@ -257,7 +257,7 @@ export interface UserLoginStats {
 }
 
 // 用户登录统计响应
-export interface UserLoginStatsResponse extends ApiResponse<UserLoginStats>> {}
+export interface UserLoginStatsResponse extends ApiResponse<UserLoginStats> {}
 
 // 用户行为分析
 export interface UserBehaviorAnalysis {
@@ -285,7 +285,7 @@ export interface UserBehaviorAnalysis {
 }
 
 // 用户行为分析响应
-export interface UserBehaviorAnalysisResponse extends ApiResponse<UserBehaviorAnalysis>> {}
+export interface UserBehaviorAnalysisResponse extends ApiResponse<UserBehaviorAnalysis> {}
 
 // 用户画像
 export interface UserProfile {
@@ -318,7 +318,7 @@ export interface UserProfile {
 }
 
 // 用户画像响应
-export interface UserProfileResponse extends ApiResponse<UserProfile>> {}
+export interface UserProfileResponse extends ApiResponse<UserProfile> {}
 
 // 用户成长
 export interface UserGrowth {
@@ -344,7 +344,7 @@ export interface UserGrowth {
 }
 
 // 用户成长响应
-export interface UserGrowthResponse extends ApiResponse<UserGrowth>> {}
+export interface UserGrowthResponse extends ApiResponse<UserGrowth> {}
 
 // 社交媒体账户
 export interface SocialAccount {
@@ -378,7 +378,7 @@ export interface UserNotificationSettings {
 }
 
 // 用户通知设置响应
-export interface NotificationSettingsResponse extends ApiResponse<UserNotificationSettings>> {}
+export interface NotificationSettingsResponse extends ApiResponse<UserNotificationSettings> {}
 
 // 用户隐私设置
 export interface UserPrivacySettings {
@@ -392,7 +392,7 @@ export interface UserPrivacySettings {
 }
 
 // 用户隐私设置响应
-export interface PrivacySettingsResponse extends ApiResponse<UserPrivacySettings>> {}
+export interface PrivacySettingsResponse extends ApiResponse<UserPrivacySettings> {}
 
 // 用户安全设置
 export interface UserSecuritySettings {
@@ -412,7 +412,7 @@ export interface UserSecuritySettings {
 }
 
 // 用户安全设置响应
-export interface SecuritySettingsResponse extends ApiResponse<UserSecuritySettings>> {}
+export interface SecuritySettingsResponse extends ApiResponse<UserSecuritySettings> {}
 
 // 用户数据导出
 export interface UserDataExportRequest {

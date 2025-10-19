@@ -1,26 +1,58 @@
 // 颜色变量
-$colors: (
-  primary: #1989fa,
-  primary-light: #5cadff,
-  primary-dark: #0068c5,
-  secondary: #07c160,
-  success: #07c160,
-  warning: #ff976a,
-  danger: #ee0a24,
-  default: #969799,
-  light: #f7f8fa,
-  dark: #323233,
-  white: #ffffff,
-  black: #000000,
-  gray: {
-    lightest: #f7f8fa,
-    lighter: #edf2f7,
-    light: #ebedf0,
-    base: #969799,
-    dark: #323233,
-    darker: #73767a,
-  }
-);
+$primary: #1989fa;
+$primary-light: #5cadff;
+$primary-dark: #0068c5;
+$secondary: #07c160;
+$success: #07c160;
+$success-light: #52c41a;
+$success-dark: #389e0d;
+$warning: #ff976a;
+$warning-light: #ffa940;
+$warning-dark: #d46b08;
+$danger: #ee0a24;
+$danger-light: #ff4d4f;
+$danger-dark: #cf1322;
+$default: #969799;
+$default-light: #bfbfbf;
+$default-dark: #595959;
+$light: #f7f8fa;
+$dark: #323233;
+$white: #ffffff;
+$black: #000000;
+
+// 灰色系列
+$gray-lightest: #f7f8fa;
+$gray-lighter: #edf2f7;
+$gray-light: #ebedf0;
+$gray-base: #969799;
+$gray-dark: #323233;
+$gray-darker: #73767a;
+
+// 文本颜色变量
+$text-color-primary: $dark;
+$text-color-secondary: $gray-dark;
+$text-color-tertiary: $gray-base;
+$text-color-disabled: $gray-light;
+
+// 背景颜色变量
+$bg-color-base: $light;
+$bg-color-secondary: $white;
+$bg-color-tertiary: $gray-lighter;
+
+// 链接颜色变量
+$link-color: $primary;
+$link-hover-color: $primary-dark;
+$link-active-color: $primary-light;
+
+// 滚动条颜色变量
+$scrollbar-track-color: $gray-lighter;
+$scrollbar-thumb-color: $gray-base;
+$scrollbar-thumb-hover-color: $gray-dark;
+
+// 断点变量（用于响应式）
+$breakpoint-mobile: 768px;
+$breakpoint-tablet: 1024px;
+$breakpoint-desktop: 1280px;
 
 // 字体变量
 $font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
@@ -88,12 +120,15 @@ $shadow-base: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.
 $shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 
+// 阴影颜色
+$shadow-color: rgba(0, 0, 0, 0.1);
+
 // 边框变量
 $border-width: 1px;
 $border-style: solid;
-$border-color: $colors.gray.light;
-$border-color-light: $colors.gray.lighter;
-$border-color-dark: $colors.gray.dark;
+$border-color: $gray-light;
+$border-color-light: $gray-lighter;
+$border-color-dark: $gray-dark;
 
 // Z-index变量
 $z-index-dropdown: 1000;
@@ -113,19 +148,6 @@ $transition-slow: 300ms ease;
 $header-height: 56px;
 $footer-height: 60px;
 $tabbar-height: 60px;
-
-// 颜色获取函数
-@function color($color-name, $shade: base) {
-  @if map-has-key($colors, $color-name) {
-    @if type-of(map-get($colors, $color-name)) == 'map' {
-      @return map-get(map-get($colors, $color-name), $shade);
-    } @else {
-      @return map-get($colors, $color-name);
-    }
-  } @else {
-    @error "Color `#{$color-name}` not found in $colors map.";
-  }
-}
 
 // 间距函数
 @function spacing($value) {
@@ -167,38 +189,17 @@ $tabbar-height: 60px;
   @return $spacing-base;
 }
 
-// 兼容性变量
-$text-color-primary: color(dark);
-$text-color-secondary: color(gray);
-$text-color-light: color(gray, light);
-$text-color-white: color(white);
-$bg-color-base: color(light);
-$bg-color-white: color(white);
-$bg-color-gray: color(gray, lighter);
-$link-color: color(primary);
-$link-hover-color: color(primary-light);
-$link-active-color: color(primary-dark);
-$border-color: color(gray, light);
-$border-color-light: color(gray, lighter);
-$border-color-dark: color(gray, dark);
-$shadow-color: rgba(0, 0, 0, 0.1);
-
-// 滚动条变量
-$scrollbar-track-color: color(gray, lighter);
-$scrollbar-thumb-color: color(gray, base);
-$scrollbar-thumb-hover-color: color(gray, dark);
-
 // 自定义Vant主题变量
 :root {
-  --van-primary-color: #{color(primary)};
-  --van-success-color: #{color(success)};
-  --van-warning-color: #{color(warning)};
-  --van-danger-color: #{color(danger)};
-  --van-text-color: #{color(dark)};
-  --van-text-color-2: #{color(gray, dark)};
-  --van-text-color-3: #{color(gray, base)};
-  --van-text-color-disabled: #{color(gray, light)};
-  --van-border-color: #{color(gray, light)};
-  --van-background: #{color(light)};
-  --van-background-2: #{color(gray, lighter)};
+  --van-primary-color: #{$primary};
+  --van-success-color: #{$success};
+  --van-warning-color: #{$warning};
+  --van-danger-color: #{$danger};
+  --van-text-color: #{$dark};
+  --van-text-color-2: #{$gray-dark};
+  --van-text-color-3: #{$gray-base};
+  --van-text-color-disabled: #{$gray-light};
+  --van-border-color: #{$gray-light};
+  --van-background: #{$light};
+  --van-background-2: #{$gray-lighter};
 }

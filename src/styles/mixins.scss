@@ -136,7 +136,7 @@
 }
 
 // 卡片样式
-@mixin card($bg-color: $bg-color-white, $border-radius: $border-radius-lg, $shadow: true) {
+@mixin card($bg-color: $white, $border-radius: $border-radius-lg, $shadow: true) {
   background-color: $bg-color;
   @include border-radius($border-radius);
 
@@ -161,17 +161,17 @@
 
   &:focus {
     outline: none;
-    border-color: $colors.primary;
+    border-color: $primary;
     box-shadow: 0 0 0 2px rgba(25, 137, 250, 0.2);
   }
 
   &::placeholder {
-    color: $colors.gray.base;
+    color: $gray-base;
   }
 }
 
 // 标签样式
-@mixin tag($bg-color: $colors.gray.lighter, $text-color: $colors.gray.dark, $size: base) {
+@mixin tag($bg-color: $gray-lighter, $text-color: $gray-dark, $size: base) {
   display: inline-flex;
   align-items: center;
   padding: $spacing-1 $spacing-3;
@@ -197,7 +197,7 @@
 }
 
 // 徽章样式
-@mixin badge($bg-color: $colors.danger, $text-color: $colors.white, $size: base) {
+@mixin badge($bg-color: $danger, $text-color: $white, $size: base) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -221,7 +221,7 @@
 }
 
 // 徽标样式
-@mixin badge-dot($position: top-right, $size: 8px, $color: $colors.danger) {
+@mixin badge-dot($position: top-right, $size: 8px, $color: $danger) {
   position: relative;
 
   &::before {
@@ -249,7 +249,7 @@
 }
 
 // 图片响应式
-@m responsive-image {
+@mixin responsive-image {
   max-width: 100%;
   height: auto;
   display: block;

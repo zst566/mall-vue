@@ -1,29 +1,38 @@
 <template>
   <div id="app" :class="{ 'merchant-mode': appStore.isMerchantMode }">
     <!-- 应用头部 -->
-    <AppHeader />
+    <AppHeader v-if="!appStore.isLoading && !route.meta.hideHeader" />
 
     <!-- 主要内容区域 -->
     <main class="app-main">
-      <router-view />
+      <router-view v-slot="{ Component }">
+        <transition name="fade" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
     </main>
 
     <!-- 应用底部 -->
-    <AppFooter />
+    <AppFooter v-if="!appStore.isLoading && !route.meta.hideFooter" />
 
     <!-- 版本切换组件 -->
     <VersionSwitcher />
 
     <!-- 全局加载组件 -->
-    <LoadingSpinner />
+    <LoadingSpinner :visible="appStore.isLoading" />
 
     <!-- 全局错误提示组件 -->
-    <ErrorMessage />
+    <ErrorMessage
+      :visible="!!appStore.error"
+      :error="appStore.error"
+      @close="appStore.clearError()"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
 import AppHeader from '@/components/common/AppHeader.vue'
@@ -32,42 +41,56 @@ import VersionSwitcher from '@/components/common/VersionSwitcher.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import ErrorMessage from '@/components/common/ErrorMessage.vue'
 
-// 状态管理
+// 路由和状态管理
+const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const appStore = useAppStore()
 
 // 初始化应用
 onMounted(async () => {
-  // 检查本地存储的token
-  const savedToken = localStorage.getItem('token')
-  if (savedToken) {
-    authStore.token = savedToken
-  }
+  try {
+    // 初始化应用状态
+    appStore.setLoading(true)
 
-  // 检查微信小程序参数
-  const urlParams = new URLSearchParams(window.location.search)
-  const token = urlParams.get('token')
-  const version = urlParams.get('version')
+    // 初始化认证状态
+    authStore.initializeAuth()
 
-  if (token) {
-    authStore.token = token
-    localStorage.setItem('token', token)
-  }
-
-  if (version) {
-    appStore.currentVersion = version as 'customer' | 'merchant'
-  }
-
-  // 如果有token，尝试获取用户信息
-  if (authStore.token) {
-    try {
-      // 这里应该调用获取用户信息的API
-      // await authStore.getUserInfo()
-    } catch (error) {
-      console.error('获取用户信息失败:', error)
-      // Token失效，清除本地token
-      authStore.logout()
+    // 初始化应用
+    const initResult = await appStore.initializeApp()
+    if (!initResult.success) {
+      throw new Error(initResult.message)
     }
+
+    // 如果有token，尝试获取用户信息
+    if (authStore.isLoggedIn) {
+      const userInfoResult = await authStore.getUserInfo()
+      if (!userInfoResult.success) {
+        console.warn('获取用户信息失败:', userInfoResult.message)
+        // Token失效，清除本地token
+        authStore.logout()
+      }
+    }
+
+    // 监听路由变化
+    watch(
+      () => route.path,
+      (newPath) => {
+        // 根据路径更新版本
+        if (newPath.startsWith('/merchant')) {
+          appStore.switchToMerchant()
+        } else {
+          appStore.switchToCustomer()
+        }
+      },
+      { immediate: true }
+    )
+
+  } catch (error) {
+    console.error('应用初始化失败:', error)
+    appStore.setError(error)
+  } finally {
+    appStore.setLoading(false)
   }
 })
 </script>
@@ -105,5 +128,28 @@ onMounted(async () => {
 // 禁用双击缩放
 * {
   touch-action: manipulation;
+}
+
+// 页面过渡动画
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+// 暗色模式支持
+@media (prefers-color-scheme: dark) {
+  #app {
+    background-color: #1a1a1a;
+    color: #fff;
+
+    &.merchant-mode {
+      background-color: #2a2a2a;
+    }
+  }
 }
 </style>

@@ -33,8 +33,7 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "types": [
-      "vite/client",
-      "element-plus/global"
+      "vite/client"
     ]
   }
 }

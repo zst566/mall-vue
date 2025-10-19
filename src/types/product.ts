@@ -158,7 +158,7 @@ export interface ProductReviewStats {
 }
 
 // 商品评价统计响应
-export interface ProductReviewStatsResponse extends ApiResponse<ProductReviewStats>> {}
+export interface ProductReviewStatsResponse extends ApiResponse<ProductReviewStats> {}
 
 // 商品推荐
 export interface ProductRecommendation {
@@ -198,7 +198,7 @@ export interface ProductSearchSuggestion {
 }
 
 // 商品搜索建议响应
-export interface ProductSearchSuggestionResponse extends ApiResponse<ProductSearchSuggestion>> {}
+export interface ProductSearchSuggestionResponse extends ApiResponse<ProductSearchSuggestion> {}
 
 // 商品批量操作
 export interface ProductBatchOperation {
@@ -291,7 +291,7 @@ export interface ProductComparison {
 }
 
 // 商品对比响应
-export interface ProductComparisonResponse extends ApiResponse<ProductComparison>> {}
+export interface ProductComparisonResponse extends ApiResponse<ProductComparison> {}
 
 // 商品关联
 export interface ProductRelation {
@@ -490,7 +490,7 @@ export interface ProductImageDeleteRequest {
 }
 
 // 商品图片删除响应
-export interface ProductImageDeleteResponse extends ApiResponse<null>> {}
+export interface ProductImageDeleteResponse extends ApiResponse<null> {}
 
 // 商品图片设置主图
 export interface ProductImageSetPrimaryRequest {
@@ -499,7 +499,7 @@ export interface ProductImageSetPrimaryRequest {
 }
 
 // 商品图片设置主图响应
-export interface ProductImageSetPrimaryResponse extends ApiResponse<null>> {}
+export interface ProductImageSetPrimaryResponse extends ApiResponse<null> {}
 
 // 商品模板
 export interface ProductTemplate {
@@ -531,7 +531,7 @@ export interface ProductGenerateRequest {
 }
 
 // 商品生成响应
-export interface ProductGenerateResponse extends ApiResponse<Product>> {}
+export interface ProductGenerateResponse extends ApiResponse<Product> {}
 
 // 商品SEO设置
 export interface ProductSEO {
@@ -549,7 +549,7 @@ export interface ProductSEO {
 }
 
 // 商品SEO设置响应
-export interface ProductSEOResponse extends ApiResponse<ProductSEO>> {}
+export interface ProductSEOResponse extends ApiResponse<ProductSEO> {}
 
 // 商品统计数据
 export interface ProductStats {
@@ -568,7 +568,7 @@ export interface ProductStats {
 }
 
 // 商品统计数据响应
-export interface ProductStatsResponse extends ApiResponse<ProductStats>> {}
+export interface ProductStatsResponse extends ApiResponse<ProductStats> {}
 
 // 商品历史数据
 export interface ProductHistory {
@@ -600,7 +600,7 @@ export interface ProductForecast {
 }
 
 // 商品预测数据响应
-export interface ProductForecastResponse extends ApiResponse<ProductForecast>> {}
+export interface ProductForecastResponse extends ApiResponse<ProductForecast> {}
 
 // 商品趋势分析
 export interface ProductTrend {
@@ -626,7 +626,7 @@ export interface ProductTrend {
 }
 
 // 商品趋势分析响应
-export interface ProductTrendResponse extends ApiResponse<ProductTrend>> {}
+export interface ProductTrendResponse extends ApiResponse<ProductTrend> {}
 
 // 商品推荐策略
 export interface ProductRecommendationStrategy {
@@ -664,7 +664,7 @@ export interface ProductRecommendationSettings {
 }
 
 // 商品推荐设置响应
-export interface ProductRecommendationSettingsResponse extends ApiResponse<ProductRecommendationSettings>> {}
+export interface ProductRecommendationSettingsResponse extends ApiResponse<ProductRecommendationSettings> {}
 
 // 商品实时状态
 export interface ProductRealtimeStatus {
