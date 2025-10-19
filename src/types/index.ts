@@ -136,6 +136,18 @@ export interface Order {
   cancelledAt?: string
   refundedAt?: string
   refundedAmount?: number
+  
+  // 结算相关字段
+  settlementMode?: 'normal_split' | 'mall_subsidy' | 'points_exchange'
+  splitRatio?: number // 分成比例（普通分账模式）
+  subsidyAmount?: number // 补贴金额（商场补贴模式，分）
+  settlementPrice?: number // 结算价（积分兑换模式，分）
+  paymentFee?: number // 支付手续费（分）
+  settlementAmount?: number // 待结算金额（分）
+  merchantAmount?: number // 商铺分账金额（分）
+  mallAmount?: number // 商场分账金额（分）
+  settlementStatus?: 'pending' | 'calculated' | 'settled' // 结算状态
+  settledAt?: string // 结算时间
 }
 
 // 商户订单相关类型

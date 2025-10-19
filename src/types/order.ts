@@ -1,6 +1,7 @@
 // 订单相关类型定义
 
 import { Order, OrderQueryParams, MerchantOrderQueryParams, Address, Payment } from './index'
+import { OrderSettlementResult, SettlementMode } from './payment'
 
 // 订单状态类型
 export type OrderStatus = 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'

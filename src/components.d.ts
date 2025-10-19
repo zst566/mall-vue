@@ -11,6 +11,7 @@ declare module 'vue' {
     AppHeader: typeof import('./components/common/AppHeader.vue')['default']
     ErrorMessage: typeof import('./components/common/ErrorMessage.vue')['default']
     LoadingSpinner: typeof import('./components/common/LoadingSpinner.vue')['default']
+    OrderSettlement: typeof import('./components/common/OrderSettlement.vue')['default']
     OrderVerification: typeof import('./components/merchant/OrderVerification.vue')['default']
     PlaceholderImage: typeof import('./components/common/PlaceholderImage.vue')['default']
     ProductCard: typeof import('./components/customer/ProductCard.vue')['default']
@@ -20,6 +21,10 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     VanBackTop: typeof import('vant/es')['BackTop']
     VanButton: typeof import('vant/es')['Button']
+    VanButtonGroup: typeof import('vant/es')['ButtonGroup']
+    VanCard: typeof import('vant/es')['Card']
+    VanCell: typeof import('vant/es')['Cell']
+    VanCellGroup: typeof import('vant/es')['CellGroup']
     VanCheckbox: typeof import('vant/es')['Checkbox']
     VanDropdownItem: typeof import('vant/es')['DropdownItem']
     VanDropdownMenu: typeof import('vant/es')['DropdownMenu']
@@ -39,6 +44,7 @@ declare module 'vue' {
     VanSwipeItem: typeof import('vant/es')['SwipeItem']
     VanTabbar: typeof import('vant/es')['Tabbar']
     VanTabbarItem: typeof import('vant/es')['TabbarItem']
+    VanTag: typeof import('vant/es')['Tag']
     VersionSwitcher: typeof import('./components/common/VersionSwitcher.vue')['default']
   }
 }
