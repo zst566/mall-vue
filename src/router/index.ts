@@ -17,11 +17,11 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
-    path: '/products',
-    name: 'Products',
-    component: () => import('@/views/customer/Products.vue'),
+    path: '/parking',
+    name: 'Parking',
+    component: () => import('@/views/customer/Parking.vue'),
     meta: {
-      title: '商品列表',
+      title: '停车服务',
       permission: 'public' as Permission,
       requiresAuth: false,
       hideHeader: false,

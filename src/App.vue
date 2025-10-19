@@ -31,125 +31,125 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { useAppStore } from '@/stores/app'
-import AppHeader from '@/components/common/AppHeader.vue'
-import AppFooter from '@/components/common/AppFooter.vue'
-import VersionSwitcher from '@/components/common/VersionSwitcher.vue'
-import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
-import ErrorMessage from '@/components/common/ErrorMessage.vue'
+  import { onMounted, watch } from 'vue'
+  import { useRouter, useRoute } from 'vue-router'
+  import { useAuthStore } from '@/stores/auth'
+  import { useAppStore } from '@/stores/app'
+  import AppHeader from '@/components/common/AppHeader.vue'
+  import AppFooter from '@/components/common/AppFooter.vue'
+  import VersionSwitcher from '@/components/common/VersionSwitcher.vue'
+  import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+  import ErrorMessage from '@/components/common/ErrorMessage.vue'
 
-// 路由和状态管理
-const router = useRouter()
-const route = useRoute()
-const authStore = useAuthStore()
-const appStore = useAppStore()
+  // 路由和状态管理
+  const router = useRouter()
+  const route = useRoute()
+  const authStore = useAuthStore()
+  const appStore = useAppStore()
 
-// 初始化应用
-onMounted(async () => {
-  try {
-    // 初始化应用状态
-    appStore.setLoading(true)
+  // 初始化应用
+  onMounted(async () => {
+    try {
+      // 初始化应用状态
+      appStore.setLoading(true)
 
-    // 初始化认证状态
-    authStore.initializeAuth()
+      // 初始化认证状态
+      authStore.initializeAuth()
 
-    // 初始化应用
-    const initResult = await appStore.initializeApp()
-    if (!initResult.success) {
-      throw new Error(initResult.message)
-    }
-
-    // 如果有token，尝试获取用户信息
-    if (authStore.isLoggedIn) {
-      const userInfoResult = await authStore.getUserInfo()
-      if (!userInfoResult.success) {
-        console.warn('获取用户信息失败:', userInfoResult.message)
-        // Token失效，清除本地token
-        authStore.logout()
+      // 初始化应用
+      const initResult = await appStore.initializeApp()
+      if (!initResult.success) {
+        throw new Error(initResult.message)
       }
-    }
 
-    // 监听路由变化
-    watch(
-      () => route.path,
-      (newPath) => {
-        // 根据路径更新版本
-        if (newPath.startsWith('/merchant')) {
-          appStore.switchToMerchant()
-        } else {
-          appStore.switchToCustomer()
+      // 如果有token，尝试获取用户信息
+      if (authStore.isLoggedIn) {
+        const userInfoResult = await authStore.getUserInfo()
+        if (!userInfoResult.success) {
+          console.warn('获取用户信息失败:', userInfoResult.message)
+          // Token失效，清除本地token
+          authStore.logout()
         }
-      },
-      { immediate: true }
-    )
+      }
 
-  } catch (error) {
-    console.error('应用初始化失败:', error)
-    appStore.setError(error)
-  } finally {
-    appStore.setLoading(false)
-  }
-})
+      // 监听路由变化
+      watch(
+        () => route.path,
+        newPath => {
+          // 根据路径更新版本
+          if (newPath.startsWith('/merchant')) {
+            appStore.switchToMerchant()
+          } else {
+            appStore.switchToCustomer()
+          }
+        },
+        { immediate: true }
+      )
+    } catch (error) {
+      console.error('应用初始化失败:', error)
+      appStore.setError(error)
+    } finally {
+      appStore.setLoading(false)
+    }
+  })
 </script>
 
 <style lang="scss">
-#app {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  background-color: #f7f8fa;
-  color: #323233;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-.app-main {
-  flex: 1;
-  padding-bottom: 60px; /* 底部导航栏高度 */
-}
-
-// 商户模式样式
-.merchant-mode {
-  background-color: #f0f2f5;
-}
-
-// 响应式设计
-@media (max-width: 768px) {
-  .app-main {
-    padding-bottom: 60px;
-  }
-}
-
-// 禁用双击缩放
-* {
-  touch-action: manipulation;
-}
-
-// 页面过渡动画
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-// 暗色模式支持
-@media (prefers-color-scheme: dark) {
   #app {
-    background-color: #1a1a1a;
-    color: #fff;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #f7f8fa;
+    color: #323233;
+    font-family:
+      -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans',
+      'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-    &.merchant-mode {
-      background-color: #2a2a2a;
+  .app-main {
+    flex: 1;
+    padding-bottom: 80px; /* 底部导航栏高度 + 安全区域 */
+  }
+
+  // 商户模式样式
+  .merchant-mode {
+    background-color: #f0f2f5;
+  }
+
+  // 响应式设计
+  @media (max-width: 768px) {
+    .app-main {
+      padding-bottom: 80px;
     }
   }
-}
+
+  // 禁用双击缩放
+  * {
+    touch-action: manipulation;
+  }
+
+  // 页面过渡动画
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: opacity 0.2s ease;
+  }
+
+  .fade-enter-from,
+  .fade-leave-to {
+    opacity: 0;
+  }
+
+  // 暗色模式支持
+  @media (prefers-color-scheme: dark) {
+    #app {
+      background-color: #1a1a1a;
+      color: #fff;
+
+      &.merchant-mode {
+        background-color: #2a2a2a;
+      }
+    }
+  }
 </style>

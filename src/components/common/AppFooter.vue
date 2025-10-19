@@ -9,7 +9,7 @@
     :class="{ 'merchant-mode': isMerchantMode }"
   >
     <van-tabbar-item replace to="/" icon="home-o">首页</van-tabbar-item>
-    <van-tabbar-item replace to="/products" icon="apps-o">商品</van-tabbar-item>
+    <van-tabbar-item replace to="/parking" icon="location-o">停车</van-tabbar-item>
     <van-tabbar-item replace to="/orders" icon="orders-o">订单</van-tabbar-item>
     <van-tabbar-item replace to="/profile" icon="user-o">我的</van-tabbar-item>
   </van-tabbar>
@@ -34,7 +34,7 @@
 
     if (path === '/') {
       active.value = 0
-    } else if (path.startsWith('/products')) {
+    } else if (path.startsWith('/parking')) {
       active.value = 1
     } else if (path.startsWith('/orders')) {
       active.value = 2
@@ -55,13 +55,14 @@
 
 <style lang="scss" scoped>
   .van-tabbar {
-    background: #ffffff;
-    border-top: 1px solid #ebedf0;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
-    height: 50px;
+    background: #f7f8fa;
+    border-top: none;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+    height: 60px;
+    border-radius: 16px 16px 0 0;
 
     .van-tabbar-item {
-      padding: 4px 0;
+      padding: 6px 0;
 
       &.van-tabbar-item--active {
         color: #1989fa;
@@ -77,25 +78,27 @@
       }
 
       .van-tabbar-item__icon {
-        font-size: 22px;
-        margin-bottom: 2px;
+        font-size: 24px;
+        margin-bottom: 4px;
         color: #969799;
         transition: color 0.2s ease;
       }
 
       .van-tabbar-item__text {
-        font-size: 10px;
+        font-size: 12px;
         color: #969799;
         transition: color 0.2s ease;
         line-height: 1;
+        font-weight: 400;
       }
     }
   }
 
   // 商户模式样式
   .merchant-mode .van-tabbar {
-    background: #f7f8fa;
-    border-top-color: #dcdee0;
+    background: #f0f2f5;
+    border-top: none;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.1);
 
     .van-tabbar-item {
       &.van-tabbar-item--active {
@@ -124,7 +127,8 @@
   @media (prefers-color-scheme: dark) {
     .van-tabbar {
       background: #1a1a1a;
-      border-top-color: #333333;
+      border-top: none;
+      box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.3);
 
       .van-tabbar-item {
         &.van-tabbar-item--active {
@@ -151,7 +155,8 @@
 
     .merchant-mode .van-tabbar {
       background: #2a2a2a;
-      border-top-color: #404040;
+      border-top: none;
+      box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.4);
     }
   }
 
