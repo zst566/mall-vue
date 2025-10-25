@@ -129,6 +129,9 @@ ssh ${REMOTE_CONNECTION} "
     echo '停止并删除旧容器...'
     sudo docker-compose down || true
     
+    echo '确保web-network网络存在...'
+    sudo docker network create web-network || true
+    
     echo '删除旧镜像...'
     sudo docker rmi ${IMAGE_NAME}:${IMAGE_TAG} || true
     
@@ -137,6 +140,9 @@ ssh ${REMOTE_CONNECTION} "
     
     echo '启动新容器...'
     sudo docker-compose up -d
+    
+    echo '验证容器网络配置...'
+    sudo docker inspect mall-vue | grep -A 5 NetworkMode
 " || {
     show_error "远程部署失败"
     exit 1

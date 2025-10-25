@@ -5,6 +5,9 @@ services:
     image: ${IMAGE_NAME:-mall-vue}:${IMAGE_TAG:-latest}
     container_name: mall-vue
     restart: unless-stopped
+    # 移除端口暴露，强制通过nginx代理访问
+    # ports:
+    #   - "3000:3000"
     volumes:
       - /mall/images:/usr/share/nginx/images
     networks:
