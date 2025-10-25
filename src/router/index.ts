@@ -161,6 +161,20 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
+    path: '/merchant/:id',
+    name: 'MerchantById',
+    component: () => import('@/views/merchant/Home.vue'),
+    meta: {
+      title: '商户中心',
+      permission: 'merchant' as Permission,
+      requiresAuth: true,
+      hideHeader: false,
+      hideFooter: false,
+      hideVersionSwitcher: false,
+      requiresMerchantAccess: true
+    }
+  },
+  {
     path: '/merchant/scan',
     name: 'MerchantScan',
     component: () => import('@/views/merchant/Scan.vue'),
