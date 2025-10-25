@@ -17,6 +17,7 @@ export interface User {
   role: UserRole
   openid?: string
   unionid?: string
+  isVerified?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -47,16 +48,16 @@ export interface PaginatedResponse<T> {
 
 // 地址类型
 export interface Address {
-  id?: string
+  id: string
   name: string
   phone: string
   province: string
   city: string
   district: string
   detail: string
-  isDefault?: boolean
-  createdAt?: string
-  updatedAt?: string
+  isDefault: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 // 商品相关类型
@@ -66,11 +67,19 @@ export interface Product {
   description: string
   price: number
   originalPrice?: number
+  image: string
   images: string[]
   category: string
+  categoryId: string
   brand?: string
   stock: number
   sales: number
+  salesCount: number
+  rating: number
+  isHot: boolean
+  isNew: boolean
+  discount: number
+  shopName: string
   tags: string[]
   status: 'active' | 'inactive' | 'deleted'
   specifications?: Record<string, string>
@@ -91,12 +100,14 @@ export interface ProductQueryParams extends PaginationParams {
 
 // 订单商品项
 export interface OrderItem {
+  id: string
   productId: string
   productName: string
   productImage: string
   specification: string
   quantity: number
   price: number
+  totalPrice: number
 }
 
 // 收货地址
@@ -112,14 +123,9 @@ export interface Order {
   id: string
   orderNo: string
   userId: string
-  productId: string
-  productName: string
-  productImage: string
-  quantity: number
-  price: number
-  totalAmount: number
   status: 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
   paymentMethod: 'wechat' | 'alipay' | 'cash' | 'other'
+  paymentStatus: 'pending' | 'success' | 'failed' | 'cancelled' | 'unpaid' | 'paid' | 'refunded'
   shippingAddress: Address
   contactName: string
   contactPhone: string
@@ -136,6 +142,8 @@ export interface Order {
   cancelledAt?: string
   refundedAt?: string
   refundedAmount?: number
+  items: OrderItem[]
+  totalAmount: number
   
   // 结算相关字段
   settlementMode?: 'normal_split' | 'mall_subsidy' | 'points_exchange'
@@ -157,8 +165,8 @@ export interface MerchantOrder {
   customerId: string
   customerName: string
   customerPhone: string
-  customerAvatar?: string
-  status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
+  customerAvatar: string
+  status: MerchantOrderStatus
   paymentMethod: 'wechat' | 'alipay' | 'cash'
   paymentStatus: 'unpaid' | 'paid' | 'refunded'
   totalAmount: number
@@ -168,6 +176,7 @@ export interface MerchantOrder {
   confirmedAt?: string
   shippedAt?: string
   deliveredAt?: string
+  refundedAt?: string
   receiverName: string
   receiverPhone: string
   shippingAddress: ShippingAddress
@@ -179,7 +188,7 @@ export interface MerchantOrder {
 export type OrderStatus = 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
 
 // 商户订单状态类型
-export type MerchantOrderStatus = 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
+export type MerchantOrderStatus = 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'pending_verification' | 'verified' | 'completed'
 
 // 支付方法类型
 export type PaymentMethod = 'wechat' | 'alipay' | 'cash' | 'other'
@@ -370,6 +379,10 @@ export interface VerificationResult {
 
 // 商户订单统计
 export interface MerchantOrderStats {
+  todayOrders: number
+  todayAmount: number
+  successRate: number
+  avgProcessTime: number
   total: number
   pending: number
   confirmed: number
@@ -388,6 +401,7 @@ export interface OrderCreateRequest {
   contactName: string
   contactPhone: string
   notes?: string
+  items: OrderItem[]
 }
 
 // 订单支付请求
@@ -619,9 +633,11 @@ export interface Notification {
 }
 
 // Toast类型
+export type ToastType = 'success' | 'fail' | 'loading' | 'error' | 'warning'
+
 export interface ToastOptions {
   message: string
-  type?: 'success' | 'fail' | 'loading'
+  type?: ToastType
   duration?: number
   position?: 'top' | 'bottom' | 'center'
   forbidClick?: boolean
@@ -678,6 +694,36 @@ export interface Plugin {
 export interface Middleware {
   name: string
   handler: (request: any, response: any, next: () => void) => void
+}
+
+// Vant 组件类型
+export type TagSize = 'large' | 'medium' | 'small'
+export type Numeric = string | number
+
+// 上传组件类型
+export type UploaderAfterRead = (file: File) => Promise<void>
+export type UploaderBeforeRead = (file: File) => boolean
+
+// 结算相关类型
+export interface OrderSettlementParams {
+  orderId: string
+  totalAmount: number
+  paymentMethod: 'wechat' | 'alipay' | 'cash' | 'other'
+  quantity: number
+  settlementMode: 'normal_split' | 'mall_subsidy' | 'points_exchange'
+  splitRatio?: number
+  subsidyAmount?: number
+  settlementPrice?: number
+}
+
+export interface OrderSettlementResult {
+  success: boolean
+  settlementAmount: number
+  merchantAmount: number
+  mallAmount: number
+  paymentFee: number
+  message: string
+  settledAt?: string
 }
 
 // 工具库类型

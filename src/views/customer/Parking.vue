@@ -65,11 +65,11 @@
 
     <!-- 快速操作 -->
     <div class="quick-actions">
-      <van-button-group>
+      <div class="parking-actions">
         <van-button type="primary" icon="location-o" @click="handleFindParking">找车位</van-button>
         <van-button type="success" icon="credit-pay" @click="handlePayParking">缴费</van-button>
         <van-button type="warning" icon="records" @click="handleParkingHistory">记录</van-button>
-      </van-button-group>
+      </div>
     </div>
   </div>
 </template>
@@ -168,8 +168,10 @@
     left: 16px;
     right: 16px;
 
-    .van-button-group {
+    .parking-actions {
       width: 100%;
+      display: flex;
+      gap: 8px;
 
       .van-button {
         flex: 1;

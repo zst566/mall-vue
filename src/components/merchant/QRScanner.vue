@@ -4,12 +4,7 @@
     <div class="scanner-container">
       <!-- 摄像头预览 -->
       <div class="camera-preview" v-if="isCameraReady">
-        <video
-          ref="videoRef"
-          :class="{ 'facing-front': isFrontCamera }"
-          autoplay
-          playsinline
-        />
+        <video ref="videoRef" :class="{ 'facing-front': isFrontCamera }" autoplay playsinline />
         <canvas ref="canvasRef" class="scan-canvas" />
 
         <!-- 扫描框 -->
@@ -20,7 +15,7 @@
             <div class="scan-corner bottom-left"></div>
             <div class="scan-corner bottom-right"></div>
           </div>
-          <div class="scan-line" :class="{ 'scanning': isScanning }"></div>
+          <div class="scan-line" :class="{ scanning: isScanning }"></div>
         </div>
 
         <!-- 扫描状态覆盖层 -->
@@ -32,7 +27,7 @@
         </div>
 
         <!-- 扫描指示器 -->
-        <div class="scan-indicator" :class="{ 'active': isScanning }">
+        <div class="scan-indicator" :class="{ active: isScanning }">
           <div class="indicator-pulse"></div>
           <div class="indicator-text">
             {{ scanningText }}
@@ -54,12 +49,8 @@
         <h3 class="error-title">摄像头权限被拒绝</h3>
         <p class="error-text">请前往设置中允许访问摄像头权限</p>
         <div class="error-actions">
-          <van-button type="primary" @click="retryInit">
-            重试
-          </van-button>
-          <van-button type="default" @click="goToSettings">
-            去设置
-          </van-button>
+          <van-button type="primary" @click="retryInit">重试</van-button>
+          <van-button type="default" @click="goToSettings">去设置</van-button>
         </div>
       </div>
     </div>
@@ -175,33 +166,15 @@
             <!-- 操作按钮 -->
             <div class="result-actions">
               <template v-if="scanResult.type === 'order' && scanResult.data.status === 'pending'">
-                <van-button
-                  type="primary"
-                  block
-                  round
-                  @click="verifyOrder"
-                  :loading="isVerifying"
-                >
+                <van-button type="primary" block round @click="verifyOrder" :loading="isVerifying">
                   确认核销
                 </van-button>
-                <van-button
-                  type="warning"
-                  block
-                  round
-                  @click="viewOrderDetails"
-                >
+                <van-button type="warning" block round @click="viewOrderDetails">
                   查看详情
                 </van-button>
               </template>
               <template v-else>
-                <van-button
-                  type="primary"
-                  block
-                  round
-                  @click="closeResultPopup"
-                >
-                  确定
-                </van-button>
+                <van-button type="primary" block round @click="closeResultPopup">确定</van-button>
               </template>
             </div>
           </div>
@@ -217,789 +190,794 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { showToast } from 'vant'
+  import { ref, computed, onMounted, onUnmounted } from 'vue'
+  import { showToast } from 'vant'
 
-interface ScanResult {
-  type: 'order' | 'product' | 'promotion'
-  title: string
-  data: any
-}
+  interface ScanResult {
+    type: 'order' | 'product' | 'promotion'
+    title: string
+    data: any
+  }
 
-interface Props {
-  showScanFrame?: boolean
-  autoStart?: boolean
-  cameraType?: 'environment' | 'user'
-  showManualInput?: boolean
-  resultPopupHeight?: string
-}
+  interface Props {
+    showScanFrame?: boolean
+    autoStart?: boolean
+    cameraType?: 'environment' | 'user'
+    showManualInput?: boolean
+    resultPopupHeight?: string
+  }
 
-interface Emits {
-  (e: 'success', result: ScanResult): void
-  (e: 'error', error: Error): void
-  (e: 'start'): void
-  (e: 'stop'): void
-}
+  interface Emits {
+    (e: 'success', result: ScanResult): void
+    (e: 'error', error: Error): void
+    (e: 'start'): void
+    (e: 'stop'): void
+  }
 
-const props = withDefaults(defineProps<Props>(), {
-  showScanFrame: true,
-  autoStart: false,
-  cameraType: 'environment',
-  showManualInput: true,
-  resultPopupHeight: '70%'
-})
+  const props = withDefaults(defineProps<Props>(), {
+    showScanFrame: true,
+    autoStart: false,
+    cameraType: 'environment',
+    showManualInput: true,
+    resultPopupHeight: '70%'
+  })
 
-const emit = defineEmits<Emits>()
+  const emit = defineEmits<Emits>()
 
-// 摄像头相关
-const videoRef = ref<HTMLVideoElement | null>(null)
-const canvasRef = ref<HTMLCanvasElement | null>(null)
-const isCameraReady = ref(false)
-const isScanning = ref(false)
-const isFrontCamera = ref(props.cameraType === 'user')
-const currentStream = ref<MediaStream | null>(null)
-const scanningInterval = ref<NodeJS.Timeout | null>(null)
+  // 摄像头相关
+  const videoRef = ref<HTMLVideoElement | null>(null)
+  const canvasRef = ref<HTMLCanvasElement | null>(null)
+  const isCameraReady = ref(false)
+  const isScanning = ref(false)
+  const isFrontCamera = ref(props.cameraType === 'user')
+  const currentStream = ref<MediaStream | null>(null)
+  const scanningInterval = ref<number | null>(null)
 
-// 设备能力检测
-const hasTorch = ref(false)
-const torchOn = ref(false)
-const isSwitchingCamera = ref(false)
+  // 设备能力检测
+  const hasTorch = ref(false)
+  const torchOn = ref(false)
+  const isSwitchingCamera = ref(false)
 
-// UI状态
-const loading = ref(false)
-const loadingText = ref('正在启动摄像头...')
-const permissionError = ref(false)
-const showResultPopup = ref(false)
-const showManualInputDialog = ref(false)
-const manualInput = ref('')
+  // UI状态
+  const loading = ref(false)
+  const loadingText = ref('正在启动摄像头...')
+  const permissionError = ref(false)
+  const showResultPopup = ref(false)
+  const showManualInputDialog = ref(false)
+  const manualInput = ref('')
+  const isVerifying = ref(false)
 
-// 扫描结果
-const scanResult = ref<ScanResult | null>(null)
+  // 扫描结果
+  const scanResult = ref<ScanResult | null>(null)
 
-// 摄像头类型配置
-const cameraTypes = computed(() => {
-  return [
-    { label: '后置摄像头', value: 'environment', icon: 'camera-o' },
-    { label: '前置摄像头', value: 'user', icon: 'camera-reverse' }
-  ]
-})
+  // 摄像头类型配置
+  const cameraTypes = computed(() => {
+    return [
+      { label: '后置摄像头', value: 'environment', icon: 'camera-o' },
+      { label: '前置摄像头', value: 'user', icon: 'camera-reverse' }
+    ]
+  })
 
-// 扫描文本
-const scanningText = computed(() => {
-  return isScanning.value ? '正在扫描...' : '准备扫描'
-})
+  // 扫描文本
+  const scanningText = computed(() => {
+    return isScanning.value ? '正在扫描...' : '准备扫描'
+  })
 
-// 提示文本
-const tipsText = computed(() => {
-  if (!isCameraReady.value) return '请等待摄像头启动...'
-  return '将二维码放入扫描框内，系统将自动识别'
-})
+  // 提示文本
+  const tipsText = computed(() => {
+    if (!isCameraReady.value) return '请等待摄像头启动...'
+    return '将二维码放入扫描框内，系统将自动识别'
+  })
 
-// 初始化摄像头
-const initCamera = async () => {
-  try {
-    loading.value = true
-    permissionError.value = false
+  // 初始化摄像头
+  const initCamera = async () => {
+    try {
+      loading.value = true
+      permissionError.value = false
 
-    // 检查浏览器支持
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      throw new Error('浏览器不支持摄像头功能')
-    }
-
-    // 请求摄像头权限
-    const constraints: MediaStreamConstraints = {
-      video: {
-        facingMode: isFrontCamera.value ? 'user' : 'environment',
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        torch: torchOn.value ? 'on' : 'off'
+      // 检查浏览器支持
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('浏览器不支持摄像头功能')
       }
-    }
 
-    const stream = await navigator.mediaDevices.getUserMedia(constraints)
-    currentStream.value = stream
-
-    if (videoRef.value) {
-      videoRef.value.srcObject = stream
-      videoRef.value.onloadedmetadata = () => {
-        isCameraReady.value = true
-        loading.value = false
-
-        // 检查是否支持闪光灯
-        const track = stream.getVideoTracks()[0]
-        hasTorch.value = track.getCapabilities().torch !== undefined
-
-        // 自动开始扫描
-        if (props.autoStart) {
-          startScanning()
+      // 请求摄像头权限
+      const constraints: MediaStreamConstraints = {
+        video: {
+          facingMode: isFrontCamera.value ? 'user' : 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          ...(torchOn.value && ({ torch: 'on' } as any))
         }
       }
-    }
-  } catch (error) {
-    loading.value = false
-    console.error('摄像头初始化失败:', error)
 
-    // 处理权限被拒绝的情况
-    if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-      permissionError.value = true
-    } else {
-      emit('error', error as Error)
-      showToast('摄像头初始化失败')
-    }
-  }
-}
+      const stream = await navigator.mediaDevices.getUserMedia(constraints)
+      currentStream.value = stream
 
-// 开始扫描
-const startScanning = () => {
-  if (!isCameraReady.value || isScanning.value) return
+      if (videoRef.value) {
+        videoRef.value.srcObject = stream
+        videoRef.value.onloadedmetadata = () => {
+          isCameraReady.value = true
+          loading.value = false
 
-  isScanning.value = true
-  emit('start')
+          // 检查是否支持闪光灯
+          const track = stream.getVideoTracks()[0]
+          hasTorch.value = (track.getCapabilities() as any).torch !== undefined
 
-  // 开始扫描循环
-  if (canvasRef.value && videoRef.value) {
-    const canvas = canvasRef.value
-    const context = canvas.getContext('2d', { willReadFrequently: true })
+          // 自动开始扫描
+          if (props.autoStart) {
+            startScanning()
+          }
+        }
+      }
+    } catch (error) {
+      loading.value = false
+      console.error('摄像头初始化失败:', error)
 
-    if (context) {
-      canvas.width = videoRef.value.videoWidth
-      canvas.height = videoRef.value.videoHeight
-
-      // 模拟扫描过程
-      scanningInterval.value = setInterval(() => {
-        simulateScan()
-      }, 1000)
-    }
-  }
-}
-
-// 停止扫描
-const stopScanning = () => {
-  isScanning.value = false
-
-  if (scanningInterval.value) {
-    clearInterval(scanningInterval.value)
-    scanningInterval.value = null
-  }
-
-  emit('stop')
-}
-
-// 切换摄像头
-const toggleCamera = async () => {
-  if (isSwitchingCamera.value || !isCameraReady.value) return
-
-  isSwitchingCamera.value = true
-  stopScanning()
-
-  // 释放当前流
-  if (currentStream.value) {
-    currentStream.value.getTracks().forEach(track => track.stop())
-    currentStream.value = null
-  }
-
-  // 切换摄像头类型
-  isFrontCamera.value = !isFrontCamera.value
-
-  // 重新初始化
-  await initCamera()
-  isSwitchingCamera.value = false
-}
-
-// 切换闪光灯
-const toggleTorch = async () => {
-  if (!isCameraReady.value || !hasTorch.value) return
-
-  torchOn.value = !torchOn.value
-
-  try {
-    const track = currentStream.value?.getVideoTracks()[0]
-    if (track && track.getCapabilities().torch) {
-      await track.applyConstraints({
-        video: { torch: torchOn.value ? 'on' : 'off' }
-      })
-    }
-  } catch (error) {
-    console.error('闪光灯控制失败:', error)
-    torchOn.value = false
-  }
-}
-
-// 模拟扫描
-const simulateScan = () => {
-  // 随机生成扫描结果
-  const types: ('order' | 'product' | 'promotion')[] = ['order', 'product', 'promotion']
-  const randomType = types[Math.floor(Math.random() * types.length)]
-
-  const mockResult: ScanResult = {
-    type: randomType,
-    title: randomType === 'order' ? '订单核销' : randomType === 'product' ? '商品信息' : '促销活动',
-    data: {
-      orderNo: `ORD${Date.now()}`,
-      productName: randomType === 'order' ? 'iPhone 15 Pro' : '华为 Mate 60',
-      quantity: randomType === 'order' ? 1 : 0,
-      amount: randomType === 'order' ? 8999 : 0,
-      purchasedAt: new Date().toISOString(),
-      status: randomType === 'order' ? 'pending' : undefined,
-      productId: randomType === 'product' ? '2' : undefined,
-      price: randomType === 'product' ? 6999 : undefined,
-      stock: randomType === 'product' ? 50 : undefined,
-      title: randomType === 'promotion' ? '新年大促' : undefined,
-      description: randomType === 'promotion' ? '全场8折优惠' : undefined,
-      discount: randomType === 'promotion' ? 200 : undefined
+      // 处理权限被拒绝的情况
+      if (
+        (error as any).name === 'NotAllowedError' ||
+        (error as any).name === 'PermissionDeniedError'
+      ) {
+        permissionError.value = true
+      } else {
+        emit('error', error as Error)
+        showToast('摄像头初始化失败')
+      }
     }
   }
 
-  handleScanResult(mockResult)
-}
+  // 开始扫描
+  const startScanning = () => {
+    if (!isCameraReady.value || isScanning.value) return
 
-// 处理扫描结果
-const handleScanResult = (result: ScanResult) => {
-  stopScanning()
-  scanResult.value = result
-  showResultPopup.value = true
-  emit('success', result)
-}
+    isScanning.value = true
+    emit('start')
 
-// 手动输入处理
-const handleManualInput = () => {
-  if (!manualInput.value.trim()) {
-    showToast('请输入内容')
-    return
-  }
+    // 开始扫描循环
+    if (canvasRef.value && videoRef.value) {
+      const canvas = canvasRef.value
+      const context = canvas.getContext('2d', { willReadFrequently: true })
 
-  // 模拟手动输入结果
-  const mockResult: ScanResult = {
-    type: 'order',
-    title: '订单核销',
-    data: {
-      orderNo: manualInput.value,
-      productName: '手动输入订单',
-      quantity: 1,
-      amount: 999,
-      purchasedAt: new Date().toISOString(),
-      status: 'pending'
+      if (context) {
+        canvas.width = videoRef.value.videoWidth
+        canvas.height = videoRef.value.videoHeight
+
+        // 模拟扫描过程
+        scanningInterval.value = setInterval(() => {
+          simulateScan()
+        }, 1000)
+      }
     }
   }
 
-  handleScanResult(mockResult)
-  manualInput.value = ''
-  showManualInputDialog.value = false
-}
+  // 停止扫描
+  const stopScanning = () => {
+    isScanning.value = false
 
-// 关闭结果弹窗
-const closeResultPopup = () => {
-  showResultPopup.value = false
-  scanResult.value = null
-
-  // 重新开始扫描
-  if (props.autoStart) {
-    startScanning()
-  }
-}
-
-// 获取结果图标
-const getResultIcon = (type: string) => {
-  const iconMap: Record<string, string> = {
-    order: 'orders-o',
-    product: 'shopping-cart-o',
-    promotion: 'gift-o'
-  }
-  return iconMap[type] || 'scan'
-}
-
-// 获取订单状态文本
-const getOrderStatus = (status: string) => {
-  const statusMap: Record<string, string> = {
-    pending: '待核销',
-    verified: '已核销',
-    cancelled: '已取消'
-  }
-  return statusMap[status] || status
-}
-
-// 格式化时间
-const formatTime = (timeStr: string) => {
-  return new Date(timeStr).toLocaleString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
-// 核销订单
-const verifyOrder = async () => {
-  if (!scanResult.value) return
-
-  try {
-    isVerifying.value = true
-    showToast('核销中...')
-
-    // 模拟核销API调用
-    await new Promise(resolve => setTimeout(resolve, 1500))
-
-    // 更新订单状态
-    if (scanResult.value.data.status === 'pending') {
-      scanResult.value.data.status = 'verified'
-      scanResult.value.data.verifiedAt = new Date().toISOString()
+    if (scanningInterval.value) {
+      clearInterval(scanningInterval.value as any)
+      scanningInterval.value = null
     }
 
-    showToast('核销成功')
-    isVerifying.value = false
+    emit('stop')
+  }
+
+  // 切换摄像头
+  const toggleCamera = async () => {
+    if (isSwitchingCamera.value || !isCameraReady.value) return
+
+    isSwitchingCamera.value = true
+    stopScanning()
+
+    // 释放当前流
+    if (currentStream.value) {
+      currentStream.value.getTracks().forEach(track => track.stop())
+      currentStream.value = null
+    }
+
+    // 切换摄像头类型
+    isFrontCamera.value = !isFrontCamera.value
+
+    // 重新初始化
+    await initCamera()
+    isSwitchingCamera.value = false
+  }
+
+  // 切换闪光灯
+  const toggleTorch = async () => {
+    if (!isCameraReady.value || !hasTorch.value) return
+
+    torchOn.value = !torchOn.value
+
+    try {
+      const track = currentStream.value?.getVideoTracks()[0]
+      if (track && (track.getCapabilities() as any).torch) {
+        await track.applyConstraints({
+          torch: torchOn.value ? 'on' : 'off'
+        } as any)
+      }
+    } catch (error) {
+      console.error('闪光灯控制失败:', error)
+      torchOn.value = false
+    }
+  }
+
+  // 模拟扫描
+  const simulateScan = () => {
+    // 随机生成扫描结果
+    const types: ('order' | 'product' | 'promotion')[] = ['order', 'product', 'promotion']
+    const randomType = types[Math.floor(Math.random() * types.length)]
+
+    const mockResult: ScanResult = {
+      type: randomType,
+      title:
+        randomType === 'order' ? '订单核销' : randomType === 'product' ? '商品信息' : '促销活动',
+      data: {
+        orderNo: `ORD${Date.now()}`,
+        productName: randomType === 'order' ? 'iPhone 15 Pro' : '华为 Mate 60',
+        quantity: randomType === 'order' ? 1 : 0,
+        amount: randomType === 'order' ? 8999 : 0,
+        purchasedAt: new Date().toISOString(),
+        status: randomType === 'order' ? 'pending' : undefined,
+        productId: randomType === 'product' ? '2' : undefined,
+        price: randomType === 'product' ? 6999 : undefined,
+        stock: randomType === 'product' ? 50 : undefined,
+        title: randomType === 'promotion' ? '新年大促' : undefined,
+        description: randomType === 'promotion' ? '全场8折优惠' : undefined,
+        discount: randomType === 'promotion' ? 200 : undefined
+      }
+    }
+
+    handleScanResult(mockResult)
+  }
+
+  // 处理扫描结果
+  const handleScanResult = (result: ScanResult) => {
+    stopScanning()
+    scanResult.value = result
+    showResultPopup.value = true
+    emit('success', result)
+  }
+
+  // 手动输入处理
+  const handleManualInput = () => {
+    if (!manualInput.value.trim()) {
+      showToast('请输入内容')
+      return
+    }
+
+    // 模拟手动输入结果
+    const mockResult: ScanResult = {
+      type: 'order',
+      title: '订单核销',
+      data: {
+        orderNo: manualInput.value,
+        productName: '手动输入订单',
+        quantity: 1,
+        amount: 999,
+        purchasedAt: new Date().toISOString(),
+        status: 'pending'
+      }
+    }
+
+    handleScanResult(mockResult)
+    manualInput.value = ''
+    showManualInputDialog.value = false
+  }
+
+  // 关闭结果弹窗
+  const closeResultPopup = () => {
+    showResultPopup.value = false
+    scanResult.value = null
+
+    // 重新开始扫描
+    if (props.autoStart) {
+      startScanning()
+    }
+  }
+
+  // 获取结果图标
+  const getResultIcon = (type: string) => {
+    const iconMap: Record<string, string> = {
+      order: 'orders-o',
+      product: 'shopping-cart-o',
+      promotion: 'gift-o'
+    }
+    return iconMap[type] || 'scan'
+  }
+
+  // 获取订单状态文本
+  const getOrderStatus = (status: string) => {
+    const statusMap: Record<string, string> = {
+      pending: '待核销',
+      verified: '已核销',
+      cancelled: '已取消'
+    }
+    return statusMap[status] || status
+  }
+
+  // 格式化时间
+  const formatTime = (timeStr: string) => {
+    return new Date(timeStr).toLocaleString('zh-CN', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  // 核销订单
+  const verifyOrder = async () => {
+    if (!scanResult.value) return
+
+    try {
+      isVerifying.value = true
+      showToast('核销中...')
+
+      // 模拟核销API调用
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      // 更新订单状态
+      if (scanResult.value.data.status === 'pending') {
+        scanResult.value.data.status = 'verified'
+        scanResult.value.data.verifiedAt = new Date().toISOString()
+      }
+
+      showToast('核销成功')
+      isVerifying.value = false
+      closeResultPopup()
+    } catch (error) {
+      showToast('核销失败，请重试')
+      isVerifying.value = false
+    }
+  }
+
+  // 查看订单详情
+  const viewOrderDetails = () => {
+    showToast('正在跳转到订单详情...')
     closeResultPopup()
-  } catch (error) {
-    showToast('核销失败，请重试')
-    isVerifying.value = false
   }
-}
 
-// 查看订单详情
-const viewOrderDetails = () => {
-  showToast('正在跳转到订单详情...')
-  closeResultPopup()
-}
-
-// 跳转到设置
-const goToSettings = () => {
-  // 这里应该跳转到应用设置页面
-  showToast('请手动在系统设置中开启摄像头权限')
-}
-
-// 重试初始化
-const retryInit = () => {
-  permissionError.value = false
-  initCamera()
-}
-
-// 组件挂载时初始化
-onMounted(() => {
-  initCamera()
-})
-
-// 组件卸载时清理
-onUnmounted(() => {
-  stopScanning()
-
-  if (currentStream.value) {
-    currentStream.value.getTracks().forEach(track => track.stop())
-    currentStream.value = null
+  // 跳转到设置
+  const goToSettings = () => {
+    // 这里应该跳转到应用设置页面
+    showToast('请手动在系统设置中开启摄像头权限')
   }
-})
+
+  // 重试初始化
+  const retryInit = () => {
+    permissionError.value = false
+    initCamera()
+  }
+
+  // 组件挂载时初始化
+  onMounted(() => {
+    initCamera()
+  })
+
+  // 组件卸载时清理
+  onUnmounted(() => {
+    stopScanning()
+
+    if (currentStream.value) {
+      currentStream.value.getTracks().forEach(track => track.stop())
+      currentStream.value = null
+    }
+  })
 </script>
 
 <style lang="scss" scoped>
-.qr-scanner {
-  width: 100%;
-  height: 100%;
-  position: relative;
-}
-
-.scanner-container {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16/9;
-  background: #000;
-  border-radius: var(--van-radius-md);
-  overflow: hidden;
-}
-
-.camera-preview {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-
-  video {
+  .qr-scanner {
     width: 100%;
     height: 100%;
-    object-fit: cover;
-
-    &.facing-front {
-      transform: scaleX(-1);
-    }
+    position: relative;
   }
 
-  .scan-canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: none;
-  }
-}
-
-.loading-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.8);
-
-  .loading-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-
-    .loading-text {
-      color: white;
-      font-size: 14px;
-    }
-  }
-}
-
-.error-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.95);
-  padding: 24px;
-
-  .error-icon {
-    color: var(--van-danger-color);
-    margin-bottom: 16px;
-  }
-
-  .error-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--van-text-color);
-    margin-bottom: 8px;
-  }
-
-  .error-text {
-    font-size: 14px;
-    color: var(--van-text-color-3);
-    text-align: center;
-    margin-bottom: 20px;
-  }
-
-  .error-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 100%;
-    max-width: 200px;
-  }
-}
-
-.scan-frame {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 60%;
-  height: 60%;
-  max-width: 300px;
-  max-height: 300px;
-
-  .scan-border {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border: 2px solid rgba(255, 255, 255, 0.8);
-    border-radius: var(--van-radius-md);
-
-    .scan-corner {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      border: 3px solid var(--van-primary-color);
-
-      &.top-left {
-        top: -3px;
-        left: -3px;
-        border-right: none;
-        border-bottom: none;
-      }
-
-      &.top-right {
-        top: -3px;
-        right: -3px;
-        border-left: none;
-        border-bottom: none;
-      }
-
-      &.bottom-left {
-        bottom: -3px;
-        left: -3px;
-        border-right: none;
-        border-top: none;
-      }
-
-      &.bottom-right {
-        bottom: -3px;
-        right: -3px;
-        border-left: none;
-        border-top: none;
-      }
-    }
-  }
-
-  .scan-line {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--van-primary-color), transparent);
-    animation: scanLine 2s linear infinite;
-
-    &.scanning {
-      animation-play-state: running;
-    }
-
-    &:not(.scanning) {
-      animation-play-state: paused;
-    }
-  }
-}
-
-@keyframes scanLine {
-  0% {
-    top: 0;
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    top: 100%;
-    opacity: 0;
-  }
-}
-
-.scan-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-
-  .overlay-top,
-  .overlay-bottom,
-  .overlay-left,
-  .overlay-right {
-    position: absolute;
-    background: rgba(0, 0, 0, 0.5);
-  }
-
-  .overlay-top {
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60%;
-    height: 50%;
-    border-radius: var(--van-radius-md) var(--van-radius-md) 0 0;
-  }
-
-  .overlay-bottom {
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60%;
-    height: 50%;
-    border-radius: 0 0 var(--van-radius-md) var(--van-radius-md);
-  }
-
-  .overlay-left {
-    top: 50%;
-    left: 0;
-    transform: translateY(-50%);
-    width: 20%;
-    height: 60%;
-  }
-
-  .overlay-right {
-    top: 50%;
-    right: 0;
-    transform: translateY(-50%);
-    width: 20%;
-    height: 60%;
-  }
-}
-
-.scan-indicator {
-  position: absolute;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  opacity: 0;
-  transition: opacity 0.3s;
-
-  &.active {
-    opacity: 1;
-  }
-
-  .indicator-pulse {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--van-success-color);
-    animation: pulse 2s infinite;
-  }
-
-  .indicator-text {
-    color: white;
-    font-size: 12px;
-    font-weight: 500;
-    background: rgba(0, 0, 0, 0.7);
-    padding: 4px 8px;
-    border-radius: 4px;
-  }
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(7, 193, 96, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 6px rgba(7, 193, 96, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(7, 193, 96, 0);
-  }
-}
-
-.scan-controls {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px;
-
-  .torch-on {
-    color: var(--van-warning-color);
-  }
-}
-
-.result-popup {
-  .popup-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px;
-    border-bottom: 1px solid var(--van-border-color);
-
-    h3 {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 600;
-    }
-
-    .van-icon {
-      cursor: pointer;
-      font-size: 20px;
-    }
-  }
-
-  .popup-content {
-    padding: 16px;
-
-    .result-content {
-      .result-type {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 16px;
-
-        .van-icon {
-          color: var(--van-primary-color);
-          font-size: 20px;
-        }
-
-        .type-text {
-          font-size: 16px;
-          font-weight: 600;
-          color: var(--van-text-color);
-        }
-      }
-
-      .result-details {
-        margin-bottom: 20px;
-      }
-
-      .result-actions {
-        margin-top: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-    }
-  }
-}
-
-.scan-tips {
-  text-align: center;
-  margin-top: 12px;
-
-  .tip-text {
-    font-size: 12px;
-    color: var(--van-text-color-3);
-  }
-}
-
-// 暗色模式支持
-@media (prefers-color-scheme: dark) {
   .scanner-container {
-    background: #1a1a1a;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #000;
+    border-radius: var(--van-radius-md);
+    overflow: hidden;
+  }
+
+  .camera-preview {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+
+      &.facing-front {
+        transform: scaleX(-1);
+      }
+    }
+
+    .scan-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: none;
+    }
+  }
+
+  .loading-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.8);
+
+    .loading-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+
+      .loading-text {
+        color: white;
+        font-size: 14px;
+      }
+    }
   }
 
   .error-container {
-    background: rgba(26, 26, 26, 0.95);
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 24px;
+
+    .error-icon {
+      color: var(--van-danger-color);
+      margin-bottom: 16px;
+    }
+
+    .error-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--van-text-color);
+      margin-bottom: 8px;
+    }
+
+    .error-text {
+      font-size: 14px;
+      color: var(--van-text-color-3);
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .error-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 200px;
+    }
   }
 
-  .result-popup .popup-header {
-    border-bottom-color: var(--van-gray-6);
+  .scan-frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60%;
+    height: 60%;
+    max-width: 300px;
+    max-height: 300px;
+
+    .scan-border {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      border-radius: var(--van-radius-md);
+
+      .scan-corner {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border: 3px solid var(--van-primary-color);
+
+        &.top-left {
+          top: -3px;
+          left: -3px;
+          border-right: none;
+          border-bottom: none;
+        }
+
+        &.top-right {
+          top: -3px;
+          right: -3px;
+          border-left: none;
+          border-bottom: none;
+        }
+
+        &.bottom-left {
+          bottom: -3px;
+          left: -3px;
+          border-right: none;
+          border-top: none;
+        }
+
+        &.bottom-right {
+          bottom: -3px;
+          right: -3px;
+          border-left: none;
+          border-top: none;
+        }
+      }
+    }
+
+    .scan-line {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--van-primary-color), transparent);
+      animation: scanLine 2s linear infinite;
+
+      &.scanning {
+        animation-play-state: running;
+      }
+
+      &:not(.scanning) {
+        animation-play-state: paused;
+      }
+    }
   }
 
-  .tip-text {
-    color: var(--van-text-color-3);
+  @keyframes scanLine {
+    0% {
+      top: 0;
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      top: 100%;
+      opacity: 0;
+    }
   }
-}
 
-// 响应式设计
-@media (max-width: 375px) {
-  .scan-controls {
-    padding: 8px;
-    gap: 6px;
+  .scan-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
 
-    .van-button {
+    .overlay-top,
+    .overlay-bottom,
+    .overlay-left,
+    .overlay-right {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    .overlay-top {
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60%;
+      height: 50%;
+      border-radius: var(--van-radius-md) var(--van-radius-md) 0 0;
+    }
+
+    .overlay-bottom {
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60%;
+      height: 50%;
+      border-radius: 0 0 var(--van-radius-md) var(--van-radius-md);
+    }
+
+    .overlay-left {
+      top: 50%;
+      left: 0;
+      transform: translateY(-50%);
+      width: 20%;
+      height: 60%;
+    }
+
+    .overlay-right {
+      top: 50%;
+      right: 0;
+      transform: translateY(-50%);
+      width: 20%;
+      height: 60%;
+    }
+  }
+
+  .scan-indicator {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.3s;
+
+    &.active {
+      opacity: 1;
+    }
+
+    .indicator-pulse {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--van-success-color);
+      animation: pulse 2s infinite;
+    }
+
+    .indicator-text {
+      color: white;
       font-size: 12px;
-      padding: 6px 12px;
+      font-weight: 500;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+  }
+
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(7, 193, 96, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 6px rgba(7, 193, 96, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(7, 193, 96, 0);
+    }
+  }
+
+  .scan-controls {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+
+    .torch-on {
+      color: var(--van-warning-color);
+    }
+  }
+
+  .result-popup {
+    .popup-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 1px solid var(--van-border-color);
+
+      h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .van-icon {
+        cursor: pointer;
+        font-size: 20px;
+      }
+    }
+
+    .popup-content {
+      padding: 16px;
+
+      .result-content {
+        .result-type {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 16px;
+
+          .van-icon {
+            color: var(--van-primary-color);
+            font-size: 20px;
+          }
+
+          .type-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--van-text-color);
+          }
+        }
+
+        .result-details {
+          margin-bottom: 20px;
+        }
+
+        .result-actions {
+          margin-top: 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+      }
     }
   }
 
   .scan-tips {
-    margin-top: 8px;
-  }
-}
+    text-align: center;
+    margin-top: 12px;
 
-@media (max-width: 320px) {
-  .scan-controls {
-    .van-button {
-      font-size: 11px;
-      padding: 4px 8px;
+    .tip-text {
+      font-size: 12px;
+      color: var(--van-text-color-3);
     }
   }
-}
+
+  // 暗色模式支持
+  @media (prefers-color-scheme: dark) {
+    .scanner-container {
+      background: #1a1a1a;
+    }
+
+    .error-container {
+      background: rgba(26, 26, 26, 0.95);
+    }
+
+    .result-popup .popup-header {
+      border-bottom-color: var(--van-gray-6);
+    }
+
+    .tip-text {
+      color: var(--van-text-color-3);
+    }
+  }
+
+  // 响应式设计
+  @media (max-width: 375px) {
+    .scan-controls {
+      padding: 8px;
+      gap: 6px;
+
+      .van-button {
+        font-size: 12px;
+        padding: 6px 12px;
+      }
+    }
+
+    .scan-tips {
+      margin-top: 8px;
+    }
+  }
+
+  @media (max-width: 320px) {
+    .scan-controls {
+      .van-button {
+        font-size: 11px;
+        padding: 4px 8px;
+      }
+    }
+  }
 </style>

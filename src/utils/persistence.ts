@@ -102,13 +102,13 @@ export class PersistenceManager {
       const debounceTime = config.debounce || 500
 
       if (this.debouncedUpdates.has(key)) {
-        clearTimeout(this.debouncedUpdates.get(key)!)
+        clearTimeout(this.debouncedUpdates.get(key)! as any)
       }
 
       const timeout = setTimeout(() => {
         this.saveState(key, newValue)
         this.debouncedUpdates.delete(key)
-      }, debounceTime)
+      }, debounceTime) as any
 
       this.debouncedUpdates.set(key, timeout)
     }
@@ -144,14 +144,14 @@ export class PersistenceManager {
 
     // 尝试使用备用存储
     if (config.storage === 'localStorage') {
-      const backupConfig = { ...config, storage: 'sessionStorage' }
+      const backupConfig = { ...config, storage: 'sessionStorage' as const }
       this.persistenceConfigs.set(key, backupConfig)
     }
   }
 
   // 清理所有防抖定时器
   cleanup(): void {
-    this.debouncedUpdates.forEach(timeout => clearTimeout(timeout))
+    this.debouncedUpdates.forEach(timeout => clearTimeout(timeout as any))
     this.debouncedUpdates.clear()
   }
 }
@@ -167,7 +167,7 @@ export function createPersistencePlugin() {
     // 注册持久化配置
     persistenceManager.registerConfig({
       key: storeKey,
-      storage: 'localStorage',
+      storage: 'localStorage' as const,
       debounce: 500,
       version: '1.0.0'
     })
@@ -184,7 +184,7 @@ export function createPersistencePlugin() {
 
     // 监听状态变化
     store.$subscribe(
-      (mutation, state) => {
+      (mutation: any, state: any) => {
         persistenceManager.saveState(storeKey, state)
       },
       { detached: true }
@@ -293,7 +293,7 @@ export class AppStatePersistence {
     })
 
     // 监听认证状态变化
-    this.persistenceManager.watchState('auth', this.getAuthStore().$state)
+    this.persistenceManager.watchState('auth', this.getAuthStore().$state as any)
 
     // 加载保存的认证状态
     const savedAuthState = this.persistenceManager.loadPersistedState({
@@ -316,7 +316,7 @@ export class AppStatePersistence {
     })
 
     // 监听应用状态变化
-    this.persistenceManager.watchState('app', this.getAppStore().$state)
+    this.persistenceManager.watchState('app', this.getAppStore().$state as any)
 
     // 加载保存的应用状态
     const savedAppState = this.persistenceManager.loadPersistedState({
@@ -430,16 +430,19 @@ export const persistenceDebug = {
     const persistenceManager = PersistenceManager.getInstance()
     const states: Record<string, any> = {}
 
-    persistenceManager.persistenceConfigs.forEach((config, key) => {
-      const data = persistenceManager.loadPersistedState(config)
-      if (data) {
-        states[key] = {
-          state: data,
-          config,
-          timestamp: Date.now()
+    const configs = (persistenceManager as any).persistenceConfigs
+    if (configs && typeof configs.forEach === 'function') {
+      configs.forEach((config: any, key: string) => {
+        const data = persistenceManager.loadPersistedState(config)
+        if (data) {
+          states[key] = {
+            state: data,
+            config,
+            timestamp: Date.now()
+          }
         }
-      }
-    })
+      })
+    }
 
     return states
   },
@@ -447,7 +450,7 @@ export const persistenceDebug = {
   // 清除所有持久化数据
   clearAll(): void {
     const persistenceManager = PersistenceManager.getInstance()
-    persistenceManager.persistenceConfigs.forEach((config, key) => {
+    ;(persistenceManager as any).persistenceConfigs.forEach((config: any, key: string) => {
       persistenceManager.clearState(key)
     })
   },

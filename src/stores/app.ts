@@ -55,7 +55,7 @@ export const useAppStore = defineStore('app', () => {
     }
 
     systemInfo.value = {
-      isWechatMiniProgram: typeof wx !== 'undefined' && wx.miniProgram,
+      isWechatMiniProgram: typeof (window as any).wx !== 'undefined' && (window as any).wx.miniProgram,
       isWechatBrowser: /MicroMessenger/i.test(userAgent),
       isMobile: /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent),
       isIOS: /iPad|iPhone|iPod/i.test(userAgent),

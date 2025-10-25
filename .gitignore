@@ -109,3 +109,5 @@ vite.config.ts.timestamp-*
 
 # Vite cache
 .vite/
+
+*.tar

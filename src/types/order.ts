@@ -1,7 +1,7 @@
 // 订单相关类型定义
 
-import { Order, OrderQueryParams, MerchantOrderQueryParams, Address, Payment } from './index'
-import { OrderSettlementResult, SettlementMode } from './payment'
+import type { Order, OrderQueryParams, MerchantOrderQueryParams, Address, Payment, ApiResponse, PaginatedResponse } from './index'
+import type { OrderSettlementResult, SettlementMode } from './payment'
 
 // 订单状态类型
 export type OrderStatus = 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
@@ -606,14 +606,14 @@ export interface OrderForecast {
     confidence: number
     factors: Array<{
       name: string
-      impact: positive | negative | neutral
+      impact: 'positive' | 'negative' | 'neutral'
       value: number
     }>
   }>
   trends: Array<{
     type: 'seasonal' | 'trend' | 'promotional' | 'external'
     description: string
-    impact: positive | negative | neutral
+    impact: 'positive' | 'negative' | 'neutral'
     confidence: number
   }>
 }

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Order } from '@/types'
+import type { Order, OrderItem, Address, PaymentMethod } from '@/types'
 
 interface OrderResponse {
   success: boolean
@@ -43,20 +43,29 @@ export const useOrderStore = defineStore('order', () => {
           paymentMethod: 'wechat',
           paymentStatus: 'unpaid',
           shippingAddress: {
+            id: 'addr1',
             name: '张三',
             phone: '13800138000',
             province: '广东省',
             city: '广州市',
             district: '天河区',
-            detail: '天河路123号'
+            detail: '天河路123号',
+            isDefault: true,
+            createdAt: '2024-10-01T00:00:00Z',
+            updatedAt: '2024-10-01T00:00:00Z'
           },
+          contactName: '张三',
+          contactPhone: '13800138000',
+          isVerified: false,
           items: [
             {
+              id: 'item1',
               productId: 'product1',
               productName: 'iPhone 15 Pro',
               productImage: '/images/iphone15.jpg',
               quantity: 1,
               price: 8999.00,
+              totalPrice: 8999.00,
               specification: '256GB 深空黑色'
             }
           ],
@@ -72,20 +81,29 @@ export const useOrderStore = defineStore('order', () => {
           paymentMethod: 'alipay',
           paymentStatus: 'paid',
           shippingAddress: {
+            id: 'addr2',
             name: '张三',
             phone: '13800138000',
             province: '广东省',
             city: '广州市',
             district: '天河区',
-            detail: '天河路123号'
+            detail: '天河路123号',
+            isDefault: true,
+            createdAt: '2024-10-01T00:00:00Z',
+            updatedAt: '2024-10-01T00:00:00Z'
           },
+          contactName: '张三',
+          contactPhone: '13800138000',
+          isVerified: false,
           items: [
             {
+              id: 'item2',
               productId: 'product2',
               productName: 'iPad Air',
               productImage: '/images/ipad.jpg',
               quantity: 1,
               price: 2999.00,
+              totalPrice: 2999.00,
               specification: '64GB Wi-Fi版'
             }
           ],
@@ -141,20 +159,29 @@ export const useOrderStore = defineStore('order', () => {
         paymentMethod: 'wechat',
         paymentStatus: 'paid',
         shippingAddress: {
+          id: 'addr3',
           name: '张三',
           phone: '13800138000',
           province: '广东省',
           city: '广州市',
           district: '天河区',
-          detail: '天河路123号'
+          detail: '天河路123号',
+          isDefault: true,
+          createdAt: '2024-10-01T00:00:00Z',
+          updatedAt: '2024-10-01T00:00:00Z'
         },
+        contactName: '张三',
+        contactPhone: '13800138000',
+        isVerified: true,
         items: [
           {
+            id: 'item3',
             productId: 'product1',
             productName: 'iPhone 15 Pro',
             productImage: '/images/iphone15.jpg',
             quantity: 1,
             price: 8999.00,
+            totalPrice: 8999.00,
             specification: '256GB 深空黑色'
           }
         ],
@@ -206,13 +233,20 @@ export const useOrderStore = defineStore('order', () => {
         paymentMethod: orderData.paymentMethod || 'wechat',
         paymentStatus: 'unpaid',
         shippingAddress: orderData.shippingAddress || {
+          id: 'temp-addr',
           name: '',
           phone: '',
           province: '',
           city: '',
           district: '',
-          detail: ''
+          detail: '',
+          isDefault: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
         },
+        contactName: orderData.contactName || '',
+        contactPhone: orderData.contactPhone || '',
+        isVerified: false,
         items: orderData.items || [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -283,7 +317,7 @@ export const useOrderStore = defineStore('order', () => {
   }
 
   // 支付订单
-  const payOrder = async (id: string, paymentMethod: string): Promise<{ success: boolean; message: string }> => {
+  const payOrder = async (id: string, paymentMethod: PaymentMethod): Promise<{ success: boolean; message: string }> => {
     try {
       isLoading.value = true
       error.value = ''
@@ -391,8 +425,7 @@ export const useOrderStore = defineStore('order', () => {
           status: 'refunded',
           paymentStatus: 'refunded',
           updatedAt: new Date().toISOString(),
-          refundedAt: new Date().toISOString(),
-          refundReason: reason
+          refundedAt: new Date().toISOString()
         }
 
         if (currentOrder.value?.id === id) {

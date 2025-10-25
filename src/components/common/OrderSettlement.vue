@@ -51,7 +51,7 @@
   import { computed } from 'vue'
   import { showToast, showConfirmDialog } from 'vant'
   import { useSettlementStore } from '@/stores/settlement'
-  import { OrderSettlementResult } from '@/types/payment'
+  import type { OrderSettlementResult } from '@/types/payment'
 
   interface Props {
     orderId: string

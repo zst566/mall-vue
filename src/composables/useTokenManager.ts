@@ -67,9 +67,7 @@ export function useTokenManager(options: TokenOptions = {}) {
     return Math.max(0, tokenState.value.expiresAt - Date.now())
   })
 
-  // 定时器
-  let refreshTimer: number | null = null
-  let checkTimer: number | null = null
+  // 定时器（已在上面声明）
 
   // 解析JWT token获取过期时间
   const parseTokenExpiry = (token: string): number | null => {
@@ -310,11 +308,13 @@ export function useTokenManager(options: TokenOptions = {}) {
   // 设置token
   const setToken = (token: string, refreshToken?: string): void => {
     const expiresAt = parseTokenExpiry(token)
-    authStore.setAuth({
-      token,
-      refreshToken: refreshToken || '',
-      user: authStore.user // 保持用户信息不变
-    })
+    if (authStore.user) {
+      authStore.setAuth({
+        token,
+        refreshToken: refreshToken || '',
+        user: authStore.user
+      })
+    }
 
     tokenState.value = {
       token,

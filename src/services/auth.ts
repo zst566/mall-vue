@@ -16,9 +16,9 @@ export class AuthService extends BaseApiService {
       // 保存认证信息到Pinia
       const authStore = useAuthStore()
       authStore.setAuth({
-        token: response.data.token,
-        refreshToken: response.data.refreshToken,
-        user: response.data.user
+        token: response.data.data.token,
+        refreshToken: response.data.data.refreshToken,
+        user: response.data.data.user
       })
 
       return response.data
@@ -36,9 +36,9 @@ export class AuthService extends BaseApiService {
       // 注册成功后自动登录
       const authStore = useAuthStore()
       authStore.setAuth({
-        token: response.data.token,
-        refreshToken: response.data.refreshToken,
-        user: response.data.user
+        token: response.data.data.token,
+        refreshToken: response.data.data.refreshToken,
+        user: response.data.data.user
       })
 
       return response.data
@@ -72,7 +72,7 @@ export class AuthService extends BaseApiService {
   }
 
   // 刷新访问令牌
-  async refreshToken(): Promise<{ token: string; refreshToken: string }> {
+  async refreshToken(): Promise<{ success: boolean; data: { token: string; refreshToken: string }; message: string }> {
     try {
       const authStore = useAuthStore()
 
@@ -90,8 +90,12 @@ export class AuthService extends BaseApiService {
       })
 
       return {
-        token: newToken,
-        refreshToken: newRefreshToken
+        success: true,
+        data: {
+          token: newToken,
+          refreshToken: newRefreshToken
+        },
+        message: 'Token刷新成功'
       }
     } catch (error) {
       const errorMessage = ApiErrorHandler.handleApiError(error)
@@ -101,7 +105,11 @@ export class AuthService extends BaseApiService {
       authStore.clearAuth()
       router.push('/login')
 
-      throw new Error(errorMessage)
+      return {
+        success: false,
+        data: { token: '', refreshToken: '' },
+        message: errorMessage
+      }
     }
   }
 
@@ -163,7 +171,7 @@ export class AuthService extends BaseApiService {
 
       // 更新本地存储的用户信息
       const authStore = useAuthStore()
-      authStore.updateUser({ avatarUrl: response.data.avatarUrl })
+      authStore.updateUser({ avatar: response.data.avatarUrl })
 
       return response.data
     } catch (error) {
@@ -173,13 +181,13 @@ export class AuthService extends BaseApiService {
   }
 
   // 获取用户资料
-  async getProfile(): Promise<User> {
+  async getProfile(): Promise<{ success: boolean; data: User; message: string }> {
     try {
       const response = await this.client<User>('/user/profile')
-      return response.data
+      return { success: true, data: response.data, message: '获取用户信息成功' }
     } catch (error) {
       const errorMessage = ApiErrorHandler.handleApiError(error)
-      throw new Error(errorMessage)
+      return { success: false, data: null as any, message: errorMessage }
     }
   }
 

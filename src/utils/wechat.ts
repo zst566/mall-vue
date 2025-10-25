@@ -83,11 +83,10 @@ export class WechatEnvironment {
   // 检测是否有微信小程序API
   private hasWechatMiniProgramAPI(): boolean {
     try {
-      return typeof window !== 'undefined' &&
+      return !!(typeof window !== 'undefined' &&
              window.wx &&
              typeof window.wx.miniProgram === 'object' &&
-             typeof window.wx.miniProgram.postMessage === 'function' &&
-             typeof window.wx.miniProgram.navigateBack === 'function'
+             typeof window.wx.miniProgram.postMessage === 'function')
     } catch (error) {
       return false
     }
@@ -132,13 +131,17 @@ export class WechatEnvironment {
     let safeArea
     if (this.detectEnvironment().isMiniProgram && window.wx) {
       try {
-        const systemInfo = window.wx.getSystemInfoSync()
-        if (systemInfo.safeArea) {
-          safeArea = {
-            top: systemInfo.safeArea.top,
-            bottom: systemInfo.safeArea.bottom,
-            left: systemInfo.safeArea.left,
-            right: systemInfo.safeArea.right
+        // 使用类型断言来访问可能存在的API
+        const wx = window.wx as any
+        if (wx.getSystemInfoSync) {
+          const systemInfo = wx.getSystemInfoSync()
+          if (systemInfo.safeArea) {
+            safeArea = {
+              top: systemInfo.safeArea.top,
+              bottom: systemInfo.safeArea.bottom,
+              left: systemInfo.safeArea.left,
+              right: systemInfo.safeArea.right
+            }
           }
         }
       } catch (error) {
@@ -292,8 +295,11 @@ export class WechatEnvironment {
     let fontSize: 'standard' | 'large' | 'small' = 'standard'
     if (env.isMiniProgram && window.wx) {
       try {
-        const systemInfo = window.wx.getSystemInfoSync()
-        fontSize = systemInfo.fontSizeLevel === 'large' ? 'large' : 'small'
+        const wx = window.wx as any
+        if (wx.getSystemInfoSync) {
+          const systemInfo = wx.getSystemInfoSync()
+          fontSize = systemInfo.fontSizeLevel === 'large' ? 'large' : 'small'
+        }
       } catch (error) {
         console.warn('Failed to get font size:', error)
       }
@@ -472,10 +478,10 @@ export class WechatEnvironment {
 
     // 防抖函数
     debounce: (func: Function, delay: number) => {
-      let timeout: NodeJS.Timeout
+      let timeout: number
       return (...args: any[]) => {
-        clearTimeout(timeout)
-        timeout = setTimeout(() => func.apply(null, args), delay)
+        clearTimeout(timeout as any)
+        timeout = setTimeout(() => func.apply(null, args), delay) as any
       }
     },
 

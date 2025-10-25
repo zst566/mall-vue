@@ -64,11 +64,13 @@ export const useMerchantOrderStore = defineStore('merchantOrder', () => {
           },
           items: [
             {
+              id: 'item1',
               productId: 'product1',
               productName: 'iPhone 15 Pro',
               productImage: '/images/iphone15.jpg',
               quantity: 1,
               price: 8999.00,
+              totalPrice: 8999.00,
               specification: '256GB 深空黑色'
             }
           ],
@@ -97,11 +99,13 @@ export const useMerchantOrderStore = defineStore('merchantOrder', () => {
           },
           items: [
             {
+              id: 'item2',
               productId: 'product2',
               productName: 'iPad Air',
               productImage: '/images/ipad.jpg',
               quantity: 1,
               price: 2999.00,
+              totalPrice: 2999.00,
               specification: '64GB Wi-Fi版'
             }
           ],
@@ -133,11 +137,13 @@ export const useMerchantOrderStore = defineStore('merchantOrder', () => {
           },
           items: [
             {
+              id: 'item3',
               productId: 'product3',
               productName: 'AirPods Pro',
               productImage: '/images/airpods.jpg',
               quantity: 1,
               price: 1599.00,
+              totalPrice: 1599.00,
               specification: '第二代'
             }
           ],
@@ -207,11 +213,13 @@ export const useMerchantOrderStore = defineStore('merchantOrder', () => {
         },
         items: [
           {
+            id: 'item4',
             productId: 'product1',
             productName: 'iPhone 15 Pro',
             productImage: '/images/iphone15.jpg',
             quantity: 1,
             price: 8999.00,
+            totalPrice: 8999.00,
             specification: '256GB 深空黑色'
           }
         ],

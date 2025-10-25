@@ -1,6 +1,6 @@
 // 商品相关类型定义
 
-import { Product, ProductQueryParams, PaginationParams } from './index'
+import type { Product, ProductQueryParams, PaginationParams, ApiResponse } from './index'
 
 // 商品规��项
 export interface ProductSpecificationItem {

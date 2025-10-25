@@ -135,7 +135,9 @@ export class PermissionChecker {
 
   // 检查微信环境适配
   static checkWechatEnvironment(path: string): boolean {
-    const { isWeChatMiniProgram, isWeChatBrowser } = useWechatParams()
+    const wechatParams = useWechatParams()
+    const isWeChatMiniProgram = wechatParams.isWechatMiniProgram()
+    const isWeChatBrowser = wechatParams.isWechatBrowser()
 
     // 某些页面需要微信环境适配
     const wechatRequiredPaths = [
@@ -157,7 +159,7 @@ export class PermissionChecker {
 
 // 导航守卫
 export function setupRouteGuards(routerInstance: any) {
-  routerInstance.beforeEach(async (to, from, next) => {
+  routerInstance.beforeEach(async (to: any, from: any, next: any) => {
     const path = to.path
     const { loadWechatParams } = useWechatParams()
 
@@ -221,7 +223,7 @@ export function setupRouteGuards(routerInstance: any) {
     next()
   })
 
-  routerInstance.afterEach((to) => {
+  routerInstance.afterEach((to: any) => {
     // 更新页面标题
     document.title = to.meta.title ? `${to.meta.title} - 商场促销平台` : '商场促销平台'
 
@@ -230,7 +232,7 @@ export function setupRouteGuards(routerInstance: any) {
   })
 
   // 全局错误处理
-  routerInstance.onError((error) => {
+  routerInstance.onError((error: any) => {
     console.error('Router error:', error)
     showToast('页面加载失败')
   })

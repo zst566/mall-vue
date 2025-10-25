@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { 
+import type { 
   OrderSettlementParams, 
   OrderSettlementResult, 
   PaymentMethodConfig 
@@ -108,9 +108,8 @@ export const useSettlementStore = defineStore('settlement', () => {
       if (currentResult) {
         settlementResults.value.set(orderId, {
           ...currentResult,
-          settlementStatus: 'settled' as any,
           settledAt: new Date().toISOString()
-        })
+        } as OrderSettlementResult)
       }
     } catch (err) {
       error.value = err instanceof Error ? err.message : '确认订单结算失败'

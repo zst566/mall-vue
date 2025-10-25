@@ -1,6 +1,6 @@
 // 用户相关类型定义
 
-import { User, UserRole } from './index'
+import type { User, UserRole, ApiResponse, PaginatedResponse } from './index'
 
 // 用户注册请求
 export interface UserRegisterRequest {
@@ -13,6 +13,14 @@ export interface UserRegisterRequest {
   role: UserRole
 }
 
+// 用户登录凭据
+export interface LoginCredentials {
+  username?: string
+  password?: string
+  phone?: string
+  code?: string
+}
+
 // 用户登录请求
 export interface UserLoginRequest {
   username?: string
@@ -20,6 +28,22 @@ export interface UserLoginRequest {
   phone?: string
   code?: string
   wechat?: WechatLoginData
+}
+
+// 微信登录数据
+export interface WechatLoginData {
+  code: string
+  encryptedData?: string
+  iv?: string
+  userInfo?: {
+    nickName: string
+    avatarUrl: string
+    gender: number
+    country: string
+    province: string
+    city: string
+    language: string
+  }
 }
 
 // 用户微信登录请求
@@ -318,7 +342,7 @@ export interface UserProfile {
 }
 
 // 用户画像响应
-export interface UserProfileResponse extends ApiResponse<UserProfile> {}
+export interface UserProfileDataResponse extends ApiResponse<UserProfile> {}
 
 // 用户成长
 export interface UserGrowth {

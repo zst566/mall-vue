@@ -260,16 +260,18 @@ export const permissionDirectives = {
   role: {
     mounted(el: HTMLElement, binding: { value: string | string[] }) {
       const roles = Array.isArray(binding.value) ? binding.value : [binding.value]
+      const authStore = useAuthStore()
 
-      if (!roles.includes(PermissionChecker.authStore.user?.role || '')) {
+      if (!roles.includes(authStore.user?.role || '')) {
         el.style.display = 'none'
       }
     },
 
     updated(el: HTMLElement, binding: { value: string | string[] }) {
       const roles = Array.isArray(binding.value) ? binding.value : [binding.value]
+      const authStore = useAuthStore()
 
-      if (!roles.includes(PermissionChecker.authStore.user?.role || '')) {
+      if (!roles.includes(authStore.user?.role || '')) {
         el.style.display = 'none'
       } else {
         el.style.display = ''
@@ -348,7 +350,7 @@ export function usePermission() {
   // 获取用户等级
   const getUserLevel = (): 'guest' | 'customer' | 'merchant' | 'admin' => {
     const role = authStore.user?.role || 'guest'
-    return role
+    return role as 'guest' | 'customer' | 'merchant' | 'admin'
   }
 
   // 监听权限变化

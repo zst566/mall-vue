@@ -61,7 +61,10 @@
                 <span class="price-value">{{ product.price }}</span>
                 <span class="price-unit">起</span>
               </div>
-              <div class="product-original-price" v-if="product.originalPrice > product.price">
+              <div
+                class="product-original-price"
+                v-if="product.originalPrice && product.originalPrice > product.price"
+              >
                 <span class="original-symbol">¥</span>
                 <span class="original-value">{{ product.originalPrice }}</span>
               </div>
@@ -90,6 +93,7 @@
   import { useRouter, useRoute } from 'vue-router'
   import { showToast, showLoadingToast, closeToast } from 'vant'
   import PlaceholderImage from '@/components/common/PlaceholderImage.vue'
+  import type { Product } from '@/types'
 
   const router = useRouter()
   const route = useRoute()
@@ -139,84 +143,156 @@
 
   // 商品数据
   const loading = ref(false)
-  const products = ref([])
+  const products = ref<Product[]>([])
   const hasMore = ref(true)
   const page = ref(1)
   const pageSize = ref(10)
 
   // 模拟商品数据
-  const mockProducts = [
+  const mockProducts: Product[] = [
     {
-      id: 1,
+      id: '1',
       name: 'iPhone 15 Pro 256GB',
       description: 'A17 Pro芯片，钛金属设计，专业级摄影系统',
       price: 8999,
       originalPrice: 9999,
       image: '/images/product1.jpg',
-      isHot: true,
-      discount: 9,
+      images: ['/images/product1.jpg'],
+      category: '手机数码',
+      categoryId: '1',
+      brand: 'Apple',
+      stock: 100,
+      sales: 1250,
       salesCount: 1250,
-      shopName: '苹果官方旗舰店'
+      rating: 4.8,
+      isHot: true,
+      isNew: true,
+      discount: 9,
+      shopName: '苹果官方旗舰店',
+      tags: ['热卖', '新品'],
+      status: 'active',
+      createdAt: '2024-10-01T00:00:00Z',
+      updatedAt: '2024-10-01T00:00:00Z'
     },
     {
-      id: 2,
+      id: '2',
       name: '华为 Mate 60 Pro',
       description: '麒麟9000S芯片，卫星通信，超光变影像',
       price: 6999,
       originalPrice: 7999,
       image: '/images/product2.jpg',
-      isHot: false,
-      discount: 0,
+      images: ['/images/product2.jpg'],
+      category: '手机数码',
+      categoryId: '1',
+      brand: 'HUAWEI',
+      stock: 80,
+      sales: 890,
       salesCount: 890,
-      shopName: '华为智能生活馆'
+      rating: 4.7,
+      isHot: false,
+      isNew: false,
+      discount: 0,
+      shopName: '华为智能生活馆',
+      tags: ['国产'],
+      status: 'active',
+      createdAt: '2024-10-01T00:00:00Z',
+      updatedAt: '2024-10-01T00:00:00Z'
     },
     {
-      id: 3,
+      id: '3',
       name: '小米14 Ultra',
       description: '徕卡光学镜头，骁龙8 Gen3，90W快充',
       price: 5999,
       originalPrice: 6999,
       image: '/images/product3.jpg',
-      isHot: true,
-      discount: 8.5,
+      images: ['/images/product3.jpg'],
+      category: '手机数码',
+      categoryId: '1',
+      brand: 'Xiaomi',
+      stock: 150,
+      sales: 2100,
       salesCount: 2100,
-      shopName: '小米之家'
+      rating: 4.6,
+      isHot: true,
+      isNew: false,
+      discount: 8.5,
+      shopName: '小米之家',
+      tags: ['热卖', '性价比'],
+      status: 'active',
+      createdAt: '2024-10-01T00:00:00Z',
+      updatedAt: '2024-10-01T00:00:00Z'
     },
     {
-      id: 4,
+      id: '4',
       name: 'OPPO Find X6',
       description: '哈苏影像，天玑9200，100W超级闪充',
       price: 3999,
       originalPrice: 4999,
       image: '/images/product4.jpg',
-      isHot: false,
-      discount: 8,
+      images: ['/images/product4.jpg'],
+      category: '手机数码',
+      categoryId: '1',
+      brand: 'OPPO',
+      stock: 120,
+      sales: 650,
       salesCount: 650,
-      shopName: 'OPPO体验店'
+      rating: 4.5,
+      isHot: false,
+      isNew: false,
+      discount: 8,
+      shopName: 'OPPO体验店',
+      tags: ['摄影'],
+      status: 'active',
+      createdAt: '2024-10-01T00:00:00Z',
+      updatedAt: '2024-10-01T00:00:00Z'
     },
     {
-      id: 5,
+      id: '5',
       name: 'vivo X100 Pro',
       description: '蔡司光学镜头，天玑9300，蓝海电池技术',
       price: 4699,
       originalPrice: 5499,
       image: '/images/product5.jpg',
-      isHot: true,
-      discount: 8.5,
+      images: ['/images/product5.jpg'],
+      category: '手机数码',
+      categoryId: '1',
+      brand: 'vivo',
+      stock: 90,
+      sales: 980,
       salesCount: 980,
-      shopName: 'vivo线下店'
+      rating: 4.7,
+      isHot: true,
+      isNew: false,
+      discount: 8.5,
+      shopName: 'vivo线下店',
+      tags: ['热卖', '摄影'],
+      status: 'active',
+      createdAt: '2024-10-01T00:00:00Z',
+      updatedAt: '2024-10-01T00:00:00Z'
     },
     {
-      id: 6,
+      id: '6',
       name: '三星 S24 Ultra',
       description: '骁龙8 Gen3，S Pen，2亿像素摄影',
       price: 9699,
       originalPrice: 10999,
       image: '/images/product6.jpg',
-      isHot: true,
-      discount: 8.8,
+      images: ['/images/product6.jpg'],
+      category: '手机数码',
+      categoryId: '1',
+      brand: 'Samsung',
+      stock: 60,
+      sales: 320,
       salesCount: 320,
-      shopName: '三星电子'
+      rating: 4.8,
+      isHot: true,
+      isNew: false,
+      discount: 8.8,
+      shopName: '三星电子',
+      tags: ['热卖', '高端'],
+      status: 'active',
+      createdAt: '2024-10-01T00:00:00Z',
+      updatedAt: '2024-10-01T00:00:00Z'
     }
   ]
 
@@ -297,7 +373,7 @@
           filteredProducts.sort((a, b) => b.salesCount - a.salesCount)
           break
         case 'newest':
-          filteredProducts.sort((a, b) => b.id - a.id)
+          filteredProducts.sort((a, b) => parseInt(b.id) - parseInt(a.id))
           break
       }
 
@@ -319,7 +395,7 @@
   }
 
   // 导航到商品详情
-  const goToProductDetail = (productId: number) => {
+  const goToProductDetail = (productId: string) => {
     router.push({
       name: 'ProductDetail',
       params: { id: productId.toString() }

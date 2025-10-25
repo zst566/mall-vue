@@ -74,7 +74,7 @@ export function useWechatParams() {
         if (value) {
           // 处理不同的数据类型
           if (key === 'timestamp' || key === 'scene') {
-            params[key] = parseInt(value, 10)
+            params[key] = parseInt(value, 10) as any
           } else {
             params[key] = value
           }
@@ -97,7 +97,15 @@ export function useWechatParams() {
       if (window.wx && window.wx.miniProgram) {
         // 尝试获取小程序传递的参数
         Object.assign(params, window.__wxConfig || {})
-        Object.assign(params, window.wx.miniProgram.getEnv?.() || {})
+        try {
+          window.wx.miniProgram.getEnv?.((env: any) => {
+            if (env) {
+              Object.assign(params, env)
+            }
+          })
+        } catch (e) {
+          // 忽略错误
+        }
       }
 
       // 从localStorage获取持久化的参数

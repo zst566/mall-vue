@@ -114,7 +114,8 @@
   import { showToast } from 'vant'
   import { useSettlementStore } from '@/stores/settlement'
   import OrderSettlement from '@/components/common/OrderSettlement.vue'
-  import { OrderSettlementParams, OrderSettlementResult } from '@/types/payment'
+  import type { OrderSettlementParams } from '@/types'
+  import type { OrderSettlementResult } from '@/types/payment'
 
   const settlementStore = useSettlementStore()
 
@@ -137,7 +138,7 @@
 
     try {
       const result = await settlementStore.calculateOrderSettlement(form)
-      settlementResult.value = result
+      settlementResult.value = result as OrderSettlementResult
 
       showToast('结算计算成功')
     } catch (error) {

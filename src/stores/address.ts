@@ -18,6 +18,7 @@ export const useAddressStore = defineStore('address', () => {
   // 状态
   const addressList = ref<Address[]>([])
   const isLoading = ref(false)
+  const errorMessage = ref('')
   const error = ref<string>('')
 
   // 获取地址列表

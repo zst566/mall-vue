@@ -9,18 +9,12 @@
             :alt="user.nickname"
             @click="changeAvatar"
           />
-          <van-icon
-            v-if="user.isVerified"
-            name="passed"
-            class="verified-icon"
-          />
+          <van-icon v-if="user.isVerified" name="passed" class="verified-icon" />
         </div>
         <div class="user-details">
           <div class="username-row">
             <h3 class="nickname">{{ user.nickname }}</h3>
-            <van-tag v-if="user.isVerified" type="success" size="small">
-              已认证
-            </van-tag>
+            <van-tag v-if="user.isVerified" type="success" size="medium">已认证</van-tag>
           </div>
           <div class="user-meta">
             <span class="phone" v-if="user.phone">
@@ -142,24 +136,13 @@
 
     <!-- 退出登录按钮 -->
     <div class="logout-section">
-      <van-button
-        type="danger"
-        block
-        round
-        @click="handleLogout"
-        :loading="isLoggingOut"
-      >
+      <van-button type="danger" block round @click="handleLogout" :loading="isLoggingOut">
         退出登录
       </van-button>
     </div>
 
     <!-- 图片上传弹窗 -->
-    <van-popup
-      v-model:show="showAvatarPopup"
-      position="bottom"
-      round
-      :style="{ height: '40%' }"
-    >
+    <van-popup v-model:show="showAvatarPopup" position="bottom" round :style="{ height: '40%' }">
       <div class="avatar-popup">
         <div class="popup-header">
           <h3>更换头像</h3>
@@ -167,9 +150,9 @@
         </div>
         <div class="popup-content">
           <van-uploader
-            :after-read="handleAvatarUpload"
+            :after-read="handleAvatarUpload as any"
             :max-size="5 * 1024 * 1024"
-            :before-read="beforeAvatarUpload"
+            :before-read="beforeAvatarUpload as any"
             preview-size="80"
             multiple
             :show-upload="false"
@@ -183,12 +166,7 @@
     </van-popup>
 
     <!-- 版本信息弹窗 -->
-    <van-popup
-      v-model:show="showVersionPopup"
-      position="center"
-      round
-      :style="{ width: '80%' }"
-    >
+    <van-popup v-model:show="showVersionPopup" position="center" round :style="{ width: '80%' }">
       <div class="version-popup">
         <van-cell-group inset>
           <van-cell title="当前版本" :value="appVersion" />
@@ -204,502 +182,498 @@
             <li>新增多项功能</li>
           </ul>
         </div>
-        <van-button
-          type="primary"
-          block
-          round
-          @click="showVersionPopup = false"
-        >
-          确定
-        </van-button>
+        <van-button type="primary" block round @click="showVersionPopup = false">确定</van-button>
       </div>
     </van-popup>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { showToast, showConfirmDialog, showImagePreview } from 'vant'
-import { useAuthStore } from '../stores/auth'
-import type { User } from '../types'
+  import { ref, computed, onMounted } from 'vue'
+  import { useRouter } from 'vue-router'
+  import { showToast, showConfirmDialog, showImagePreview } from 'vant'
+  import { useAuthStore } from '@/stores/auth'
+  import type { User } from '@/types'
 
-const router = useRouter()
-const authStore = useAuthStore()
+  const router = useRouter()
+  const authStore = useAuthStore()
 
-// 用户数据
-const user = computed(() => authStore.user || {
-  id: '1',
-  nickname: '张三',
-  phone: '13800138000',
-  avatar: '/images/default-avatar.png',
-  isVerified: true,
-  createdAt: '2023-01-01'
-})
+  // 用户数据
+  const user = computed(
+    () =>
+      authStore.user || {
+        id: '1',
+        nickname: '张三',
+        phone: '13800138000',
+        avatar: '/images/default-avatar.png',
+        isVerified: true,
+        createdAt: '2023-01-01'
+      }
+  )
 
-// 用户统计数据
-const userStats = ref({
-  points: 1250,
-  coupons: 3,
-  favorites: 15
-})
+  // 用户统计数据
+  const userStats = ref({
+    points: 1250,
+    coupons: 3,
+    favorites: 15
+  })
 
-// 应用信息
-const appVersion = ref('1.0.0')
-const buildVersion = ref('20240101')
-const updateTime = ref('2024-01-01')
+  // 应用信息
+  const appVersion = ref('1.0.0')
+  const buildVersion = ref('20240101')
+  const updateTime = ref('2024-01-01')
 
-// 弹窗状态
-const showAvatarPopup = ref(false)
-const showVersionPopup = ref(false)
-const isLoggingOut = ref(false)
+  // 弹窗状态
+  const showAvatarPopup = ref(false)
+  const showVersionPopup = ref(false)
+  const isLoggingOut = ref(false)
 
-// 计算是否有未支付订单
-const hasUnpaidOrders = ref(false)
+  // 计算是否有未支付订单
+  const hasUnpaidOrders = ref(false)
 
-// 格式化手机号
-const formatPhone = (phone: string) => {
-  return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
-}
-
-// 格式化日期
-const formatDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleDateString('zh-CN')
-}
-
-// 更换头像
-const changeAvatar = () => {
-  showAvatarPopup.value = true
-}
-
-// 上传前验证
-const beforeAvatarUpload = (file: File) => {
-  const isValidType = ['image/jpeg', 'image/png'].includes(file.type)
-  const isValidSize = file.size <= 5 * 1024 * 1024
-
-  if (!isValidType) {
-    showToast('请上传 JPG 或 PNG 格式的图片')
-    return false
+  // 格式化手机号
+  const formatPhone = (phone: string) => {
+    return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
   }
 
-  if (!isValidSize) {
-    showToast('图片大小不能超过 5MB')
-    return false
+  // 格式化日期
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('zh-CN')
   }
 
-  return true
-}
-
-// 处理头像上传
-const handleAvatarUpload = async (file: File) => {
-  try {
-    // 模拟上传过程
-    showToast('上传中...')
-
-    // 模拟上传延迟
-    await new Promise(resolve => setTimeout(resolve, 1500))
-
-    // 这里应该调用实际的API上传图片
-    console.log('上传头像:', file)
-
-    // 更新用户头像
-    authStore.updateUser({ avatar: URL.createObjectURL(file) })
-
-    showToast('头像更新成功')
-    showAvatarPopup.value = false
-  } catch (error) {
-    showToast('上传失败，请重试')
+  // 更换头像
+  const changeAvatar = () => {
+    showAvatarPopup.value = true
   }
-}
 
-// 跳转到账户管理
-const goToAccount = () => {
-  router.push('/customer/account')
-}
+  // 上传前验证
+  const beforeAvatarUpload = (file: File) => {
+    const isValidType = ['image/jpeg', 'image/png'].includes(file.type)
+    const isValidSize = file.size <= 5 * 1024 * 1024
 
-// 跳转到订单页面
-const goToOrders = () => {
-  router.push('/customer/orders')
-}
-
-// 跳转到收藏管理
-const goToFavorites = () => {
-  router.push('/customer/favorites')
-}
-
-// 跳转到地址管理
-const goToAddresses = () => {
-  router.push('/customer/addresses')
-}
-
-// 跳转到安全设置
-const goToSecurity = () => {
-  router.push('/customer/security')
-}
-
-// 跳转到通知设置
-const goToNotifications = () => {
-  router.push('/customer/notifications')
-}
-
-// 联系客服
-const contactService = () => {
-  showToast('正在跳转到客服聊天...')
-  // 这里应该跳转到客服聊天页面或打开客服聊天窗口
-}
-
-// 跳转到帮助中心
-const goToHelp = () => {
-  router.push('/customer/help')
-}
-
-// 跳转到关于我们
-const goToAbout = () => {
-  router.push('/customer/about')
-}
-
-// 显示版本信息
-const showVersionInfo = () => {
-  showVersionPopup.value = true
-}
-
-// 处理退出登录
-const handleLogout = async () => {
-  try {
-    await showConfirmDialog({
-      title: '确认退出',
-      message: '确定要退出登录吗？',
-      confirmButtonText: '确定退出',
-      cancelButtonText: '取消'
-    })
-
-    isLoggingOut.value = true
-
-    // 模拟退出登录过程
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    // 调用退出登录API
-    await authStore.logout()
-
-    showToast('退出成功')
-
-    // 跳转到登录页
-    router.push('/login')
-  } catch (error) {
-    // 用户取消或操作失败
-    if (error !== 'cancel') {
-      showToast('退出失败，请重试')
+    if (!isValidType) {
+      showToast('请上传 JPG 或 PNG 格式的图片')
+      return false
     }
-  } finally {
-    isLoggingOut.value = false
+
+    if (!isValidSize) {
+      showToast('图片大小不能超过 5MB')
+      return false
+    }
+
+    return true
   }
-}
 
-// 加载用户数据
-const loadUserData = async () => {
-  try {
-    // 模拟API调用获取用户统计数据
-    await new Promise(resolve => setTimeout(resolve, 500))
+  // 处理头像上传
+  const handleAvatarUpload = async (file: File) => {
+    try {
+      // 模拟上传过程
+      showToast('上传中...')
 
-    console.log('用户数据加载完成')
-  } catch (error) {
-    showToast('加载用户数据失败')
+      // 模拟上传延迟
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      // 这里应该调用实际的API上传图片
+      console.log('上传头像:', file)
+
+      // 更新用户头像
+      authStore.updateUser({ avatar: URL.createObjectURL(file) })
+
+      showToast('头像更新成功')
+      showAvatarPopup.value = false
+    } catch (error) {
+      showToast('上传失败，请重试')
+    }
   }
-}
 
-// 初始化
-onMounted(() => {
-  loadUserData()
-})
+  // 跳转到账户管理
+  const goToAccount = () => {
+    router.push('/customer/account')
+  }
+
+  // 跳转到订单页面
+  const goToOrders = () => {
+    router.push('/customer/orders')
+  }
+
+  // 跳转到收藏管理
+  const goToFavorites = () => {
+    router.push('/customer/favorites')
+  }
+
+  // 跳转到地址管理
+  const goToAddresses = () => {
+    router.push('/customer/addresses')
+  }
+
+  // 跳转到安全设置
+  const goToSecurity = () => {
+    router.push('/customer/security')
+  }
+
+  // 跳转到通知设置
+  const goToNotifications = () => {
+    router.push('/customer/notifications')
+  }
+
+  // 联系客服
+  const contactService = () => {
+    showToast('正在跳转到客服聊天...')
+    // 这里应该跳转到客服聊天页面或打开客服聊天窗口
+  }
+
+  // 跳转到帮助中心
+  const goToHelp = () => {
+    router.push('/customer/help')
+  }
+
+  // 跳转到关于我们
+  const goToAbout = () => {
+    router.push('/customer/about')
+  }
+
+  // 显示版本信息
+  const showVersionInfo = () => {
+    showVersionPopup.value = true
+  }
+
+  // 处理退出登录
+  const handleLogout = async () => {
+    try {
+      await showConfirmDialog({
+        title: '确认退出',
+        message: '确定要退出登录吗？',
+        confirmButtonText: '确定退出',
+        cancelButtonText: '取消'
+      })
+
+      isLoggingOut.value = true
+
+      // 模拟退出登录过程
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // 调用退出登录API
+      await authStore.logout()
+
+      showToast('退出成功')
+
+      // 跳转到登录页
+      router.push('/login')
+    } catch (error) {
+      // 用户取消或操作失败
+      if (error !== 'cancel') {
+        showToast('退出失败，请重试')
+      }
+    } finally {
+      isLoggingOut.value = false
+    }
+  }
+
+  // 加载用户数据
+  const loadUserData = async () => {
+    try {
+      // 模拟API调用获取用户统计数据
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      console.log('用户数据加载完成')
+    } catch (error) {
+      showToast('加载用户数据失败')
+    }
+  }
+
+  // 初始化
+  onMounted(() => {
+    loadUserData()
+  })
 </script>
 
 <style lang="scss" scoped>
-.profile-page {
-  min-height: 100vh;
-  background-color: var(--van-background);
-  padding-bottom: 80px;
-}
-
-.profile-header {
-  background: linear-gradient(135deg, var(--van-primary-color), var(--van-primary-color-dark));
-  padding: 24px 16px;
-  color: white;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
-
-  .user-avatar {
-    position: relative;
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    overflow: hidden;
-    cursor: pointer;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .verified-icon {
-      position: absolute;
-      bottom: 4px;
-      right: 4px;
-      background: white;
-      color: var(--van-success-color);
-      border-radius: 50%;
-      padding: 2px;
-      font-size: 14px;
-    }
-  }
-
-  .user-details {
-    flex: 1;
-
-    .username-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-
-      .nickname {
-        font-size: 20px;
-        font-weight: 600;
-        margin: 0;
-      }
-    }
-
-    .user-meta {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-
-      span {
-        font-size: 14px;
-        opacity: 0.9;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
-    }
-  }
-}
-
-.user-stats {
-  display: flex;
-  justify-content: space-around;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: var(--van-radius-lg);
-  padding: 16px;
-
-  .stat-item {
-    text-align: center;
-
-    .stat-value {
-      font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .stat-label {
-      font-size: 12px;
-      opacity: 0.8;
-    }
-  }
-}
-
-.menu-section {
-  margin: 16px 0;
-
-  .van-cell-group {
-    .van-cell {
-      padding: 16px;
-
-      .van-icon {
-        margin-right: 8px;
-        color: var(--van-primary-color);
-      }
-    }
-  }
-}
-
-.logout-section {
-  padding: 16px;
-}
-
-.version-text {
-  color: var(--van-text-color-3);
-  font-size: 14px;
-}
-
-.avatar-popup {
-  .popup-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px;
-    border-bottom: 1px solid var(--van-border-color);
-
-    h3 {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 600;
-    }
-
-    .van-icon {
-      cursor: pointer;
-      font-size: 20px;
-    }
-  }
-
-  .popup-content {
-    padding: 16px;
-
-    .upload-tips {
-      margin-top: 16px;
-      padding: 12px;
-      background: var(--van-background-2);
-      border-radius: var(--van-radius-md);
-
-      p {
-        font-size: 12px;
-        color: var(--van-text-color-3);
-        margin-bottom: 4px;
-
-        &:last-child {
-          margin-bottom: 0;
-        }
-      }
-    }
-  }
-}
-
-.version-popup {
-  .version-info {
-    padding: 16px;
-
-    h4 {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 12px;
-      color: var(--van-text-color);
-    }
-
-    ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-
-      li {
-        font-size: 14px;
-        color: var(--van-text-color-2);
-        margin-bottom: 8px;
-        padding-left: 16px;
-        position: relative;
-
-        &:before {
-          content: '•';
-          position: absolute;
-          left: 0;
-          color: var(--van-primary-color);
-        }
-
-        &:last-child {
-          margin-bottom: 0;
-        }
-      }
-    }
-  }
-}
-
-// 暗色模式支持
-@media (prefers-color-scheme: dark) {
   .profile-page {
-    background-color: var(--van-background-3);
+    min-height: 100vh;
+    background-color: var(--van-background);
+    padding-bottom: 80px;
   }
 
   .profile-header {
     background: linear-gradient(135deg, var(--van-primary-color), var(--van-primary-color-dark));
+    padding: 24px 16px;
+    color: white;
   }
 
-  .menu-section .van-cell-group {
-    .van-cell {
-      background: var(--van-background-3);
-      border-color: var(--van-gray-6);
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
 
-      .van-icon {
-        color: var(--van-primary-color);
+    .user-avatar {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      overflow: hidden;
+      cursor: pointer;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .verified-icon {
+        position: absolute;
+        bottom: 4px;
+        right: 4px;
+        background: white;
+        color: var(--van-success-color);
+        border-radius: 50%;
+        padding: 2px;
+        font-size: 14px;
+      }
+    }
+
+    .user-details {
+      flex: 1;
+
+      .username-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+
+        .nickname {
+          font-size: 20px;
+          font-weight: 600;
+          margin: 0;
+        }
+      }
+
+      .user-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        span {
+          font-size: 14px;
+          opacity: 0.9;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
       }
     }
   }
 
-  .version-popup .version-info {
-    ul li {
-      color: var(--van-text-color-2);
-    }
-  }
-}
+  .user-stats {
+    display: flex;
+    justify-content: space-around;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--van-radius-lg);
+    padding: 16px;
 
-// 响应式设计
-@media (max-width: 375px) {
-  .profile-header {
-    padding: 20px 16px;
-
-    .user-info {
-      gap: 12px;
-
-      .user-avatar {
-        width: 60px;
-        height: 60px;
-      }
-
-      .user-details .username-row .nickname {
-        font-size: 18px;
-      }
-    }
-
-    .user-stats {
-      padding: 12px;
+    .stat-item {
+      text-align: center;
 
       .stat-value {
-        font-size: 18px;
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 4px;
       }
 
       .stat-label {
-        font-size: 11px;
+        font-size: 12px;
+        opacity: 0.8;
       }
     }
   }
-}
 
-@media (max-width: 320px) {
-  .profile-header {
+  .menu-section {
+    margin: 16px 0;
+
+    .van-cell-group {
+      .van-cell {
+        padding: 16px;
+
+        .van-icon {
+          margin-right: 8px;
+          color: var(--van-primary-color);
+        }
+      }
+    }
+  }
+
+  .logout-section {
     padding: 16px;
+  }
 
-    .user-info {
-      gap: 8px;
+  .version-text {
+    color: var(--van-text-color-3);
+    font-size: 14px;
+  }
 
-      .user-avatar {
-        width: 50px;
-        height: 50px;
+  .avatar-popup {
+    .popup-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 1px solid var(--van-border-color);
+
+      h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
       }
 
-      .user-details .username-row .nickname {
-        font-size: 16px;
+      .van-icon {
+        cursor: pointer;
+        font-size: 20px;
       }
     }
 
-    .user-stats {
-      .stat-value {
-        font-size: 16px;
+    .popup-content {
+      padding: 16px;
+
+      .upload-tips {
+        margin-top: 16px;
+        padding: 12px;
+        background: var(--van-background-2);
+        border-radius: var(--van-radius-md);
+
+        p {
+          font-size: 12px;
+          color: var(--van-text-color-3);
+          margin-bottom: 4px;
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+        }
       }
     }
   }
-}
+
+  .version-popup {
+    .version-info {
+      padding: 16px;
+
+      h4 {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: var(--van-text-color);
+      }
+
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+
+        li {
+          font-size: 14px;
+          color: var(--van-text-color-2);
+          margin-bottom: 8px;
+          padding-left: 16px;
+          position: relative;
+
+          &:before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: var(--van-primary-color);
+          }
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+        }
+      }
+    }
+  }
+
+  // 暗色模式支持
+  @media (prefers-color-scheme: dark) {
+    .profile-page {
+      background-color: var(--van-background-3);
+    }
+
+    .profile-header {
+      background: linear-gradient(135deg, var(--van-primary-color), var(--van-primary-color-dark));
+    }
+
+    .menu-section .van-cell-group {
+      .van-cell {
+        background: var(--van-background-3);
+        border-color: var(--van-gray-6);
+
+        .van-icon {
+          color: var(--van-primary-color);
+        }
+      }
+    }
+
+    .version-popup .version-info {
+      ul li {
+        color: var(--van-text-color-2);
+      }
+    }
+  }
+
+  // 响应式设计
+  @media (max-width: 375px) {
+    .profile-header {
+      padding: 20px 16px;
+
+      .user-info {
+        gap: 12px;
+
+        .user-avatar {
+          width: 60px;
+          height: 60px;
+        }
+
+        .user-details .username-row .nickname {
+          font-size: 18px;
+        }
+      }
+
+      .user-stats {
+        padding: 12px;
+
+        .stat-value {
+          font-size: 18px;
+        }
+
+        .stat-label {
+          font-size: 11px;
+        }
+      }
+    }
+  }
+
+  @media (max-width: 320px) {
+    .profile-header {
+      padding: 16px;
+
+      .user-info {
+        gap: 8px;
+
+        .user-avatar {
+          width: 50px;
+          height: 50px;
+        }
+
+        .user-details .username-row .nickname {
+          font-size: 16px;
+        }
+      }
+
+      .user-stats {
+        .stat-value {
+          font-size: 16px;
+        }
+      }
+    }
+  }
 </style>

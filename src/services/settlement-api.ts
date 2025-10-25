@@ -1,5 +1,5 @@
-import { BaseApiService } from './base'
-import { 
+import { BaseApiService, ApiErrorHandler } from './api'
+import type { 
   OrderSettlementParams, 
   OrderSettlementResult, 
   PaymentMethodConfig,
@@ -25,7 +25,7 @@ export class SettlementApiService extends BaseApiService {
       const response = await this.client.post<OrderSettlementResult>('/settlement/calculate', params)
       return response.data
     } catch (error) {
-      throw new Error(this.handleApiError(error))
+      throw new Error(ApiErrorHandler.handleApiError(error))
     }
   }
 
@@ -40,7 +40,7 @@ export class SettlementApiService extends BaseApiService {
       const response = await this.client.post(`/settlement/confirm/${orderId}`, settlementResult)
       return response.data
     } catch (error) {
-      throw new Error(this.handleApiError(error))
+      throw new Error(ApiErrorHandler.handleApiError(error))
     }
   }
 
@@ -53,7 +53,7 @@ export class SettlementApiService extends BaseApiService {
       const response = await this.client.get<PaymentMethodConfigResponse>('/settlement/payment-configs')
       return response.data.data
     } catch (error) {
-      throw new Error(this.handleApiError(error))
+      throw new Error(ApiErrorHandler.handleApiError(error))
     }
   }
 
@@ -67,7 +67,7 @@ export class SettlementApiService extends BaseApiService {
       const response = await this.client.put<PaymentMethodConfig>(`/settlement/payment-configs/${config.id}`, config)
       return response.data
     } catch (error) {
-      throw new Error(this.handleApiError(error))
+      throw new Error(ApiErrorHandler.handleApiError(error))
     }
   }
 
@@ -81,7 +81,7 @@ export class SettlementApiService extends BaseApiService {
       const response = await this.client.get<{ data: OrderSettlementResult[] }>(`/settlement/history/${orderId}`)
       return response.data.data
     } catch (error) {
-      throw new Error(this.handleApiError(error))
+      throw new Error(ApiErrorHandler.handleApiError(error))
     }
   }
 
@@ -97,7 +97,7 @@ export class SettlementApiService extends BaseApiService {
       })
       return response.data
     } catch (error) {
-      throw new Error(this.handleApiError(error))
+      throw new Error(ApiErrorHandler.handleApiError(error))
     }
   }
 
@@ -136,7 +136,7 @@ export class SettlementApiService extends BaseApiService {
       const response = await this.client.get('/settlement/stats', { params })
       return response.data
     } catch (error) {
-      throw new Error(this.handleApiError(error))
+      throw new Error(ApiErrorHandler.handleApiError(error))
     }
   }
 
@@ -164,7 +164,7 @@ export class SettlementApiService extends BaseApiService {
       
       return { downloadUrl, filename }
     } catch (error) {
-      throw new Error(this.handleApiError(error))
+      throw new Error(ApiErrorHandler.handleApiError(error))
     }
   }
 
@@ -182,7 +182,7 @@ export class SettlementApiService extends BaseApiService {
       const response = await this.client.post('/settlement/validate', settlementResult)
       return response.data
     } catch (error) {
-      throw new Error(this.handleApiError(error))
+      throw new Error(ApiErrorHandler.handleApiError(error))
     }
   }
 }

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { User, AuthResponse } from '@/types'
+import type { User, AuthResponse, UserRole } from '@/types'
 import type { LoginCredentials } from '@/types/user'
 import { authService } from '@/services/auth'
 import { usePermission } from '@/utils/permission'
@@ -10,7 +10,7 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const token = ref<string>('')
   const refreshToken = ref<string>('')
-  const userRole = ref<'customer' | 'admin' | 'operator'>('customer')
+  const userRole = ref<UserRole>('customer')
   const isAuthenticated = computed(() => !!token.value)
   const isLoggedIn = computed(() => !!token.value && !!user.value)
   const isLoading = ref(false)
@@ -32,8 +32,11 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       if (savedUser) {
-        user.value = JSON.parse(savedUser)
-        userRole.value = user.value.role
+        const parsedUser = JSON.parse(savedUser)
+        user.value = parsedUser
+        if (parsedUser && parsedUser.role) {
+          userRole.value = parsedUser.role
+        }
       }
     } catch (error) {
       console.error('Failed to initialize auth state from storage:', error)
@@ -53,7 +56,9 @@ export const useAuthStore = defineStore('auth', () => {
         user.value = response.data.user
         token.value = response.data.token
         refreshToken.value = response.data.refreshToken || ''
-        userRole.value = response.data.user.role
+        if (response.data.user && response.data.user.role) {
+          userRole.value = response.data.user.role
+        }
 
         // 自动保存到localStorage
         saveToLocalStorage()
@@ -66,7 +71,7 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (error: any) {
       console.error('登录失败:', error)
       const errorMessage = error.message || '网络错误，请稍后重试'
-      this.error = errorMessage
+      error.value = errorMessage
       return { success: false, message: errorMessage }
     } finally {
       isLoading.value = false
@@ -88,10 +93,12 @@ export const useAuthStore = defineStore('auth', () => {
         data: {
           user: {
             id: 'wechat_user_' + Date.now(),
-            name: '微信用户',
+            nickname: '微信用户',
             avatar: '',
-            role: 'customer',
-            phone: ''
+            role: 'customer' as UserRole,
+            phone: '',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
           },
           token: 'wechat_token_' + Date.now(),
           refreshToken: 'wechat_refresh_' + Date.now()
@@ -198,7 +205,9 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (response.success) {
         user.value = response.data
-        userRole.value = response.data.role
+        if (response.data && response.data.role) {
+          userRole.value = response.data.role
+        }
         saveToLocalStorage()
         return { success: true, message: '获取用户信息成功' }
       } else {
@@ -257,8 +266,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 检查权限
   const hasPermission = (permission: string): boolean => {
-    const { hasPermission } = usePermission()
-    return hasPermission(permission)
+    const { hasPermission: checkPermission } = usePermission()
+    return checkPermission(permission as any)
   }
 
   // 检查角色

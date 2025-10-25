@@ -84,14 +84,21 @@ export const useOrderStore = defineStore('orders', () => {
     loading.value = true
     try {
       const request: OrderCreateRequest = {
+        productId: orderData.productId,
+        quantity: orderData.quantity,
         items: [{
+          id: 'temp-item',
           productId: orderData.productId,
-          quantity: orderData.quantity
+          productName: '商品名称',
+          productImage: '/images/default.jpg',
+          quantity: orderData.quantity,
+          price: 0,
+          totalPrice: 0,
+          specification: '默认规格'
         }],
         shippingAddress: orderData.shippingAddress,
         contactName: orderData.contactName,
-        contactPhone: orderData.contactPhone,
-        paymentMethod: 'wechat'
+        contactPhone: orderData.contactPhone
       }
 
       const response = await fetch('/api/orders', {

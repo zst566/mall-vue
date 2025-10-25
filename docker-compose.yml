@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  mall-vue:
+    image: ${IMAGE_NAME:-mall-vue}:${IMAGE_TAG:-latest}
+    container_name: mall-vue
+    restart: unless-stopped
+    volumes:
+      - /mall/images:/usr/share/nginx/images
+    networks:
+      - web-network
+
+networks:
+  web-network:
+    external: true
+
+
