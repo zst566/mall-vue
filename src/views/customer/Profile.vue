@@ -6,17 +6,13 @@
     <!-- 用户信息头部 -->
     <div v-else class="profile-header">
       <div class="user-info">
-        <div class="user-avatar">
-          <img
-            :src="user?.avatar || '/images/default-avatar.png'"
-            :alt="user?.nickname || '用户'"
-            @click="changeAvatar"
-          />
+        <div class="user-avatar" @click="changeAvatar">
+          <img :src="getUserAvatar()" :alt="getDisplayName()" @error="handleImageError" />
           <van-icon v-if="user?.isVerified" name="passed" class="verified-icon" />
         </div>
         <div class="user-details">
           <div class="username-row">
-            <h3 class="nickname">{{ user?.nickname || '未登录用户' }}</h3>
+            <h3 class="nickname">{{ getDisplayName() }}</h3>
             <van-tag v-if="user?.isVerified" type="success" size="medium">已认证</van-tag>
           </div>
           <div class="user-meta">
@@ -239,6 +235,55 @@
   // 计算是否有未支付订单
   const hasUnpaidOrders = computed(() => (userStats.value.unpaidOrders || 0) > 0)
 
+  // 获取用户显示名称
+  const getDisplayName = () => {
+    const currentUser = user.value
+
+    if (!currentUser) {
+      return '未登录用户'
+    }
+
+    // 优先使用 nickname
+    if (
+      currentUser.nickname &&
+      currentUser.nickname !== 'null' &&
+      currentUser.nickname.trim() !== ''
+    ) {
+      return currentUser.nickname
+    }
+
+    // 如果没有 nickname，使用 WePark- + 用户 ID 后四位
+    if (currentUser.id && currentUser.id.length >= 4) {
+      return `WePark-${currentUser.id.slice(-4)}`
+    }
+
+    return '未登录用户'
+  }
+
+  // 获取用户头像
+  const getUserAvatar = () => {
+    if (!user.value?.avatar) return getDefaultAvatar()
+    // 确保头像 URL 不为 null 或 'null' 字符串
+    const avatarUrl = String(user.value.avatar)
+    if (avatarUrl === 'null' || avatarUrl === '' || avatarUrl.trim() === '') {
+      return getDefaultAvatar()
+    }
+    return user.value.avatar
+  }
+
+  // 获取默认头像（使用 Base64 编码的 SVG）
+  const getDefaultAvatar = () => {
+    return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iNDAiIGN5PSI0MCIgcj0iNDAiIGZpbGw9IiNlOGU4ZTgiLz4KPHBhdGggZD0iTTQwIDIwQzQ1LjUyMiAyMCA1MCAxOC41MjI4IDUwIDE2LjY2NjdDNTAgMTQuODExIDQ1LjUyMiAxMy4zMzMzIDQwIDEzLjMzMzNDMzQuNDc4IDEzLjMzMzMgMzAgMTQuODExIDMwIDE2LjY2NjdDMzAgMTguNTIyOCAzNC40NzggMjAgNDAgMjBaTTQwIDI2LjY2NjdDMjkuMDcyOSAyNi42NjY3IDIwLjMzMzMgMzAuMzMzMyAyMC4zMzMzIDM1TDIwLjMzMzMgMzguMzMzM0wyMC4zMzMzIDUwSDIwLjMzMzNDMjAuMzMzMyA1NS4wODg2IDI0Ljc0NTIgNTkuNSAzMCA1OS41SDM1QzM1LjU1MjMgNTkuNSAzNiA1OS4wNTIzIDM2IDU4LjVDMzYgNTcuOTQ3NyAzNS41NTIzIDU3LjUgMzUgNTcuNUgzMEMzMS45MzcxIDU3LjUgMjkuNTA4NiA1My41ODIzIDMwIDQ5LjY2NjdDMjkuMjkwMSA0Ni43MjE4IDMzLjYyNzMgNDIuODMzNCAzMy42MjczIDM4LjMzMzNDMzMuNjI3MyAzNi42NjY3IDMyIDE2LjY2NjcgMjAgMjAgQzI4IDIwIDMwIDE2LjY2NjcgMzAgMTYuNjY2N0MzMCAxNi42NjY3IDMwIDE2LjY2NjcgMzAgMTYuNjY2N0MzMCAxNi42NjY3IDMwIDE2LjY2NjcgMzAgMTYuNjY2N0MzMCAxNi42NjY3IDMwIDE2LjY2NjcgMzAgMTYuNjY2N0MzMCAxNi42NjY3IDMwIDE2LjY2NjcgMzAgMTYuNjY2N0MzMCAxNi42NjY3IDMwIDE2LjY2NjcgMzAgMTYuNjY2N0MzMCAxNi42NjY3IDMwIDE2LjY2NjcgMzAgMTYuNjY2N0MzMCAxNi42NjY3IDMwIDE2LjY2NjcgMzAgMTYuNjY2N0MzMCAxNi42NjY3IDMwIDE2LjY2NjcgMzAgMTYuNjY2N0MzMCAxNi42NjY3IDMwIDE2LjY2NjcgMzAgMTYuNjY2NyIgZmlsbD0iI2E0YTZhYSIvPgo8L3N2Zz4K'
+  }
+
+  // 处理图片加载错误
+  const handleImageError = (event: Event) => {
+    const img = event.target as HTMLImageElement
+    if (img.src !== getDefaultAvatar()) {
+      img.src = getDefaultAvatar()
+    }
+  }
+
   // 格式化手机号
   const formatPhone = (phone: string | undefined) => {
     if (!phone) return ''
@@ -395,9 +440,14 @@
       // 可能是网络问题、服务器问题，或者用户信息暂时不可用
       try {
         const profileResult = await authService.getProfile()
+        console.log('📡 Profile API 响应:', profileResult)
+        console.log('👤 当前 authStore.user:', authStore.user)
+
         if (profileResult.success && profileResult.data) {
+          console.log('📝 准备更新用户数据:', profileResult.data)
           authStore.updateUser(profileResult.data)
-          console.log('✅ 用户详细信息已更新')
+          console.log('✅ 用户详细信息已更新，新的 user:', authStore.user)
+          console.log('🎯 User ID:', authStore.user?.id)
         } else {
           console.warn('⚠️ 获取用户信息失败，但保留已登录状态:', profileResult.message)
           // 不显示错误提示，因为用户可能已经有基本信息
@@ -438,6 +488,9 @@
 
   // 初始化
   onMounted(() => {
+    console.log('🚀 Profile 页面 onMounted 触发')
+    console.log('👤 初始 authStore.user:', authStore.user)
+    console.log('📦 localStorage user:', localStorage.getItem('user'))
     loadUserData()
   })
 </script>
@@ -445,46 +498,72 @@
 <style lang="scss" scoped>
   .profile-page {
     min-height: 100vh;
-    background-color: var(--van-background);
+    background: linear-gradient(180deg, #f7f9fc 0%, #ffffff 100%);
     padding-bottom: 80px;
   }
 
   .profile-header {
-    background: linear-gradient(135deg, var(--van-primary-color), var(--van-primary-color-dark));
-    padding: 24px 16px;
-    color: white;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    padding: 32px 20px 24px;
+    color: #ffffff;
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
   }
 
   .user-info {
     display: flex;
     align-items: center;
     gap: 16px;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 1;
 
     .user-avatar {
       position: relative;
-      width: 80px;
-      height: 80px;
+      width: 88px;
+      height: 88px;
       border-radius: 50%;
       overflow: hidden;
       cursor: pointer;
-      border: 3px solid rgba(255, 255, 255, 0.3);
+      border: 4px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease;
+
+      &:active {
+        transform: scale(0.95);
+      }
 
       img {
         width: 100%;
         height: 100%;
         object-fit: cover;
+        background: linear-gradient(135deg, #e8e8e8 0%, #f5f5f5 100%);
       }
 
       .verified-icon {
         position: absolute;
-        bottom: 4px;
-        right: 4px;
-        background: white;
-        color: var(--van-success-color);
+        bottom: 2px;
+        right: 2px;
+        background: #07c160;
+        color: white;
         border-radius: 50%;
-        padding: 2px;
-        font-size: 14px;
+        padding: 3px;
+        font-size: 16px;
+        box-shadow: 0 2px 8px rgba(7, 193, 96, 0.3);
       }
     }
 
@@ -495,26 +574,34 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
 
         .nickname {
-          font-size: 20px;
-          font-weight: 600;
+          font-size: 22px;
+          font-weight: 700;
           margin: 0;
+          color: #ffffff;
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          letter-spacing: 0.3px;
         }
       }
 
       .user-meta {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 6px;
 
         span {
           font-size: 14px;
-          opacity: 0.9;
+          color: rgba(255, 255, 255, 0.95);
           display: flex;
           align-items: center;
-          gap: 4px;
+          gap: 6px;
+          font-weight: 500;
+
+          .van-icon {
+            opacity: 0.9;
+          }
         }
       }
     }
@@ -523,48 +610,87 @@
   .user-stats {
     display: flex;
     justify-content: space-around;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: var(--van-radius-lg);
-    padding: 16px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 20px 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    position: relative;
+    z-index: 1;
 
     .stat-item {
       text-align: center;
+      flex: 1;
 
       .stat-value {
-        font-size: 20px;
-        font-weight: 600;
-        margin-bottom: 4px;
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 6px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: #667eea;
       }
 
       .stat-label {
-        font-size: 12px;
-        opacity: 0.8;
+        font-size: 13px;
+        color: #666666;
+        font-weight: 500;
+        letter-spacing: 0.2px;
       }
     }
   }
 
   .menu-section {
-    margin: 16px 0;
+    margin: 16px 12px;
 
     .van-cell-group {
+      background: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+
       .van-cell {
-        padding: 16px;
+        padding: 16px 18px;
+        transition: background-color 0.2s ease;
+
+        &:active {
+          background-color: #f7f8fa;
+        }
 
         .van-icon {
-          margin-right: 8px;
-          color: var(--van-primary-color);
+          margin-right: 12px;
+          color: #667eea;
+          font-size: 18px;
         }
       }
     }
   }
 
   .logout-section {
-    padding: 16px;
+    padding: 24px 16px;
+
+    .van-button {
+      background: linear-gradient(135deg, #ee0a24 0%, #d90a1f 100%);
+      border: none;
+      font-weight: 600;
+      font-size: 16px;
+      height: 48px;
+      box-shadow: 0 4px 12px rgba(238, 10, 36, 0.2);
+      transition: all 0.3s ease;
+
+      &:active {
+        transform: translateY(1px);
+        box-shadow: 0 2px 8px rgba(238, 10, 36, 0.15);
+      }
+    }
   }
 
   .version-text {
-    color: var(--van-text-color-3);
+    color: #969799;
     font-size: 14px;
+    font-weight: 500;
   }
 
   .avatar-popup {
@@ -572,34 +698,45 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px;
-      border-bottom: 1px solid var(--van-border-color);
+      padding: 20px 18px;
+      border-bottom: 1px solid #ebedf0;
+      background: #fff;
 
       h3 {
         margin: 0;
-        font-size: 16px;
-        font-weight: 600;
+        font-size: 18px;
+        font-weight: 700;
+        color: #323233;
+        letter-spacing: 0.3px;
       }
 
       .van-icon {
         cursor: pointer;
-        font-size: 20px;
+        font-size: 22px;
+        color: #969799;
+        transition: color 0.2s ease;
+
+        &:hover {
+          color: #323233;
+        }
       }
     }
 
     .popup-content {
-      padding: 16px;
+      padding: 24px 18px;
 
       .upload-tips {
-        margin-top: 16px;
-        padding: 12px;
-        background: var(--van-background-2);
-        border-radius: var(--van-radius-md);
+        margin-top: 20px;
+        padding: 14px 16px;
+        background: linear-gradient(135deg, #f7f9fc 0%, #ecf0f5 100%);
+        border-radius: 10px;
+        border: 1px solid #e6e9ef;
 
         p {
-          font-size: 12px;
-          color: var(--van-text-color-3);
-          margin-bottom: 4px;
+          font-size: 13px;
+          color: #646566;
+          margin-bottom: 6px;
+          font-weight: 500;
 
           &:last-child {
             margin-bottom: 0;
@@ -611,13 +748,14 @@
 
   .version-popup {
     .version-info {
-      padding: 16px;
+      padding: 20px;
 
       h4 {
-        font-size: 16px;
-        font-weight: 600;
-        margin-bottom: 12px;
-        color: var(--van-text-color);
+        font-size: 17px;
+        font-weight: 700;
+        margin-bottom: 16px;
+        color: #323233;
+        letter-spacing: 0.2px;
       }
 
       ul {
@@ -627,16 +765,19 @@
 
         li {
           font-size: 14px;
-          color: var(--van-text-color-2);
-          margin-bottom: 8px;
-          padding-left: 16px;
+          color: #646566;
+          margin-bottom: 10px;
+          padding-left: 20px;
           position: relative;
+          line-height: 1.6;
 
           &:before {
             content: '•';
             position: absolute;
             left: 0;
-            color: var(--van-primary-color);
+            color: #667eea;
+            font-weight: 700;
+            font-size: 16px;
           }
 
           &:last-child {
@@ -650,27 +791,42 @@
   // 暗色模式支持
   @media (prefers-color-scheme: dark) {
     .profile-page {
-      background-color: var(--van-background-3);
+      background-color: #1a1a1a;
     }
 
     .profile-header {
-      background: linear-gradient(135deg, var(--van-primary-color), var(--van-primary-color-dark));
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    }
+
+    .user-stats {
+      background: rgba(26, 26, 26, 0.95);
+      backdrop-filter: blur(10px);
+
+      .stat-label {
+        color: #b0b0b0;
+      }
     }
 
     .menu-section .van-cell-group {
-      .van-cell {
-        background: var(--van-background-3);
-        border-color: var(--van-gray-6);
+      background: #242424;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 
-        .van-icon {
-          color: var(--van-primary-color);
+      .van-cell {
+        color: #e0e0e0;
+
+        &:active {
+          background-color: #2a2a2a;
         }
       }
     }
 
     .version-popup .version-info {
+      h4 {
+        color: #e0e0e0;
+      }
+
       ul li {
-        color: var(--van-text-color-2);
+        color: #b0b0b0;
       }
     }
   }
@@ -678,54 +834,109 @@
   // 响应式设计
   @media (max-width: 375px) {
     .profile-header {
-      padding: 20px 16px;
+      padding: 28px 16px 20px;
 
       .user-info {
-        gap: 12px;
+        gap: 14px;
 
         .user-avatar {
-          width: 60px;
-          height: 60px;
+          width: 72px;
+          height: 72px;
+          border-width: 3px;
         }
 
-        .user-details .username-row .nickname {
-          font-size: 18px;
+        .user-details {
+          .username-row .nickname {
+            font-size: 20px;
+          }
+
+          .user-meta span {
+            font-size: 13px;
+          }
         }
       }
 
       .user-stats {
-        padding: 12px;
+        padding: 16px 12px;
+        border-radius: 14px;
 
         .stat-value {
-          font-size: 18px;
+          font-size: 22px;
         }
 
         .stat-label {
-          font-size: 11px;
+          font-size: 12px;
         }
+      }
+    }
+
+    .menu-section {
+      margin: 12px 10px;
+
+      .van-cell-group .van-cell {
+        padding: 14px 16px;
+      }
+    }
+
+    .logout-section {
+      padding: 20px 12px;
+
+      .van-button {
+        height: 46px;
+        font-size: 15px;
       }
     }
   }
 
   @media (max-width: 320px) {
     .profile-header {
-      padding: 16px;
+      padding: 24px 14px 18px;
 
       .user-info {
-        gap: 8px;
+        gap: 12px;
+        margin-bottom: 20px;
 
         .user-avatar {
-          width: 50px;
-          height: 50px;
+          width: 68px;
+          height: 68px;
+          border-width: 3px;
         }
 
-        .user-details .username-row .nickname {
-          font-size: 16px;
+        .user-details {
+          .username-row .nickname {
+            font-size: 18px;
+          }
+
+          .user-meta span {
+            font-size: 12px;
+          }
         }
       }
 
       .user-stats {
-        .stat-value {
+        padding: 14px 10px;
+        border-radius: 12px;
+
+        .stat-item {
+          .stat-value {
+            font-size: 20px;
+          }
+
+          .stat-label {
+            font-size: 11px;
+          }
+        }
+      }
+    }
+
+    .menu-section {
+      margin: 10px 8px;
+
+      .van-cell-group .van-cell {
+        padding: 13px 14px;
+
+        .van-icon {
+          margin-right: 10px;
           font-size: 16px;
         }
       }

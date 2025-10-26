@@ -247,10 +247,24 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 更新用户信息
   const updateUser = (userData: Partial<User>) => {
+    console.log('🔄 updateUser 被调用')
+    console.log('📥 传入的 userData:', userData)
+    console.log('👤 当前 user.value:', user.value)
+    
     if (user.value) {
+      console.log('✅ user.value 存在，进行合并更新')
       user.value = { ...user.value, ...userData }
       saveToLocalStorage()
+    } else if (userData && typeof userData === 'object') {
+      console.log('✨ user.value 为空，创建新用户对象')
+      // 如果 user.value 为空，但有数据传入，则创建新用户对象
+      user.value = userData as User
+      saveToLocalStorage()
+    } else {
+      console.warn('⚠️ 未执行任何更新操作')
     }
+    
+    console.log('👤 更新后的 user.value:', user.value)
   }
 
   // 更新Token信息

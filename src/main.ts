@@ -97,10 +97,20 @@ const initializeAppAuth = async () => {
       
       console.log('✅ Token 已同步到 Pinia Store')
       
-      // 🔥 修复：不在初始化时自动获取用户信息
-      // 用户信息应该在访问需要该信息的页面时才获取
-      // 对于从小程序跳转过来的用户，只保存 token，不立即获取用户信息
-      console.log('👤 用户信息将在访问需要该信息的页面时获取')
+      // 🔥 关键修复：创建临时用户对象，包含从 URL 获取的用户 ID
+      if (userId) {
+        console.log('👤 从 URL 获取用户 ID，创建临时用户对象')
+        authStore.setUser({
+          id: userId,
+          nickname: '',
+          role: 'customer',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        } as any)
+        console.log('✅ 用户对象已创建，ID:', userId)
+      } else {
+        console.log('👤 用户信息将在访问需要该信息的页面时获取')
+      }
       
       // 清理 URL 中的认证参数，避免泄露
       const url = new URL(window.location.href)
