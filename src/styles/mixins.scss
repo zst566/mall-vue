@@ -1,3 +1,6 @@
+// 导入 variables 
+@use './variables.scss' as *;
+
 // 响应式混入
 @mixin respond-to($breakpoint) {
   @if map-has-key($breakpoints, $breakpoint) {
@@ -67,7 +70,22 @@
 
 // 阴影效果
 @mixin shadow($size: sm, $color: $shadow-color) {
-  $shadow-value: map-get(('xs': $shadow-xs, 'sm': $shadow-sm, 'base': $shadow-base, 'lg': $shadow-lg, 'xl': $shadow-xl), $size);
+  $shadow-value: null;
+  
+  @if $size == 'xs' {
+    $shadow-value: $shadow-xs;
+  } @else if $size == 'sm' {
+    $shadow-value: $shadow-sm;
+  } @else if $size == 'base' {
+    $shadow-value: $shadow-base;
+  } @else if $size == 'lg' {
+    $shadow-value: $shadow-lg;
+  } @else if $size == 'xl' {
+    $shadow-value: $shadow-xl;
+  } @else {
+    $shadow-value: $shadow-sm;
+  }
+  
   box-shadow: $shadow-value;
 }
 

@@ -1,6 +1,6 @@
 // 主题系统
-@import 'variables';
-@import 'mixins';
+@use 'variables' as *;
+@use 'mixins' as *;
 
 // 客户版主题
 .theme-customer {

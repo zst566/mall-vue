@@ -3,7 +3,8 @@ import { useAuthStore } from '@/stores/auth'
 import type { ApiResponse, ApiError } from '@/types'
 
 // 基础配置
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api'
+// 使用相对路径，由 Nginx 网关处理路由转发
+const API_BASE_URL = '/api'
 const API_TIMEOUT = 10000
 const MAX_RETRIES = 3
 

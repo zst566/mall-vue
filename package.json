@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build",
-    "build:prod": "VITE_API_BASE_URL=http://mall_node:5001/api vue-tsc && vite build",
+    "build:prod": "vue-tsc && vite build",
     "build:skip-check": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",

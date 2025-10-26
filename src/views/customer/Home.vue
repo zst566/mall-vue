@@ -102,9 +102,11 @@
   import { ref, onMounted } from 'vue'
   import { useRouter } from 'vue-router'
   import { showToast } from 'vant'
+  import { useAuthStore } from '@/stores/auth'
   import PlaceholderImage from '@/components/common/PlaceholderImage.vue'
 
   const router = useRouter()
+  const authStore = useAuthStore()
 
   // 搜索查询
   const searchQuery = ref('')
@@ -253,13 +255,21 @@
   onMounted(() => {
     // 加载首页数据
     console.log('初始化首页')
+
+    // 检查微信登录状态（临时功能，正式环境删除）
+    // TODO: 正式环境删除此功能
+    if (authStore.isLoggedIn && authStore.user) {
+      const userName = authStore.user.username || authStore.user.phone || '用户'
+      showToast(`欢迎回来，${userName}！`)
+    }
   })
 </script>
 
 <style lang="scss" scoped>
   .home-page {
-    padding-bottom: 80px;
+    padding-bottom: 20px;
     background-color: #f7f8fa;
+    min-height: 100%;
   }
 
   .search-bar {

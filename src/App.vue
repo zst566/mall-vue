@@ -114,23 +114,28 @@
     /* 防止字体模糊 */
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
+    /* 确保内容不会溢出 */
+    overflow-x: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
   }
 
   .app-main {
     flex: 1;
-    padding-bottom: 80px; /* 底部导航栏高度 + 安全区域 */
+    width: 100%;
+    overflow-y: auto;
+    /* 为底部导航预留空间 */
+    padding-bottom: calc(var(--tabbar-height) + var(--safe-area-inset-bottom, 0px));
+    box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
   }
 
   // 商户模式样式
   .merchant-mode {
     background-color: #f0f2f5;
-  }
-
-  // 响应式设计
-  @media (max-width: 768px) {
-    .app-main {
-      padding-bottom: 80px;
-    }
   }
 
   // 禁用双击缩放
@@ -158,6 +163,34 @@
       &.merchant-mode {
         background-color: #2a2a2a;
       }
+    }
+  }
+
+  // 响应式设计
+  @media (max-width: 768px) {
+    #app {
+      /* 在小屏幕上确保完整视口 */
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+    }
+  }
+
+  // 大屏幕优化
+  @media (min-width: 769px) {
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    #app {
+      max-width: 768px;
+      width: 768px;
+      height: 100vh;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
     }
   }
 </style>

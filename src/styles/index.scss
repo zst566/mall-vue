@@ -1,14 +1,14 @@
 // 导入样式变量
-@import './variables.scss';
+@use './variables.scss' as *;
 
 // 导入工具混入
-@import './mixins.scss';
+@use './mixins.scss' as *;
 
 // 导入主题样式
-@import './theme.scss';
+@use './theme.scss';
 
 // 导入组件样式
-@import './components.scss';
+@use './components.scss';
 
 // 全局重置样式
 * {
@@ -25,6 +25,12 @@ html {
   transform: translateZ(0);
   /* 优化字体渲染 */
   text-rendering: optimizeLegibility;
+  /* 确保全屏高度，支持移动端 */
+  height: 100%;
+  /* 支持 iOS 全屏显示 */
+  height: -webkit-fill-available;
+  /* 防止横屏时页面缩放 */
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -43,6 +49,16 @@ body {
   /* 防止字体模糊 */
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+  /* 确保全屏高度 */
+  height: 100%;
+  height: -webkit-fill-available;
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  /* 移动端滚动优化 */
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
+  /* 防止内容溢出，由 Vue 应用管理滚动 */
+  overflow-y: hidden;
 }
 
 // 文字样式

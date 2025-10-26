@@ -19,6 +19,14 @@ export default defineConfig({
       dts: 'src/components.d.ts',
     }),
   ],
+  css: {
+    preprocessorOptions: {
+      scss: {
+        api: 'modern-compiler',
+        silenceDeprecations: ['legacy-js-api', 'import', 'global-builtin'],
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
