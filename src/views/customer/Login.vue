@@ -56,6 +56,7 @@
   import { ref } from 'vue'
   import { useRouter } from 'vue-router'
   import { showToast, showLoadingToast } from 'vant'
+  import { useAuthStore } from '@/stores/auth'
 
   const router = useRouter()
 
@@ -79,28 +80,22 @@
         duration: 0
       })
 
-      // 模拟登录请求
-      setTimeout(() => {
+      // 调用真实的登录API
+      const authStore = useAuthStore()
+      const result = await authStore.login(values)
+
+      if (result.success) {
         showToast('登录成功')
-
-        // 保存登录状态
-        localStorage.setItem('token', 'mock-token-' + Date.now())
-        localStorage.setItem(
-          'user',
-          JSON.stringify({
-            id: '1',
-            username: values.username,
-            nickname: '用户' + values.username,
-            role: 'customer'
-          })
-        )
-
-        // 跳转到首页
         router.push({ name: 'Home' })
-      }, 1500)
-    } catch (error) {
+      } else {
+        showToast({
+          message: result.message || '登录失败',
+          type: 'fail'
+        })
+      }
+    } catch (error: any) {
       showToast({
-        message: '登录失败',
+        message: error.message || '登录失败',
         type: 'fail'
       })
     } finally {
@@ -114,9 +109,39 @@
   }
 
   // 微��登录
-  const wechatLogin = () => {
-    showToast('正在跳转到微信登录...')
-    // 这里应该调用微信登录接口
+  // 微信登录
+  const wechatLogin = async () => {
+    try {
+      showLoadingToast({
+        message: '正在跳转到微信登录...',
+        forbidClick: true,
+        duration: 0
+      })
+
+      // 这里应该调用微信登录接口
+      // 在实际的小程序环境中，会通过微信API获取code
+      // 然后调用后端的微信登录接口
+      const authStore = useAuthStore()
+
+      // 模拟获取微信code（实际环境中由微信小程序提供）
+      const mockCode = 'mock_wechat_code_' + Date.now()
+      const result = await authStore.loginWithWechat(mockCode)
+
+      if (result.success) {
+        showToast('微信登录成功')
+        router.push({ name: 'Home' })
+      } else {
+        showToast({
+          message: result.message || '微信登录失败',
+          type: 'fail'
+        })
+      }
+    } catch (error: any) {
+      showToast({
+        message: error.message || '微信登录失败',
+        type: 'fail'
+      })
+    }
   }
 </script>
 

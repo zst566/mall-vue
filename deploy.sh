@@ -74,7 +74,7 @@ show_success "依赖检查完成"
 show_progress "构建 Vue 应用"
 # 清理旧的构建文件
 rm -rf dist
-if npm run build; then
+if npm run build:prod; then
     show_success "Vue 应用构建成功"
 else
     show_error "Vue 应用构建失败"

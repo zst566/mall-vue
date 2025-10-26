@@ -1,6 +1,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { apiClient } from '@/services/api'
 
 interface WechatParams {
   token?: string;
@@ -221,14 +222,11 @@ export function useWechatParams() {
   // 验证token
   const validateToken = async (token: string): Promise<boolean> => {
     try {
-      // 这里应该调用后端API验证token
-      // const response = await api.get('/auth/validate-token', {
-      //   headers: { Authorization: `Bearer ${token}` }
-      // })
-      // return response.valid
-
-      // 模拟验证
-      return true
+      // 调用后端API验证token
+      const response = await apiClient.get('/auth/validate-token', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      return response.data.valid
     } catch (err) {
       console.error('Token validation failed:', err)
       return false
@@ -238,16 +236,9 @@ export function useWechatParams() {
   // 获取用户信息
   const getUserInfo = async (): Promise<any> => {
     try {
-      // 这里应该调用后端API获取用户信息
-      // const response = await api.get('/user/profile')
-      // return response.data
-
-      // 模拟用户信息
-      return {
-        id: 'user_123',
-        name: '微信用户',
-        avatar: 'default-avatar.png'
-      }
+      // 调用后端API获取用户信息
+      const response = await apiClient.get('/user/profile')
+      return response.data
     } catch (err) {
       console.error('Failed to get user info:', err)
       throw err

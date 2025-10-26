@@ -11,8 +11,8 @@ dist-ssr/
 build/
 *.local
 
-# Environment variables
-.env
+# Environment variables (commented out for development visibility)
+# .env
 .env.local
 .env.development.local
 .env.test.local

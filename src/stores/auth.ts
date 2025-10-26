@@ -84,42 +84,27 @@ export const useAuthStore = defineStore('auth', () => {
       isLoading.value = true
       error.value = ''
 
-      // 这里应该调用微信登录API
-      // const response = await authService.loginWithWechat(code)
+      // 调用真实的微信登录API
+      const response = await authService.loginWithWechat(code)
 
-      // 模拟微信登录
-      const mockResponse = {
-        success: true,
-        data: {
-          user: {
-            id: 'wechat_user_' + Date.now(),
-            nickname: '微信用户',
-            avatar: '',
-            role: 'customer' as UserRole,
-            phone: '',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          },
-          token: 'wechat_token_' + Date.now(),
-          refreshToken: 'wechat_refresh_' + Date.now()
-        }
-      }
-
-      if (mockResponse.success) {
-        user.value = mockResponse.data.user
-        token.value = mockResponse.data.token
-        refreshToken.value = mockResponse.data.refreshToken || ''
-        userRole.value = mockResponse.data.user.role
+      if (response.success) {
+        user.value = response.data.user
+        token.value = response.data.token
+        refreshToken.value = response.data.refreshToken || ''
+        userRole.value = response.data.user.role
 
         saveToLocalStorage()
 
         return { success: true, message: '微信登录成功' }
       } else {
-        return mockResponse
+        error.value = response.message
+        return response
       }
     } catch (error: any) {
       console.error('微信登录失败:', error)
-      return { success: false, message: error.message || '微信登录失败' }
+      const errorMessage = error.message || '微信登录失败'
+      error.value = errorMessage
+      return { success: false, message: errorMessage }
     } finally {
       isLoading.value = false
     }

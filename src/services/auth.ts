@@ -28,6 +28,35 @@ export class AuthService extends BaseApiService {
     }
   }
 
+  // 微信登录
+  async loginWithWechat(code: string): Promise<LoginResponse> {
+    try {
+      const response = await this.client.post<LoginResponse>('/auth/silent-login', {
+        code
+      })
+
+      return response.data
+    } catch (error) {
+      const errorMessage = ApiErrorHandler.handleApiError(error)
+      throw new Error(errorMessage)
+    }
+  }
+
+  // 微信授权登录（获取用户信息）
+  async loginWithWechatEnhanced(code: string, userInfo: any): Promise<LoginResponse> {
+    try {
+      const response = await this.client.post<LoginResponse>('/auth/enhanced-login', {
+        code,
+        userInfo
+      })
+
+      return response.data
+    } catch (error) {
+      const errorMessage = ApiErrorHandler.handleApiError(error)
+      throw new Error(errorMessage)
+    }
+  }
+
   // 用户注册
   async register(userData: RegisterRequest): Promise<RegisterResponse> {
     try {
