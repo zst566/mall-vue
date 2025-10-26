@@ -146,6 +146,10 @@
     <!-- 底部操作栏 -->
     <div class="bottom-bar">
       <div class="left-buttons">
+        <div class="action-item" @click="goToHome">
+          <van-icon name="home-o" />
+          <span>首页</span>
+        </div>
         <div class="action-item" @click="toggleFavorite">
           <van-icon :name="isFavorite ? 'star' : 'star-o'" :class="{ active: isFavorite }" />
           <span>收藏</span>
@@ -284,6 +288,11 @@
     showToast(`已选择${selectedSpec.value.name}规格`)
   }
 
+  // 返回首页
+  const goToHome = () => {
+    router.push({ name: 'Home' })
+  }
+
   // 切换收藏
   const toggleFavorite = () => {
     isFavorite.value = !isFavorite.value
@@ -333,7 +342,7 @@
   .product-detail-page {
     min-height: 100vh;
     background-color: var(--van-background);
-    padding-bottom: 110px; /* 调整底部安全空间：50px(底部导航) + 60px(底部操作栏) */
+    padding-bottom: 70px; /* 调整底部安全空间：60px(底部操作栏) + 10px(安全边距) */
   }
 
   .image-carousel {
@@ -656,7 +665,7 @@
 
   .bottom-bar {
     position: fixed;
-    bottom: 50px; /* 调整位置，为底部导航栏留出空间 */
+    bottom: 0;
     left: 0;
     right: 0;
     height: 60px;
@@ -670,13 +679,15 @@
 
     .left-buttons {
       display: flex;
-      gap: 16px;
+      gap: 12px;
 
       .action-item {
         display: flex;
         flex-direction: column;
         align-items: center;
+        justify-content: center;
         position: relative;
+        min-width: 40px;
 
         .van-icon {
           font-size: 20px;
@@ -688,9 +699,10 @@
         }
 
         span {
-          font-size: 12px;
+          font-size: 11px;
           color: var(--van-text-color-3);
           margin-top: 2px;
+          white-space: nowrap;
         }
       }
     }

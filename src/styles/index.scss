@@ -155,22 +155,43 @@ button {
   }
 }
 
-// 滚动条样式
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+// 滚动条样式 - 仅在桌面端显示
+// 移动端隐藏滚动条以保持简洁
+@media (min-width: 769px) {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: $scrollbar-track-color;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: $scrollbar-thumb-color;
+    border-radius: 3px;
+
+    &:hover {
+      background: $scrollbar-thumb-hover-color;
+    }
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: $scrollbar-track-color;
-}
+// 移动端隐藏滚动条
+@media (max-width: 768px) {
+  /* 隐藏webkit浏览器的滚动条 */
+  ::-webkit-scrollbar {
+    display: none;
+  }
 
-::-webkit-scrollbar-thumb {
-  background: $scrollbar-thumb-color;
-  border-radius: 3px;
+  /* Firefox隐藏滚动条 */
+  * {
+    scrollbar-width: none;
+  }
 
-  &:hover {
-    background: $scrollbar-thumb-hover-color;
+  /* 保留滚动功能，但隐藏滚动条的视觉 */
+  body {
+    -ms-overflow-style: none;
   }
 }
 

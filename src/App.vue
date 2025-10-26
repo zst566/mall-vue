@@ -131,6 +131,20 @@
     padding-bottom: calc(var(--tabbar-height) + var(--safe-area-inset-bottom, 0px));
     box-sizing: border-box;
     -webkit-overflow-scrolling: touch;
+
+    /* 移动端隐藏滚动条 */
+    @media (max-width: 768px) {
+      /* 隐藏webkit滚动条 */
+      &::-webkit-scrollbar {
+        display: none;
+      }
+
+      /* Firefox */
+      scrollbar-width: none;
+
+      /* IE 和 Edge */
+      -ms-overflow-style: none;
+    }
   }
 
   // 商户模式样式

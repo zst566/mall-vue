@@ -38,7 +38,7 @@ const routes: Array<RouteRecordRaw> = [
       permission: 'public' as Permission,
       requiresAuth: false,
       hideHeader: false,
-      hideFooter: false,
+      hideFooter: true,
       hideVersionSwitcher: false
     }
   },
