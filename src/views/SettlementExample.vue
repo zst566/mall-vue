@@ -1,6 +1,6 @@
 <template>
   <div class="settlement-example">
-    <van-nav-bar title="订单结算示例" left-arrow @click-left="$router.back()" />
+    <van-nav-bar title="订单结算示例" left-arrow @click-left="handleBack" />
 
     <div class="example-content">
       <van-form @submit="handleCalculateSettlement">
@@ -116,8 +116,13 @@
   import OrderSettlement from '@/components/common/OrderSettlement.vue'
   import type { OrderSettlementParams } from '@/types'
   import type { OrderSettlementResult } from '@/types/payment'
+  import router from '@/router'
 
   const settlementStore = useSettlementStore()
+
+  const handleBack = () => {
+    router.back()
+  }
 
   const loading = ref(false)
   const settlementResult = ref<OrderSettlementResult | null>(null)

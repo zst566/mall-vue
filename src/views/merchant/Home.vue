@@ -5,7 +5,7 @@
       title="商户中心"
       left-text="返回"
       left-arrow
-      @click-left="$router.back()"
+      @click-left="handleBack"
       fixed
       z-index="100"
     >
@@ -301,6 +301,10 @@
   }
 
   // 页面导航方法
+  const handleBack = () => {
+    router.back()
+  }
+
   const goToProfile = () => {
     router.push('/merchant/profile')
   }

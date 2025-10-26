@@ -5,7 +5,7 @@
       title="商户设置"
       left-text="返回"
       left-arrow
-      @click-left="$router.back()"
+      @click-left="handleBack"
       fixed
       z-index="100"
     />
@@ -285,6 +285,11 @@ import { showToast, showLoadingToast } from 'vant'
 import { merchantService } from '@/services/merchant'
 import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
+
+// 页面导航
+const handleBack = () => {
+  router.back()
+}
 
 // 商户信息
 const merchantProfile = ref({

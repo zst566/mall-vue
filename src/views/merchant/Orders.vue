@@ -5,7 +5,7 @@
       title="订单管理"
       left-text="返回"
       left-arrow
-      @click-left="$router.back()"
+      @click-left="handleBack"
       fixed
       z-index="100"
     >
@@ -330,6 +330,9 @@
 
   // 查看订单详情
   const router = useRouter()
+  const handleBack = () => {
+    router.back()
+  }
   const viewOrderDetail = (orderId: string) => {
     router.push(`/merchant/orders/${orderId}`)
   }

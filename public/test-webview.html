@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebView 通讯测试页面</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .status {
+            background: #e7f3ff;
+            border: 1px solid #b3d7ff;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+        .log-entry.success { color: #28a745; }
+        .log-entry.error { color: #dc3545; }
+        .log-entry.info { color: #17a2b8; }
+        .log-entry.warn { color: #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔗 WebView 通讯测试</h1>
+            <p>测试 Vue 应用与微信小程序之间的 postMessage 通讯</p>
+        </div>
+
+        <div class="status" id="status">
+            <strong>环境状态:</strong> <span id="env-status">检测中...</span>
+        </div>
+
+        <div>
+            <h3>📤 发送消息到小程序</h3>
+            <button class="button" onclick="testGetMallToken()">获取 mall_token</button>
+            <button class="button" onclick="testLogin()">微信登录</button>
+            <button class="button" onclick="testGetUserInfo()">获取用户信息</button>
+            <button class="button" onclick="testGetLocation()">获取位置</button>
+            <button class="button" onclick="testShowToast()">显示 Toast</button>
+            <button class="button" onclick="testShowModal()">显示 Modal</button>
+            <button class="button" onclick="testShare()">测试分享</button>
+            <button class="button" onclick="testPayment()">测试支付</button>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <h3>📥 自定义消息</h3>
+            <input type="text" id="customType" placeholder="消息类型" style="padding: 8px; margin: 5px; width: 150px;">
+            <input type="text" id="customData" placeholder="消息数据 (JSON)" style="padding: 8px; margin: 5px; width: 300px;">
+            <button class="button" onclick="sendCustomMessage()">发送</button>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <h3>📊 消息日志</h3>
+            <button class="button" onclick="clearLog()">清除日志</button>
+            <div class="log" id="log"></div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let isInMiniProgram = false;
+        let messageQueue = [];
+        let messageId = 0;
+
+        // 日志函数
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        // 检测环境
+        function detectEnvironment() {
+            if (typeof window !== 'undefined' && window.wx && window.wx.miniProgram) {
+                window.wx.miniProgram.getEnv((res) => {
+                    isInMiniProgram = res.miniprogram;
+                    document.getElementById('env-status').textContent =
+                        isInMiniProgram ? '✅ 微信小程序 WebView' : '❌ 普通浏览器';
+
+                    if (isInMiniProgram) {
+                        log('✅ 检测到微信小程序 WebView 环境', 'success');
+                        setupMessageListener();
+                    } else {
+                        log('⚠️ 不在微信小程序环境中，某些功能无法测试', 'warn');
+                        simulateMiniProgram();
+                    }
+                });
+            } else {
+                log('❌ 未检测到微信小程序 SDK，启用模拟模式', 'warn');
+                document.getElementById('env-status').textContent = '⚠️ 模拟模式';
+                simulateMiniProgram();
+            }
+        }
+
+        // 设置消息监听器
+        function setupMessageListener() {
+            // 监听来自小程序的消息
+            window.addEventListener('message', (event) => {
+                log(`📨 收到消息: ${JSON.stringify(event.data)}`, 'info');
+                handleMessage(event.data);
+            });
+        }
+
+        // 处理收到的消息
+        function handleMessage(message) {
+            if (!message || typeof message !== 'object') {
+                return;
+            }
+
+            // 处理响应消息
+            if (message.msgId) {
+                const pendingMessage = messageQueue.find(m => m.id === message.msgId);
+                if (pendingMessage) {
+                    clearTimeout(pendingMessage.timeout);
+                    messageQueue = messageQueue.filter(m => m.id !== message.msgId);
+
+                    if (message.success) {
+                        pendingMessage.resolve(message.data);
+                        log(`✅ 收到响应 [${message.msgId}]: ${JSON.stringify(message.data)}`, 'success');
+                    } else {
+                        pendingMessage.reject(new Error(message.errMsg || '操作失败'));
+                        log(`❌ 收到错误响应 [${message.msgId}]: ${message.errMsg}`, 'error');
+                    }
+                }
+                return;
+            }
+
+            // 处理主动消息
+            if (message.type) {
+                log(`📥 收到主动消息 [${message.type}]: ${JSON.stringify(message.data)}`, 'info');
+            }
+        }
+
+        // 发送消息到小程序
+        function sendMessage(type, data) {
+            return new Promise((resolve, reject) => {
+                if (!isInMiniProgram) {
+                    reject(new Error('不在微信小程序环境中'));
+                    return;
+                }
+
+                const msgId = `test_${++messageId}`;
+                const message = {
+                    type,
+                    data,
+                    id: msgId,
+                    timestamp: Date.now()
+                };
+
+                // 设置超时
+                const timeout = setTimeout(() => {
+                    messageQueue = messageQueue.filter(m => m.id !== msgId);
+                    reject(new Error('消息发送超时'));
+                }, 10000);
+
+                messageQueue.push({
+                    id: msgId,
+                    resolve,
+                    reject,
+                    timeout
+                });
+
+                try {
+                    log(`📤 发送消息 [${type}]: ${JSON.stringify(data)}`, 'info');
+                    window.wx.miniProgram.postMessage(message);
+                } catch (error) {
+                    clearTimeout(timeout);
+                    messageQueue = messageQueue.filter(m => m.id !== msgId);
+                    reject(error);
+                    log(`❌ 发送消息失败: ${error.message}`, 'error');
+                }
+            });
+        }
+
+        // 测试函数
+        async function testGetMallToken() {
+            try {
+                log('🔐 测试获取 mall_token...', 'info');
+                const result = await sendMessage('getMallToken');
+                log(`✅ mall_token 获取成功: ${JSON.stringify(result)}`, 'success');
+            } catch (error) {
+                log(`❌ mall_token 获取失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testLogin() {
+            try {
+                log('🔑 测试微信登录...', 'info');
+                const result = await sendMessage('login');
+                log(`✅ 登录成功: ${JSON.stringify(result)}`, 'success');
+            } catch (error) {
+                log(`❌ 登录失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testGetUserInfo() {
+            try {
+                log('👤 测试获取用户信息...', 'info');
+                const result = await sendMessage('getUserInfo');
+                log(`✅ 用户信息获取成功: ${JSON.stringify(result)}`, 'success');
+            } catch (error) {
+                log(`❌ 用户信息获取失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testGetLocation() {
+            try {
+                log('📍 测试获取位置...', 'info');
+                const result = await sendMessage('getLocation');
+                log(`✅ 位置获取成功: ${JSON.stringify(result)}`, 'success');
+            } catch (error) {
+                log(`❌ 位置获取失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testShowToast() {
+            try {
+                log('🍞 测试显示 Toast...', 'info');
+                await sendMessage('showToast', { title: '测试消息', icon: 'success', duration: 2000 });
+                log('✅ Toast 显示成功', 'success');
+            } catch (error) {
+                log(`❌ Toast 显示失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testShowModal() {
+            try {
+                log('💬 测试显示 Modal...', 'info');
+                const result = await sendMessage('showModal', {
+                    title: '测试对话框',
+                    content: '这是一个测试对话框',
+                    showCancel: true,
+                    confirmText: '确定',
+                    cancelText: '取消'
+                });
+                log(`✅ Modal 显示成功，用户选择: ${result.confirm ? '确定' : '取消'}`, 'success');
+            } catch (error) {
+                log(`❌ Modal 显示失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testShare() {
+            try {
+                log('📤 测试分享...', 'info');
+                await sendMessage('share', {
+                    title: '滨江宏岸商场',
+                    desc: '优惠购物，品质生活',
+                    path: '/pages/webview/webview',
+                    imageUrl: '/assets/images/share-logo.png'
+                });
+                log('✅ 分享设置成功', 'success');
+            } catch (error) {
+                log(`❌ 分享设置失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testPayment() {
+            try {
+                log('💰 测试支付...', 'info');
+                await sendMessage('payment', {
+                    orderId: 'TEST_' + Date.now(),
+                    amount: 0.01,
+                    description: '测试支付'
+                });
+                log('✅ 支付请求发送成功', 'success');
+            } catch (error) {
+                log(`❌ 支付请求失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function sendCustomMessage() {
+            const type = document.getElementById('customType').value.trim();
+            const dataStr = document.getElementById('customData').value.trim();
+
+            if (!type) {
+                log('❌ 请输入消息类型', 'error');
+                return;
+            }
+
+            let data;
+            if (dataStr) {
+                try {
+                    data = JSON.parse(dataStr);
+                } catch (error) {
+                    log(`❌ JSON 格式错误: ${error.message}`, 'error');
+                    return;
+                }
+            } else {
+                data = {};
+            }
+
+            try {
+                log(`📤 发送自定义消息 [${type}]...`, 'info');
+                const result = await sendMessage(type, data);
+                log(`✅ 自定义消息发送成功: ${JSON.stringify(result)}`, 'success');
+            } catch (error) {
+                log(`❌ 自定义消息发送失败: ${error.message}`, 'error');
+            }
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            log('🧹 日志已清除', 'info');
+        }
+
+        // 模拟小程序环境（用于测试）
+        function simulateMiniProgram() {
+            // 模拟 wx 对象
+            window.wx = {
+                miniProgram: {
+                    postMessage: function(message) {
+                        log(`📤 [模拟] 发送消息到小程序: ${JSON.stringify(message)}`, 'info');
+
+                        // 模拟响应
+                        setTimeout(() => {
+                            const responses = {
+                                'getMallToken': {
+                                    success: true,
+                                    msgId: message.id,
+                                    data: {
+                                        token: 'mock_mall_token_' + Date.now(),
+                                        user: {
+                                            id: 12345,
+                                            nickname: '测试用户',
+                                            phone: '138****8888'
+                                        }
+                                    }
+                                },
+                                'login': {
+                                    success: true,
+                                    msgId: message.id,
+                                    userInfo: {
+                                        id: 12345,
+                                        nickname: '测试用户',
+                                        phone: '138****8888'
+                                    }
+                                },
+                                'getUserInfo': {
+                                    success: true,
+                                    msgId: message.id,
+                                    userInfo: {
+                                        id: 12345,
+                                        nickname: '测试用户',
+                                        phone: '138****8888',
+                                        avatar: '/assets/images/avatar.png'
+                                    }
+                                },
+                                'getLocation': {
+                                    success: true,
+                                    msgId: message.id,
+                                    latitude: 23.123456,
+                                    longitude: 113.123456,
+                                    address: '广州市天河区'
+                                },
+                                'showToast': {
+                                    success: true,
+                                    msgId: message.id
+                                },
+                                'showModal': {
+                                    success: true,
+                                    msgId: message.id,
+                                    confirm: true
+                                },
+                                'share': {
+                                    success: true,
+                                    msgId: message.id,
+                                    setupComplete: true
+                                },
+                                'payment': {
+                                    success: true,
+                                    msgId: message.id,
+                                    orderId: message.data.orderId
+                                }
+                            };
+
+                            const response = responses[message.type] || {
+                                success: false,
+                                msgId: message.id,
+                                errMsg: `不支持的消息类型: ${message.type}`
+                            };
+
+                            // 触发消息事件
+                            const event = new MessageEvent('message', {
+                                data: response
+                            });
+                            window.dispatchEvent(event);
+                        }, 500 + Math.random() * 1000);
+                    },
+                    getEnv: function(callback) {
+                        setTimeout(() => callback({ miniprogram: true }), 100);
+                    }
+                }
+            };
+
+            isInMiniProgram = true;
+            document.getElementById('env-status').textContent = '🎭 模拟小程序环境';
+            log('🎭 已启用模拟小程序环境', 'success');
+            setupMessageListener();
+        }
+
+        // 页面加载时初始化
+        window.onload = function() {
+            log('🚀 WebView 测试页面已加载', 'info');
+            detectEnvironment();
+        };
+
+        // 监听 URL 参数变化
+        window.addEventListener('popstate', function() {
+            const params = new URLSearchParams(window.location.search);
+            const mallToken = params.get('mall_token');
+            if (mallToken) {
+                log(`🔐 从 URL 参数检测到 mall_token: ${mallToken.substring(0, 20)}...`, 'success');
+            }
+        });
+
+        // 页面加载时检查 URL 参数
+        document.addEventListener('DOMContentLoaded', function() {
+            const params = new URLSearchParams(window.location.search);
+            const mallToken = params.get('mall_token');
+            if (mallToken) {
+                log(`🔐 从 URL 参数检测到 mall_token: ${mallToken.substring(0, 20)}...`, 'success');
+            }
+        });
+    </script>
+</body>
+</html>

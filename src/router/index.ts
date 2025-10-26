@@ -257,6 +257,19 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
+    path: '/webview-test',
+    name: 'WebViewTest',
+    component: () => import('@/views/WebViewTokenExample.vue'),
+    meta: {
+      title: 'WebView 通讯测试',
+      permission: 'public' as Permission,
+      requiresAuth: false,
+      hideHeader: false,
+      hideFooter: false,
+      hideVersionSwitcher: false
+    }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/views/common/NotFound.vue'),

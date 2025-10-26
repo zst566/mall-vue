@@ -47,9 +47,68 @@
   const authStore = useAuthStore()
   const appStore = useAppStore()
 
+  // 监听小程序的postMessage（从微信小程序webview传递数据）
+  const setupMiniProgramMessageListener = () => {
+    // 监听来自微信小程序的postMessage
+    window.addEventListener('message', (event: MessageEvent) => {
+      try {
+        console.log('🔔 Received message from mini-program:', event.data)
+
+        // 处理认证信息
+        if (event.data && event.data.type === 'auth') {
+          const authData = event.data.data
+          console.log('🔐 Received auth data from mini-program:', authData)
+
+          if (authData && authData.token && authData.user) {
+            // 设置认证信息
+            authStore.setAuth({
+              user: authData.user,
+              token: authData.token,
+              refreshToken: authData.refreshToken || ''
+            })
+            console.log('✅ Auth state updated from mini-program')
+          }
+        }
+
+        // 处理消息确认（支持所有消息类型的确认）
+        if (event.data && event.data.type) {
+          const messageType = event.data.type
+
+          // 处理带Result后缀的确认消息
+          if (messageType.endsWith('Result')) {
+            console.log(`✅ Received message confirmation: ${messageType}`, event.data.data)
+
+            // 转发给 bridge 处理
+            import('@/utils/miniprogramBridge').then(({ miniprogramBridge }) => {
+              miniprogramBridge.handleIncomingMessage(event.data)
+            })
+
+            // 可以触发全局事件，供其他组件监听
+            window.dispatchEvent(
+              new CustomEvent('miniprogram-message', {
+                detail: {
+                  originalType: messageType.replace('Result', ''),
+                  result: event.data.data,
+                  success: event.data.data?.success
+                }
+              })
+            )
+          }
+        }
+      } catch (error) {
+        console.error('❌ Failed to handle mini-program message:', error)
+      }
+    })
+
+    console.log('👂 Listening for mini-program postMessage')
+  }
+
   // 初始化应用
   onMounted(async () => {
     try {
+      // 设置小程序消息监听器
+      setupMiniProgramMessageListener()
+
       // 初始化应用状态
       appStore.setLoading(true)
 

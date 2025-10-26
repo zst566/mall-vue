@@ -18,17 +18,25 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 初始化时从localStorage恢复状态
   const initializeFromStorage = () => {
+    console.log('🔐 开始从LocalStorage初始化认证状态')
     try {
       const savedToken = localStorage.getItem('token')
       const savedUser = localStorage.getItem('user')
       const savedRefreshToken = localStorage.getItem('refreshToken')
 
+      console.log('📦 LocalStorage中的数据:')
+      console.log('  - token:', savedToken ? '存在' : '不存在')
+      console.log('  - user:', savedUser ? '存在' : '不存在')
+      console.log('  - refreshToken:', savedRefreshToken ? '存在' : '不存在')
+
       if (savedToken) {
         token.value = savedToken
+        console.log('✅ Token已恢复')
       }
 
       if (savedRefreshToken) {
         refreshToken.value = savedRefreshToken
+        console.log('✅ RefreshToken已恢复')
       }
 
       if (savedUser) {
@@ -37,9 +45,16 @@ export const useAuthStore = defineStore('auth', () => {
         if (parsedUser && parsedUser.role) {
           userRole.value = parsedUser.role
         }
+        console.log('✅ 用户信息已恢复:', parsedUser)
       }
+      
+      console.log('🔐 认证状态初始化完成')
+      console.log('📊 当前状态:')
+      console.log('  - hasToken:', !!token.value)
+      console.log('  - hasUser:', !!user.value)
+      console.log('  - userRole:', userRole.value)
     } catch (error) {
-      console.error('Failed to initialize auth state from storage:', error)
+      console.error('❌ 从LocalStorage初始化认证状态失败:', error)
       clearAuth()
     }
   }
@@ -80,33 +95,45 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 微信登录方法
   const loginWithWechat = async (code: string) => {
+    console.log('🔐 开始微信登录流程')
+    console.log('📝 微信授权码:', code)
     try {
       isLoading.value = true
       error.value = ''
 
       // 调用真实的微信登录API
+      console.log('📡 调用微信登录API...')
       const response = await authService.loginWithWechat(code)
+      console.log('📡 API响应:', response)
 
       if (response.success) {
+        console.log('✅ 微信登录成功')
+        console.log('📋 用户信息:', response.data.user)
+        console.log('🔑 Token:', response.data.token ? '已获取' : '未获取')
+        
         user.value = response.data.user
         token.value = response.data.token
         refreshToken.value = response.data.refreshToken || ''
         userRole.value = response.data.user.role
 
         saveToLocalStorage()
+        console.log('💾 认证信息已保存到LocalStorage')
 
+        console.log('🎉 微信登录完成')
         return { success: true, message: '微信登录成功' }
       } else {
+        console.error('❌ 微信登录失败:', response.message)
         error.value = response.message
         return response
       }
     } catch (error: any) {
-      console.error('微信登录失败:', error)
+      console.error('❌ 微信登录异常:', error)
       const errorMessage = error.message || '微信登录失败'
       error.value = errorMessage
       return { success: false, message: errorMessage }
     } finally {
       isLoading.value = false
+      console.log('🔐 微信登录流程结束')
     }
   }
 
@@ -179,31 +206,42 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 获取用户信息
   const getUserInfo = async () => {
+    console.log('👤 开始获取用户信息')
     try {
       isLoading.value = true
 
       if (!token.value) {
+        console.warn('⚠️  未登录，无法获取用户信息')
         return { success: false, message: '未登录' }
       }
 
+      console.log('📡 调用获取用户信息API...')
       const response = await authService.getProfile()
+      console.log('📡 API响应:', response)
 
       if (response.success) {
+        console.log('✅ 获取用户信息成功')
+        console.log('📋 用户信息:', response.data)
+        
         user.value = response.data
         if (response.data && response.data.role) {
           userRole.value = response.data.role
         }
         saveToLocalStorage()
+        console.log('💾 用户信息已保存到LocalStorage')
+        
         return { success: true, message: '获取用户信息成功' }
       } else {
+        console.error('❌ 获取用户信息失败:', response.message)
         error.value = response.message
         return response
       }
     } catch (error: any) {
-      console.error('获取用户信息失败:', error)
+      console.error('❌ 获取用户信息异常:', error)
       return { success: false, message: error.message || '获取用户信息失败' }
     } finally {
       isLoading.value = false
+      console.log('👤 获取用户信息流程结束')
     }
   }
 
@@ -238,14 +276,19 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 保存到localStorage
   const saveToLocalStorage = () => {
+    console.log('💾 保存认证信息到LocalStorage')
+    
     if (token.value) {
       localStorage.setItem('token', token.value)
+      console.log('  ✅ Token已保存')
     }
     if (refreshToken.value) {
       localStorage.setItem('refreshToken', refreshToken.value)
+      console.log('  ✅ RefreshToken已保存')
     }
     if (user.value) {
       localStorage.setItem('user', JSON.stringify(user.value))
+      console.log('  ✅ 用户信息已保存')
     }
   }
 

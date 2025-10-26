@@ -30,6 +30,13 @@
       </van-grid>
     </div>
 
+    <!-- 通讯测试按钮 -->
+    <div class="communication-test">
+      <van-button type="primary" block size="large" @click="testCommunication">
+        🔗 测试小程序通讯（获取 mall_token）
+      </van-button>
+    </div>
+
     <!-- 商品分类 -->
     <div class="category-section">
       <div class="section-header">
@@ -99,10 +106,11 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue'
+  import { ref, onMounted, onUnmounted } from 'vue'
   import { useRouter } from 'vue-router'
-  import { showToast } from 'vant'
+  import { showToast, showNotify } from 'vant'
   import { useAuthStore } from '@/stores/auth'
+  import { miniprogramBridge } from '@/utils/miniprogramBridge'
   import PlaceholderImage from '@/components/common/PlaceholderImage.vue'
 
   const router = useRouter()
@@ -251,17 +259,208 @@
     })
   }
 
+  // 检查用户登录状态的函数
+  const checkUserLoginStatus = () => {
+    // 加载首页数据
+    console.log('===== 用户登录状态检查 =====')
+
+    // 检查认证状态 - 输出详细调试信息
+    console.log('📱 认证状态检查:')
+    console.log('  - isAuthenticated:', authStore.isAuthenticated)
+    console.log('  - isLoggedIn:', authStore.isLoggedIn)
+    console.log('  - isLoading:', authStore.isLoading)
+    console.log('  - hasToken:', !!authStore.token)
+    console.log('  - hasUser:', !!authStore.user)
+    console.log('  - userRole:', authStore.userRole)
+
+    // 检查localStorage中的token和user
+    const storageToken = localStorage.getItem('token')
+    const storageUser = localStorage.getItem('user')
+    const storageRefreshToken = localStorage.getItem('refreshToken')
+
+    console.log('💾 LocalStorage状态:')
+    console.log('  - token存在:', !!storageToken)
+    console.log('  - token长度:', storageToken ? storageToken.length : 0)
+    console.log('  - user存在:', !!storageUser)
+    console.log('  - refreshToken存在:', !!storageRefreshToken)
+
+    // 如果token存在但user不存在，说明可能是首次加载
+    if (storageToken && !storageUser) {
+      console.warn('⚠️  Token存在但用户信息不存在，可能需要重新获取用户信息')
+    }
+
+    // 如果有用户信息，输出用户详情
+    if (authStore.user) {
+      console.log('👤 用户信息:')
+      console.log('  - 用户ID:', authStore.user.id)
+      console.log('  - 用户名:', authStore.user.username)
+      console.log('  - 手机号:', authStore.user.phone)
+      console.log('  - 角色:', authStore.user.role)
+      console.log('  - 完整信息:', authStore.user)
+
+      const userName = authStore.user.username || authStore.user.phone || '用户'
+      showToast(`登录状态: 已登录，欢迎回来，${userName}！`)
+      console.log('✅ 用户已登录，欢迎消息已显示')
+    } else {
+      console.log('⚠️  用户未登录')
+      if (authStore.token) {
+        console.warn('⚠️  存在token但用户信息为空，可能需要重新获取')
+        showToast('登录状态: Token存在但用户信息为空')
+      } else {
+        showToast('登录状态: 未登录')
+      }
+    }
+
+    console.log('===== 用户登录状态检查结束 =====')
+  }
+
+  // 小程序消息监听器
+  const messageListener = (event: CustomEvent) => {
+    console.log('🔔 收到小程序消息:', event.detail)
+
+    const detail = event.detail
+    if (detail) {
+      // 显示收到的消息内容
+      showNotify({
+        type: detail.success ? 'success' : 'warning',
+        message: `📨 收到小程序消息:\n类型: ${detail.originalType || '未知'}\n状态: ${detail.success ? '成功' : '失败'}`,
+        duration: 4000
+      })
+
+      // 如果有认证数据，特殊处理
+      if (detail.originalType === 'auth' && detail.result?.data) {
+        const authData = detail.result.data
+        const token = authData.token
+        if (token) {
+          console.log('✅ 成功接收到 mall_token:', token)
+          showNotify({
+            type: 'success',
+            message: `✅ 收到 mall_token: ${token.substring(0, 20)}...`,
+            duration: 5000
+          })
+        }
+      }
+
+      // 如果是 getMallTokenResult
+      if (detail.originalType === 'getMallToken' && detail.result?.data) {
+        const resultData = detail.result.data
+        const token = resultData.token || resultData.data?.token
+        if (token) {
+          console.log('✅ 成功接收到 mall_token:', token)
+          showNotify({
+            type: 'success',
+            message: `✅ 收到 mall_token: ${token.substring(0, 20)}...`,
+            duration: 5000
+          })
+        } else if (resultData.success) {
+          showNotify({
+            type: 'success',
+            message: '✅ 通讯成功，但未包含token数据',
+            duration: 3000
+          })
+        }
+      }
+    }
+  }
+
+  // 通讯测试函数
+  const testCommunication = async () => {
+    console.log('🔗 开始测试小程序通讯...')
+
+    // 检测环境（放宽条件：允许微信浏览器和小程序环境）
+    const isMiniProgram = miniprogramBridge.isMiniProgram()
+    const isWechatBrowser = /micromessenger/.test(navigator.userAgent.toLowerCase())
+
+    console.log('🔍 环境检测结果:')
+    console.log('  - isMiniProgram():', isMiniProgram)
+    console.log('  - isWechatBrowser:', isWechatBrowser)
+    console.log('  - window.wx:', typeof window !== 'undefined' ? !!window.wx : 'undefined')
+    console.log(
+      '  - window.wx.miniProgram:',
+      typeof window !== 'undefined' && window.wx ? !!window.wx.miniProgram : 'undefined'
+    )
+
+    if (!isMiniProgram && !isWechatBrowser) {
+      console.warn('⚠️ 不在微信环境中，无法进行通讯测试')
+      showNotify({
+        type: 'warning',
+        message: '⚠️ 需要在微信环境（浏览器或小程序）中测试',
+        duration: 3000
+      })
+      return
+    }
+
+    // 根据环境提供不同的提示
+    if (isMiniProgram) {
+      console.log('✅ 检测到小程序环境，可以正常通讯')
+    } else if (isWechatBrowser) {
+      console.log('⚠️ 检测到微信浏览器环境，通讯功能可能受限')
+      showNotify({
+        type: 'primary',
+        message: '📱 当前在微信浏览器中，建议在小程序webview中测试以获得完整体验',
+        duration: 4000
+      })
+    }
+
+    showToast({
+      message: '正在获取 mall_token...',
+      duration: 2000
+    })
+
+    try {
+      // 请求小程序发送 mall_token
+      const result = await miniprogramBridge.sendMessage('getMallToken', {})
+
+      console.log('📤 通讯测试结果:', result)
+
+      if (result.success) {
+        const token = result.data?.token
+        if (token) {
+          console.log('✅ 成功获取 mall_token:', token)
+          showNotify({
+            type: 'success',
+            message: `✅ 通讯成功！收到 mall_token: ${token.substring(0, 20)}...`,
+            duration: 5000
+          })
+        } else {
+          showNotify({
+            type: 'success',
+            message: '✅ 通讯成功（但未收到token数据）',
+            duration: 3000
+          })
+        }
+      } else {
+        console.warn('⚠️ 通讯失败:', result.errMsg)
+        showNotify({
+          type: 'warning',
+          message: `⚠️ 通讯失败: ${result.errMsg || '未知错误'}`,
+          duration: 4000
+        })
+      }
+    } catch (error) {
+      console.error('❌ 通讯测试出错:', error)
+      const errorMsg = error instanceof Error ? error.message : '未知错误'
+      showNotify({
+        type: 'danger',
+        message: `❌ 通讯测试失败: ${errorMsg}`,
+        duration: 5000
+      })
+    }
+  }
+
   // 初始化
   onMounted(() => {
-    // 加载首页数据
-    console.log('初始化首页')
+    console.log('首页已加载')
 
-    // 检查微信登录状态（临时功能，正式环境删除）
-    // TODO: 正式环境删除此功能
-    if (authStore.isLoggedIn && authStore.user) {
-      const userName = authStore.user.username || authStore.user.phone || '用户'
-      showToast(`欢迎回来，${userName}！`)
-    }
+    // 监听来自小程序的消息
+    window.addEventListener('miniprogram-message', messageListener as EventListener)
+    console.log('👂 已监听小程序消息')
+  })
+
+  // 清理
+  onUnmounted(() => {
+    window.removeEventListener('miniprogram-message', messageListener as EventListener)
+    console.log('🧹 已清理小程序消息监听')
   })
 </script>
 
@@ -292,6 +491,20 @@
 
   .function-entries {
     margin: 0 16px;
+  }
+
+  .communication-test {
+    margin: 16px;
+    padding: 16px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .communication-test :deep(.van-button) {
+    font-size: 16px;
+    height: 48px;
+    font-weight: 600;
   }
 
   .section-header {

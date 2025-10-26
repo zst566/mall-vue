@@ -5,6 +5,7 @@ import App from './App.vue'
 import router from '@/router'
 import './styles/index.scss'
 import { createPersistencePlugin, appPersistence } from './utils/persistence'
+import WebViewBridgePlugin from '@/plugins/webview-bridge'
 
 // 创建Vue应用实例
 const app = createApp(App)
@@ -18,6 +19,11 @@ pinia.use(createPersistencePlugin())
 // 注册路由
 app.use(router)
 app.use(pinia)
+
+// 注册 WebView Bridge 插件
+app.use(WebViewBridgePlugin, {
+  debug: process.env.NODE_ENV === 'development'
+})
 
 // 初始化应用持久化（必须在pinia注册之后）
 appPersistence.initialize()

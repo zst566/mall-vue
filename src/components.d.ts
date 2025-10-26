@@ -13,6 +13,7 @@ declare module 'vue' {
     LoadingSpinner: typeof import('./components/common/LoadingSpinner.vue')['default']
     OrderSettlement: typeof import('./components/common/OrderSettlement.vue')['default']
     OrderVerification: typeof import('./components/merchant/OrderVerification.vue')['default']
+    PaymentExample: typeof import('./components/examples/PaymentExample.vue')['default']
     PlaceholderImage: typeof import('./components/common/PlaceholderImage.vue')['default']
     ProductCard: typeof import('./components/customer/ProductCard.vue')['default']
     ProductList: typeof import('./components/customer/ProductList.vue')['default']

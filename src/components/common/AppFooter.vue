@@ -1,12 +1,7 @@
 <template>
   <footer class="app-footer" :class="{ 'merchant-mode': isMerchantMode }">
-    <van-tabbar
-      v-model="active"
-      route
-      :border="false"
-      class="footer-tabbar"
-    >
-      <van-tabbar-item replace to="/" icon="home-o">首页</van-tabbar-item>
+    <van-tabbar v-model="active" route :border="false" class="footer-tabbar">
+      <van-tabbar-item replace to="/" icon="home-o" @click="onHomeClick">首页</van-tabbar-item>
       <van-tabbar-item replace to="/parking" icon="location-o">停车</van-tabbar-item>
       <van-tabbar-item replace to="/orders" icon="orders-o">订单</van-tabbar-item>
       <van-tabbar-item replace to="/profile" icon="user-o">我的</van-tabbar-item>
@@ -18,14 +13,78 @@
   import { ref, computed, watch } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
   import { useAppStore } from '@/stores/app'
+  import { useAuthStore } from '@/stores/auth'
+  import { showToast } from 'vant'
 
   const appStore = useAppStore()
+  const authStore = useAuthStore()
   const router = useRouter()
   const route = useRoute()
   const active = ref(0)
 
   // 计算当前是否为商户模式
   const isMerchantMode = computed(() => appStore.isMerchantMode)
+
+  // 检查用户登录状态的函数
+  const checkUserLoginStatus = () => {
+    console.log('===== 用户登录状态检查 =====')
+
+    // 检查认证状态 - 输出详细调试信息
+    console.log('📱 认证状态检查:')
+    console.log('  - isAuthenticated:', authStore.isAuthenticated)
+    console.log('  - isLoggedIn:', authStore.isLoggedIn)
+    console.log('  - isLoading:', authStore.isLoading)
+    console.log('  - hasToken:', !!authStore.token)
+    console.log('  - hasUser:', !!authStore.user)
+    console.log('  - userRole:', authStore.userRole)
+
+    // 检查localStorage中的token和user
+    const storageToken = localStorage.getItem('token')
+    const storageUser = localStorage.getItem('user')
+    const storageRefreshToken = localStorage.getItem('refreshToken')
+
+    console.log('💾 LocalStorage状态:')
+    console.log('  - token存在:', !!storageToken)
+    console.log('  - token长度:', storageToken ? storageToken.length : 0)
+    console.log('  - user存在:', !!storageUser)
+    console.log('  - refreshToken存在:', !!storageRefreshToken)
+
+    // 如果token存在但user不存在，说明可能是首次加载
+    if (storageToken && !storageUser) {
+      console.warn('⚠️  Token存在但用户信息不存在，可能需要重新获取用户信息')
+    }
+
+    // 如果有用户信息，输出用户详情
+    if (authStore.user) {
+      console.log('👤 用户信息:')
+      console.log('  - 用户ID:', authStore.user.id)
+      console.log('  - 用户名:', authStore.user.username)
+      console.log('  - 手机号:', authStore.user.phone)
+      console.log('  - 角色:', authStore.user.role)
+      console.log('  - 完整信息:', authStore.user)
+
+      const userName = authStore.user.username || authStore.user.phone || '用户'
+      showToast(`登录状态: 已登录，欢迎回来，${userName}！`)
+      console.log('✅ 用户已登录，欢迎消息已显示')
+    } else {
+      console.log('⚠️  用户未登录')
+      if (authStore.token) {
+        console.warn('⚠️  存在token但用户信息为空，可能需要重新获取')
+        showToast('登录状态: Token存在但用户信息为空')
+      } else {
+        showToast('登录状态: 未登录')
+      }
+    }
+
+    console.log('===== 用户登录状态检查结束 =====')
+  }
+
+  // 首页按钮点击事件
+  const onHomeClick = () => {
+    console.log('🏠 点击了首页按钮')
+    // 触发登录状态检查
+    checkUserLoginStatus()
+  }
 
   // 监听路由变化更新底部导航栏状态
   const updateActiveTab = () => {
