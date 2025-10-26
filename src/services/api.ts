@@ -87,7 +87,28 @@ export const createApiInstance = (): AxiosInstance => {
 
       // 认证失败处理
       if (status === 401) {
-        console.log('🔐 API 返回 401 未授权，尝试请求小程序重新登录')
+        console.log('🔐 API 返回 401 未授权')
+        
+        // 🔥 修复：定义"容错接口"，这些接口的 401 错误不应该导致清除 token
+        const tolerantEndpoints = [
+          '/auth/current-user',    // 获取当前用户信息
+          '/auth/user-info',       // 获取用户信息
+          '/auth/stats',           // 用户统计数据
+          '/user/profile',         // 用户资料
+          '/user/stats'            // 用户统计
+        ]
+        
+        const isTolerantEndpoint = tolerantEndpoints.some(endpoint => 
+          config.url?.includes(endpoint)
+        )
+        
+        // 如果是容错接口，只记录错误，不触发重新登录或清除 token
+        if (isTolerantEndpoint) {
+          console.warn('⚠️ 容错接口返回 401，不触发重新登录:', config.url)
+          throw new Error('获取用户信息失败，请稍后重试')
+        }
+        
+        console.log('🔐 关键接口返回 401，尝试请求小程序重新登录')
         
         const authStore = useAuthStore()
         

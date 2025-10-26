@@ -391,27 +391,46 @@
     try {
       isLoading.value = true
 
-      // 获取用户详细信息
-      const profileResult = await authService.getProfile()
-      if (profileResult.success && profileResult.data) {
-        authStore.updateUser(profileResult.data)
-      }
-
-      // 获取用户统计数据
-      const statsResult = await authService.getUserStats()
-      if (statsResult.success && statsResult.data) {
-        userStats.value = {
-          points: statsResult.data.points,
-          coupons: statsResult.data.coupons,
-          favorites: statsResult.data.favorites,
-          unpaidOrders: statsResult.data.unpaidOrders || 0
+      // 🔥 修复：容错处理 - 即使获取用户信息失败，也不清除 token
+      // 可能是网络问题、服务器问题，或者用户信息暂时不可用
+      try {
+        const profileResult = await authService.getProfile()
+        if (profileResult.success && profileResult.data) {
+          authStore.updateUser(profileResult.data)
+          console.log('✅ 用户详细信息已更新')
+        } else {
+          console.warn('⚠️ 获取用户信息失败，但保留已登录状态:', profileResult.message)
+          // 不显示错误提示，因为用户可能已经有基本信息
         }
+      } catch (profileError) {
+        // 🔥 关键修复：获取用户信息失败不应该清除 token
+        console.error('❌ 获取用户详细信息失败:', profileError)
+        // 不抛出错误，不显示错误提示，保持已登录状态
+        // 用户仍然可以使用已缓存的基本信息
       }
 
-      console.log('用户数据加载完成')
+      // 获取用户统计数据（非关键操作，失败不影响）
+      try {
+        const statsResult = await authService.getUserStats()
+        if (statsResult.success && statsResult.data) {
+          userStats.value = {
+            points: statsResult.data.points,
+            coupons: statsResult.data.coupons,
+            favorites: statsResult.data.favorites,
+            unpaidOrders: statsResult.data.unpaidOrders || 0
+          }
+          console.log('✅ 用户统计数据已更新')
+        }
+      } catch (statsError) {
+        console.warn('⚠️ 获取用户统计数据失败，使用默认值:', statsError)
+        // 统计数据加载失败不影响页面展示
+      }
+
+      console.log('✅ 用户数据加载流程完成')
     } catch (error) {
-      console.error('加载用户数据失败:', error)
-      showToast({ type: 'fail', message: '加载用户数据失败' })
+      // 🔥 处理意外的错误
+      console.error('❌ 加载用户数据时发生意外错误:', error)
+      // 即使发生错误，也不清除 token，不强制跳转登录
     } finally {
       isLoading.value = false
     }
