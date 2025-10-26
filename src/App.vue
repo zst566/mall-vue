@@ -106,6 +106,14 @@
       'Helvetica Neue', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* 启用GPU加速，提升渲染清晰度 */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    /* 优化字体渲染 */
+    text-rendering: optimizeLegibility;
+    /* 防止字体模糊 */
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
   }
 
   .app-main {

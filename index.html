@@ -3,7 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- 优化 viewport 配置以支持高清显示 -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <!-- 微信 WebView 字体渲染优化 -->
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="apple-touch-fullscreen" content="yes" />
     <meta name="description" content="滨江宏岸商场 - 移动端购物平台" />
     <meta name="keywords" content="商场促销,购物平台,移动端,微信小程序" />
     <title>滨江宏岸商场</title>
@@ -29,6 +36,24 @@
         -moz-osx-font-smoothing: grayscale;
         background-color: #f7f8fa;
         color: #323233;
+        /* 优化高清屏幕显示 */
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
+        text-rendering: optimizeLegibility;
+      }
+
+      /* 优化高清显示 */
+      @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+        html {
+          -webkit-text-size-adjust: 100%;
+          text-size-adjust: 100%;
+        }
+      }
+
+      /* 微信 WebView 字体渲染优化 */
+      html {
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
       }
       #app-loading {
         position: fixed;

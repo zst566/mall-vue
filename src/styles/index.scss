@@ -20,6 +20,11 @@
 html {
   font-size: 14px;
   -webkit-text-size-adjust: 100%;
+  /* 启用GPU加速，提升字体渲染清晰度 */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  /* 优化字体渲染 */
+  text-rendering: optimizeLegibility;
 }
 
 body {
@@ -30,6 +35,14 @@ body {
   background-color: $bg-color-base;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* 启用GPU加速 */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  /* 优化文字渲染 */
+  text-rendering: optimizeLegibility;
+  /* 防止字体模糊 */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 // 文字样式
@@ -38,6 +51,10 @@ h1, h2, h3, h4, h5, h6 {
   line-height: $line-height-base;
   margin: 0;
   padding: 0;
+  /* 优化标题字体渲染 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 p {
