@@ -1,15 +1,17 @@
 <template>
   <div class="home-page">
     <!-- 搜索栏 -->
-    <van-search
-      v-model="searchQuery"
-      placeholder="搜索商品"
-      @input="onSearchInput"
-      @search="onSearch"
-      shape="round"
-      background="transparent"
-      class="search-bar"
-    />
+    <div class="search-section">
+      <van-search
+        v-model="searchQuery"
+        placeholder="🔍 搜索商品、品牌、店铺"
+        @input="onSearchInput"
+        @search="onSearch"
+        shape="round"
+        background="transparent"
+        class="search-bar"
+      />
+    </div>
 
     <!-- Banner轮播 -->
     <div class="banner-section">
@@ -28,13 +30,6 @@
         <van-grid-item icon="discount" text="促销活动" @click="goToPromotions" />
         <van-grid-item icon="service-o" text="客服" @click="contactService" />
       </van-grid>
-    </div>
-
-    <!-- 通讯测试按钮 -->
-    <div class="communication-test">
-      <van-button type="primary" block size="large" @click="testCommunication">
-        🔗 测试小程序通讯（获取 mall_token）
-      </van-button>
     </div>
 
     <!-- 商品分类 -->
@@ -106,11 +101,10 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, onUnmounted } from 'vue'
+  import { ref, onMounted } from 'vue'
   import { useRouter } from 'vue-router'
-  import { showToast, showNotify } from 'vant'
+  import { showToast } from 'vant'
   import { useAuthStore } from '@/stores/auth'
-  import { miniprogramBridge } from '@/utils/miniprogramBridge'
   import PlaceholderImage from '@/components/common/PlaceholderImage.vue'
 
   const router = useRouter()
@@ -314,389 +308,554 @@
     console.log('===== 用户登录状态检查结束 =====')
   }
 
-  // 小程序消息监听器
-  const messageListener = (event: CustomEvent) => {
-    console.log('🔔 收到小程序消息:', event.detail)
-
-    const detail = event.detail
-    if (detail) {
-      // 显示收到的消息内容
-      showNotify({
-        type: detail.success ? 'success' : 'warning',
-        message: `📨 收到小程序消息:\n类型: ${detail.originalType || '未知'}\n状态: ${detail.success ? '成功' : '失败'}`,
-        duration: 4000
-      })
-
-      // 如果有认证数据，特殊处理
-      if (detail.originalType === 'auth' && detail.result?.data) {
-        const authData = detail.result.data
-        const token = authData.token
-        if (token) {
-          console.log('✅ 成功接收到 mall_token:', token)
-          showNotify({
-            type: 'success',
-            message: `✅ 收到 mall_token: ${token.substring(0, 20)}...`,
-            duration: 5000
-          })
-        }
-      }
-
-      // 如果是 getMallTokenResult
-      if (detail.originalType === 'getMallToken' && detail.result?.data) {
-        const resultData = detail.result.data
-        const token = resultData.token || resultData.data?.token
-        if (token) {
-          console.log('✅ 成功接收到 mall_token:', token)
-          showNotify({
-            type: 'success',
-            message: `✅ 收到 mall_token: ${token.substring(0, 20)}...`,
-            duration: 5000
-          })
-        } else if (resultData.success) {
-          showNotify({
-            type: 'success',
-            message: '✅ 通讯成功，但未包含token数据',
-            duration: 3000
-          })
-        }
-      }
-    }
-  }
-
-  // 通讯测试函数
-  const testCommunication = async () => {
-    console.log('🔗 开始测试小程序通讯...')
-
-    // 检测环境（放宽条件：允许微信浏览器和小程序环境）
-    const isMiniProgram = miniprogramBridge.isMiniProgram()
-    const isWechatBrowser = /micromessenger/.test(navigator.userAgent.toLowerCase())
-
-    console.log('🔍 环境检测结果:')
-    console.log('  - isMiniProgram():', isMiniProgram)
-    console.log('  - isWechatBrowser:', isWechatBrowser)
-    console.log('  - window.wx:', typeof window !== 'undefined' ? !!window.wx : 'undefined')
-    console.log(
-      '  - window.wx.miniProgram:',
-      typeof window !== 'undefined' && window.wx ? !!window.wx.miniProgram : 'undefined'
-    )
-
-    if (!isMiniProgram && !isWechatBrowser) {
-      console.warn('⚠️ 不在微信环境中，无法进行通讯测试')
-      showNotify({
-        type: 'warning',
-        message: '⚠️ 需要在微信环境（浏览器或小程序）中测试',
-        duration: 3000
-      })
-      return
-    }
-
-    // 根据环境提供不同的提示
-    if (isMiniProgram) {
-      console.log('✅ 检测到小程序环境，可以正常通讯')
-    } else if (isWechatBrowser) {
-      console.log('⚠️ 检测到微信浏览器环境，通讯功能可能受限')
-      showNotify({
-        type: 'primary',
-        message: '📱 当前在微信浏览器中，建议在小程序webview中测试以获得完整体验',
-        duration: 4000
-      })
-    }
-
-    showToast({
-      message: '正在获取 mall_token...',
-      duration: 2000
-    })
-
-    try {
-      // 请求小程序发送 mall_token
-      const result = await miniprogramBridge.sendMessage('getMallToken', {})
-
-      console.log('📤 通讯测试结果:', result)
-
-      if (result.success) {
-        const token = result.data?.token
-        if (token) {
-          console.log('✅ 成功获取 mall_token:', token)
-          showNotify({
-            type: 'success',
-            message: `✅ 通讯成功！收到 mall_token: ${token.substring(0, 20)}...`,
-            duration: 5000
-          })
-        } else {
-          showNotify({
-            type: 'success',
-            message: '✅ 通讯成功（但未收到token数据）',
-            duration: 3000
-          })
-        }
-      } else {
-        console.warn('⚠️ 通讯失败:', result.errMsg)
-        showNotify({
-          type: 'warning',
-          message: `⚠️ 通讯失败: ${result.errMsg || '未知错误'}`,
-          duration: 4000
-        })
-      }
-    } catch (error) {
-      console.error('❌ 通讯测试出错:', error)
-      const errorMsg = error instanceof Error ? error.message : '未知错误'
-      showNotify({
-        type: 'danger',
-        message: `❌ 通讯测试失败: ${errorMsg}`,
-        duration: 5000
-      })
-    }
-  }
-
   // 初始化
   onMounted(() => {
     console.log('首页已加载')
-
-    // 监听来自小程序的消息
-    window.addEventListener('miniprogram-message', messageListener as EventListener)
-    console.log('👂 已监听小程序消息')
-  })
-
-  // 清理
-  onUnmounted(() => {
-    window.removeEventListener('miniprogram-message', messageListener as EventListener)
-    console.log('🧹 已清理小程序消息监听')
   })
 </script>
 
 <style lang="scss" scoped>
+  // 现代化色系定义
+  $primary-color: #1989fa;
+  $primary-gradient: linear-gradient(135deg, #1989fa 0%, #0a86ff 100%);
+  $danger-color: #ee0a24;
+  $warning-color: #ff976a;
+  $success-color: #07c160;
+  $text-primary: #1a1a1a;
+  $text-secondary: #666;
+  $bg-light: #f8f9fb;
+  $bg-white: #ffffff;
+  $shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  $shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+  $shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+
   .home-page {
-    padding-bottom: 20px;
-    background-color: #f7f8fa;
-    min-height: 100%;
+    padding-bottom: 24px;
+    background: linear-gradient(180deg, #f8f9fb 0%, #ffffff 100%);
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
   }
 
-  .search-bar {
-    padding: 12px 16px;
-    background-color: transparent;
+  // 搜索栏优化
+  .search-section {
+    padding: 12px 12px 8px;
+    background: $bg-white;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+
+    .search-bar {
+      :deep(.van-search__input) {
+        border-radius: 24px;
+        background: linear-gradient(135deg, #f0f5ff 0%, #f5f7fc 100%);
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
+        font-size: 14px;
+        color: $text-primary;
+
+        &:focus {
+          border-color: $primary-color;
+          background: $bg-white;
+          box-shadow: 0 0 0 3px rgba(25, 137, 250, 0.1);
+        }
+      }
+
+      :deep(.van-search__action) {
+        color: $primary-color;
+        font-weight: 600;
+
+        &:active {
+          opacity: 0.8;
+        }
+      }
+    }
   }
 
+  // Banner优化
   .banner-section {
-    height: 180px;
-    margin: 0 16px 16px;
-    border-radius: 8px;
+    height: 220px;
+    margin: 16px 12px;
+    border-radius: 12px;
     overflow: hidden;
+    box-shadow: $shadow-md;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    position: relative;
+
+    :deep(.van-swipe__indicator) {
+      background: rgba(255, 255, 255, 0.6);
+
+      .van-swipe__indicator--active {
+        background: rgba(255, 255, 255, 1);
+      }
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, transparent 50%, rgba(0, 0, 0, 0.2) 100%);
+      pointer-events: none;
+    }
 
     .banner-image {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      display: block;
     }
   }
 
+  // 功能入口优化
   .function-entries {
-    margin: 0 16px;
-  }
+    margin: 16px 12px;
+    padding: 0;
 
-  .communication-test {
-    margin: 16px;
-    padding: 16px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  }
-
-  .communication-test :deep(.van-button) {
-    font-size: 16px;
-    height: 48px;
-    font-weight: 600;
-  }
-
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 16px 8px;
-
-    h3 {
-      font-size: 16px;
-      font-weight: 600;
-      color: #333;
+    :deep(.van-grid) {
+      gap: 12px;
     }
 
-    .more {
-      font-size: 14px;
-      color: #666;
+    :deep(.van-grid-item) {
+      background: $bg-white;
+      border-radius: 12px;
+      box-shadow: $shadow-sm;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      padding: 12px 8px !important;
       cursor: pointer;
 
+      &:active {
+        transform: scale(0.95);
+      }
+
       &:hover {
-        color: #1989fa;
+        box-shadow: $shadow-md;
+        transform: translateY(-4px);
+      }
+
+      .van-grid-item__content {
+        padding: 8px 0;
+      }
+
+      .van-grid-item__icon {
+        font-size: 28px;
+        color: $primary-color;
+        margin-bottom: 8px;
+      }
+
+      .van-grid-item__text {
+        font-size: 12px;
+        color: $text-primary;
+        font-weight: 500;
+        margin-top: 4px;
       }
     }
   }
 
-  .category-section {
-    background: white;
-    border-radius: 8px;
-    margin: 0 16px 16px;
-    padding: 16px;
+  // 分组标题优化
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 16px 12px;
+    background: transparent;
+
+    h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: $text-primary;
+      margin: 0;
+      letter-spacing: -0.5px;
+    }
+
+    .more {
+      font-size: 13px;
+      color: $primary-color;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+
+      &::after {
+        content: '→';
+        font-size: 16px;
+      }
+
+      &:active {
+        opacity: 0.8;
+      }
+    }
   }
 
+  // 分类部分优化
+  .category-section {
+    background: $bg-white;
+    border-radius: 12px;
+    margin: 8px 12px;
+    padding: 0;
+    box-shadow: $shadow-sm;
+    overflow: hidden;
+
+    :deep(.van-grid) {
+      padding: 16px;
+      gap: 8px;
+    }
+
+    :deep(.van-grid-item) {
+      background: linear-gradient(135deg, #f5f7fc 0%, #f0f5ff 100%);
+      border-radius: 10px;
+      padding: 12px 8px !important;
+      transition: all 0.3s ease;
+      cursor: pointer;
+
+      &:hover {
+        background: linear-gradient(135deg, #e8f0ff 0%, #e3ecff 100%);
+        transform: scale(1.05);
+      }
+
+      .van-grid-item__icon {
+        font-size: 24px;
+        color: $primary-color;
+      }
+
+      .van-grid-item__text {
+        font-size: 12px;
+        color: $text-primary;
+        font-weight: 500;
+      }
+    }
+  }
+
+  // 推荐商品部分优化
   .products-section {
-    background: white;
-    border-radius: 8px;
-    margin: 0 16px 16px;
+    background: $bg-white;
+    border-radius: 12px;
+    margin: 8px 12px;
     padding: 16px;
+    box-shadow: $shadow-sm;
 
     .product-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 12px;
+      margin-top: 8px;
     }
 
     .product-card {
-      background: #f7f8fa;
-      border-radius: 8px;
+      background: $bg-white;
+      border: 1px solid #f0f0f0;
+      border-radius: 10px;
       overflow: hidden;
       cursor: pointer;
-      transition: transform 0.2s ease;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: $shadow-sm;
 
       &:hover {
-        transform: translateY(-2px);
+        transform: translateY(-8px);
+        box-shadow: $shadow-lg;
+        border-color: $primary-color;
+
+        .product-image {
+          transform: scale(1.08);
+
+          &::before {
+            opacity: 1;
+          }
+        }
       }
 
       .product-image {
         position: relative;
-        height: 120px;
+        height: 140px;
+        overflow: hidden;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+        &::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(135deg, rgba(25, 137, 250, 0.2) 0%, transparent 50%);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          z-index: 2;
+        }
 
         img {
           width: 100%;
           height: 100%;
           object-fit: cover;
+          transition: transform 0.3s ease;
         }
 
         .product-badge {
           position: absolute;
-          top: 4px;
-          right: 4px;
-          background: #ff976a;
+          top: 6px;
+          right: 6px;
+          background: linear-gradient(135deg, $danger-color 0%, #ff5047 100%);
           color: white;
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-size: 12px;
-          font-weight: 500;
+          padding: 4px 8px;
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: 600;
+          z-index: 3;
+          box-shadow: 0 2px 6px rgba(238, 10, 36, 0.3);
         }
       }
 
       .product-info {
-        padding: 8px;
+        padding: 10px;
 
         .product-name {
-          font-size: 14px;
-          color: #333;
-          margin-bottom: 4px;
+          font-size: 13px;
+          color: $text-primary;
+          margin-bottom: 6px;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          font-weight: 500;
         }
 
         .product-price {
           font-size: 16px;
-          color: #ee0a24;
-          font-weight: 600;
+          color: $danger-color;
+          font-weight: 700;
+          letter-spacing: -0.5px;
         }
       }
     }
   }
 
+  // 活动专区优化
   .activity-section {
-    background: white;
-    border-radius: 8px;
-    margin: 0 16px 16px;
+    background: $bg-white;
+    border-radius: 12px;
+    margin: 8px 12px;
     padding: 16px;
+    box-shadow: $shadow-sm;
 
     .activity-list {
-      .activity-card {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .activity-card {
+      display: flex;
+      align-items: stretch;
+      gap: 12px;
+      padding: 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: linear-gradient(135deg, #f8f9fb 0%, #f5f7fc 100%);
+      border: 1px solid #f0f0f0;
+      overflow: hidden;
+
+      &:hover {
+        background: linear-gradient(135deg, #f0f5ff 0%, #e8f0ff 100%);
+        transform: translateX(4px);
+        box-shadow: $shadow-md;
+        border-color: $primary-color;
+      }
+
+      .activity-image {
+        width: 100px;
+        height: 80px;
         border-radius: 8px;
-        cursor: pointer;
-        transition: background-color 0.2s ease;
+        overflow: hidden;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        position: relative;
 
-        &:hover {
-          background: #f7f8fa;
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: transform 0.3s ease;
         }
 
-        .activity-image {
-          width: 80px;
-          height: 80px;
-          border-radius: 8px;
-          overflow: hidden;
-
-          img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-          }
+        &:hover img {
+          transform: scale(1.1);
         }
 
-        .activity-info {
-          flex: 1;
-
-          .activity-title {
-            font-size: 14px;
-            color: #333;
-            margin-bottom: 4px;
-          }
-
-          .activity-desc {
-            font-size: 12px;
-            color: #666;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          }
+        &::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(135deg, rgba(0, 0, 0, 0.1) 0%, transparent 100%);
         }
       }
+
+      .activity-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-width: 0;
+
+        .activity-title {
+          font-size: 14px;
+          color: $text-primary;
+          margin-bottom: 4px;
+          font-weight: 600;
+          letter-spacing: -0.3px;
+        }
+
+        .activity-desc {
+          font-size: 12px;
+          color: $text-secondary;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      }
+    }
+  }
+
+  // 响应式设计
+  @media (max-width: 768px) {
+    .home-page {
+      padding-bottom: 16px;
+    }
+
+    .banner-section {
+      height: 180px;
+      margin: 12px 8px;
+    }
+
+    .search-section {
+      padding: 10px 8px 6px;
+    }
+
+    .section-header {
+      padding: 16px 12px 8px;
+
+      h3 {
+        font-size: 16px;
+      }
+    }
+
+    .products-section,
+    .category-section,
+    .activity-section {
+      margin: 6px 8px;
+      padding: 12px;
+    }
+
+    .product-grid {
+      gap: 10px;
+    }
+
+    .product-card .product-image {
+      height: 120px;
     }
   }
 
   // 暗色模式支持
   @media (prefers-color-scheme: dark) {
+    $bg-dark: #121212;
+    $bg-dark-card: #1e1e1e;
+    $text-dark: #e0e0e0;
+
     .home-page {
-      background-color: #1a1a1a;
-      color: #fff;
+      background: linear-gradient(180deg, #1a1a1a 0%, #121212 100%);
+      color: $text-dark;
+    }
+
+    .search-section {
+      background: $bg-dark-card;
+      border-bottom-color: rgba(255, 255, 255, 0.1);
+
+      :deep(.van-search__input) {
+        background: linear-gradient(135deg, #2a2a2a 0%, #1f1f1f 100%);
+        color: $text-dark;
+
+        &:focus {
+          border-color: #4a9eff;
+          background: #2a2a2a;
+        }
+      }
+    }
+
+    .function-entries :deep(.van-grid-item) {
+      background: $bg-dark-card;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+      .van-grid-item__text {
+        color: $text-dark;
+      }
+
+      &:hover {
+        box-shadow: 0 4px 16px rgba(25, 137, 250, 0.2);
+      }
+    }
+
+    .category-section {
+      background: $bg-dark-card;
+
+      :deep(.van-grid-item) {
+        background: linear-gradient(135deg, #2a2a2a 0%, #252525 100%);
+
+        .van-grid-item__text {
+          color: $text-dark;
+        }
+
+        &:hover {
+          background: linear-gradient(135deg, #323232 0%, #2a2a2a 100%);
+        }
+      }
+    }
+
+    .products-section {
+      background: $bg-dark-card;
+      border-color: rgba(255, 255, 255, 0.1);
+
+      .product-card {
+        background: $bg-dark;
+        border-color: rgba(255, 255, 255, 0.1);
+
+        .product-name {
+          color: $text-dark;
+        }
+      }
+    }
+
+    .activity-section {
+      background: $bg-dark-card;
+
+      .activity-card {
+        background: linear-gradient(135deg, #2a2a2a 0%, #1f1f1f 100%);
+        border-color: rgba(255, 255, 255, 0.1);
+
+        &:hover {
+          background: linear-gradient(135deg, #323232 0%, #2a2a2a 100%);
+          border-color: #4a9eff;
+        }
+
+        .activity-title {
+          color: $text-dark;
+        }
+
+        .activity-desc {
+          color: #999;
+        }
+      }
     }
 
     .section-header h3 {
-      color: #fff;
+      color: $text-dark;
     }
 
-    .category-section,
-    .products-section,
-    .activity-section {
-      background: #2a2a2a;
-    }
-
-    .product-card {
-      background: #333;
-
-      .product-name {
-        color: #fff;
-      }
-
-      .product-price {
-        color: #ff6b6b;
-      }
-    }
-
-    .activity-card:hover {
-      background: #3a3a3a;
-    }
-
-    .activity-title {
-      color: #fff;
-    }
-
-    .activity-desc {
-      color: #ccc;
+    .more {
+      color: #4a9eff !important;
     }
   }
 </style>

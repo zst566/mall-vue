@@ -1,6 +1,7 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import type { ApiResponse, ApiError } from '@/types'
+import { webViewBridge } from '@/utils/webview-bridge'
 
 // 基础配置
 // 使用相对路径，由 Nginx 网关处理路由转发
@@ -21,8 +22,17 @@ export const createApiInstance = (): AxiosInstance => {
 
   // 请求拦截器
   instance.interceptors.request.use(
-    (config) => {
+    async (config) => {
       const authStore = useAuthStore()
+
+      // 在发送请求前检查 token 是否有效（未过期且为当天签发）
+      if (authStore.token) {
+        const isValid = authStore.isTokenValid()
+        
+        if (!isValid) {
+          console.log('⚠️ Token 无效（过期或非当天签发），将在响应拦截器中处理')
+        }
+      }
 
       // 添加认证token
       if (authStore.isAuthenticated) {
@@ -77,12 +87,62 @@ export const createApiInstance = (): AxiosInstance => {
 
       // 认证失败处理
       if (status === 401) {
+        console.log('🔐 API 返回 401 未授权，尝试请求小程序重新登录')
+        
         const authStore = useAuthStore()
-        authStore.clearAuth()
-
-        // 如果不是刷新token的请求，跳转到登录页
-        if (!config.url.includes('/auth/refresh')) {
-          window.location.href = '/login'
+        
+        // 如果不是刷新token的请求，尝试请求小程序重新登录
+        if (!config.url?.includes('/auth/refresh') && !config.url?.includes('/auth/silent-login')) {
+          try {
+            console.log('📱 通过 WebView Bridge 请求小程序重新登录')
+            
+            // 检查是否在微信小程序环境中
+            if (typeof window !== 'undefined' && window.wx?.miniProgram) {
+              try {
+                // 通过 webview bridge 请求小程序重新登录
+                const result = await webViewBridge.login()
+                
+                if (result && result.token) {
+                  console.log('✅ 小程序重新登录成功，更新 token')
+                  
+                  // 更新 auth store
+                  authStore.token = result.token
+                  if (result.userInfo) {
+                    authStore.user = result.userInfo
+                  }
+                  // 保存到 localStorage
+                  authStore.updateTokens({ token: result.token, refreshToken: authStore.refreshToken })
+                  
+                  // 使用新 token 重试原请求
+                  config.headers.Authorization = `Bearer ${result.token}`
+                  return instance.request(config)
+                }
+              } catch (loginError) {
+                console.error('❌ 小程序重新登录失败:', loginError)
+              }
+            }
+            
+            // 登录失败或不在小程序环境，清除认证信息
+            console.log('🗑️ 清除本地认证信息')
+            authStore.clearAuth()
+            
+            // 如果不在小程序环境或者是刷新token请求，跳转到登录页
+            if (typeof window === 'undefined' || !window.wx?.miniProgram) {
+              window.location.href = '/login'
+            } else {
+              // 在小程序环境中，可能需要重新加载页面以触发登录流程
+              console.warn('⚠️ Token 失效，但无法重新登录')
+            }
+          } catch (error) {
+            console.error('❌ 处理 401 错误失败:', error)
+            authStore.clearAuth()
+            if (typeof window !== 'undefined') {
+              window.location.href = '/login'
+            }
+          }
+        } else {
+          // 刷新token请求失败，清除认证信息
+          authStore.clearAuth()
         }
       }
 

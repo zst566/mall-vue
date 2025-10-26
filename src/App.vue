@@ -121,15 +121,9 @@
         throw new Error(initResult.message)
       }
 
-      // 如果有token，尝试获取用户信息
-      if (authStore.isLoggedIn) {
-        const userInfoResult = await authStore.getUserInfo()
-        if (!userInfoResult.success) {
-          console.warn('获取用户信息失败:', userInfoResult.message)
-          // Token失效，清除本地token
-          authStore.logout()
-        }
-      }
+      // 🔥 修复：不在应用初始化时自动获取用户信息
+      // 用户信息应该在访问需要该信息的页面时才获取，避免不必要的 API 调用
+      console.log('✅ 应用初始化完成，用户信息将在需要时获取')
 
       // 监听路由变化
       watch(

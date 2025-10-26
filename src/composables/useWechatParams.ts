@@ -64,9 +64,9 @@ export function useWechatParams() {
       const params: WechatParams = {}
       const urlParams = new URLSearchParams(window.location.search)
 
-      // 常见的微信小程序传递参数
+      // 常见的微信小程序传递参数（包括 mall_token）
       const wechatParamKeys = [
-        'token', 'refreshToken', 'userId', 'from', 'scene',
+        'token', 'mall_token', 'refreshToken', 'userId', 'user_id', 'from', 'scene',
         'timestamp', 'signature', 'appid', 'openid', 'unionid'
       ]
 
@@ -182,9 +182,24 @@ export function useWechatParams() {
 
       console.log('WeChat params loaded:', finalParams)
 
+      // 处理 mall_token（小程序传递的 token）
+      if (finalParams.mall_token && !finalParams.token) {
+        console.log('📱 检测到 mall_token，自动映射为 token')
+        finalParams.token = finalParams.mall_token
+      }
+      
+      // 处理 user_id
+      if (finalParams.user_id && !finalParams.userId) {
+        console.log('📱 检测到 user_id，自动映射为 userId')
+        finalParams.userId = finalParams.user_id
+      }
+
       // 如果有token，自动登录
       if (finalParams.token) {
+        console.log('🔐 检测到 token，开始自动登录...')
         await autoLogin(finalParams.token, finalParams.refreshToken)
+      } else {
+        console.log('⚠️  未检测到 token，跳过自动登录')
       }
 
     } catch (err) {

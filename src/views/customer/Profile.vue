@@ -1,27 +1,30 @@
 <template>
   <div class="profile-page">
+    <!-- 加载状态 -->
+    <van-loading v-if="isLoading && !hasUser" type="spinner" vertical>加载中...</van-loading>
+
     <!-- 用户信息头部 -->
-    <div class="profile-header">
+    <div v-else class="profile-header">
       <div class="user-info">
         <div class="user-avatar">
           <img
-            :src="user.avatar || '/images/default-avatar.png'"
-            :alt="user.nickname"
+            :src="user?.avatar || '/images/default-avatar.png'"
+            :alt="user?.nickname || '用户'"
             @click="changeAvatar"
           />
-          <van-icon v-if="user.isVerified" name="passed" class="verified-icon" />
+          <van-icon v-if="user?.isVerified" name="passed" class="verified-icon" />
         </div>
         <div class="user-details">
           <div class="username-row">
-            <h3 class="nickname">{{ user.nickname }}</h3>
-            <van-tag v-if="user.isVerified" type="success" size="medium">已认证</van-tag>
+            <h3 class="nickname">{{ user?.nickname || '未登录用户' }}</h3>
+            <van-tag v-if="user?.isVerified" type="success" size="medium">已认证</van-tag>
           </div>
           <div class="user-meta">
-            <span class="phone" v-if="user.phone">
+            <span class="phone" v-if="user?.phone">
               <van-icon name="phone-o" size="14" />
               {{ formatPhone(user.phone) }}
             </span>
-            <span class="join-date">
+            <span class="join-date" v-if="user?.createdAt">
               <van-icon name="calendar-o" size="14" />
               加入于 {{ formatDate(user.createdAt) }}
             </span>
@@ -93,6 +96,13 @@
         <van-cell title="通知设置" is-link @click="goToNotifications">
           <template #icon>
             <van-icon name="bell" />
+          </template>
+        </van-cell>
+
+        <!-- 商户登录 -->
+        <van-cell title="商户登录" is-link @click="goToMerchantLogin">
+          <template #icon>
+            <van-icon name="shop-o" />
           </template>
         </van-cell>
       </van-cell-group>
@@ -193,30 +203,28 @@
   import { useRouter } from 'vue-router'
   import { showToast, showConfirmDialog, showImagePreview } from 'vant'
   import { useAuthStore } from '@/stores/auth'
+  import { authService } from '@/services/auth'
   import type { User } from '@/types'
 
   const router = useRouter()
   const authStore = useAuthStore()
 
   // 用户数据
-  const user = computed(
-    () =>
-      authStore.user || {
-        id: '1',
-        nickname: '张三',
-        phone: '13800138000',
-        avatar: '/images/default-avatar.png',
-        isVerified: true,
-        createdAt: '2023-01-01'
-      }
-  )
+  const user = computed(() => authStore.user || null)
+
+  // 判断是否有用户数据
+  const hasUser = computed(() => !!authStore.user)
 
   // 用户统计数据
   const userStats = ref({
-    points: 1250,
-    coupons: 3,
-    favorites: 15
+    points: 0,
+    coupons: 0,
+    favorites: 0,
+    unpaidOrders: 0
   })
+
+  // 加载状态
+  const isLoading = ref(false)
 
   // 应用信息
   const appVersion = ref('1.0.0')
@@ -229,16 +237,23 @@
   const isLoggingOut = ref(false)
 
   // 计算是否有未支付订单
-  const hasUnpaidOrders = ref(false)
+  const hasUnpaidOrders = computed(() => (userStats.value.unpaidOrders || 0) > 0)
 
   // 格式化手机号
-  const formatPhone = (phone: string) => {
+  const formatPhone = (phone: string | undefined) => {
+    if (!phone) return ''
     return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
   }
 
   // 格式化日期
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('zh-CN')
+  const formatDate = (dateStr: string | undefined) => {
+    if (!dateStr) return ''
+    try {
+      return new Date(dateStr).toLocaleDateString('zh-CN')
+    } catch (error) {
+      console.error('日期格式化失败:', error)
+      return ''
+    }
   }
 
   // 更换头像
@@ -267,22 +282,19 @@
   // 处理头像上传
   const handleAvatarUpload = async (file: File) => {
     try {
-      // 模拟上传过程
-      showToast('上传中...')
+      showToast({ type: 'loading', message: '上传中...', duration: 0 })
 
-      // 模拟上传延迟
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
-      // 这里应该调用实际的API上传图片
-      console.log('上传头像:', file)
+      // 调用真实API上传头像
+      const result = await authService.updateAvatar(file)
 
       // 更新用户头像
-      authStore.updateUser({ avatar: URL.createObjectURL(file) })
+      authStore.updateUser({ avatar: result.avatarUrl })
 
-      showToast('头像更新成功')
+      showToast({ type: 'success', message: '头像更新成功' })
       showAvatarPopup.value = false
     } catch (error) {
-      showToast('上传失败，请重试')
+      console.error('上传头像失败:', error)
+      showToast({ type: 'fail', message: '上传失败，请重试' })
     }
   }
 
@@ -314,6 +326,14 @@
   // 跳转到通知设置
   const goToNotifications = () => {
     router.push('/customer/notifications')
+  }
+
+  // 跳转到商户登录
+  const goToMerchantLogin = () => {
+    showToast({ type: 'loading', message: '正在跳转...', duration: 1000 })
+    setTimeout(() => {
+      router.push('/merchant')
+    }, 500)
   }
 
   // 联系客服
@@ -349,20 +369,17 @@
 
       isLoggingOut.value = true
 
-      // 模拟退出登录过程
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
       // 调用退出登录API
       await authStore.logout()
 
-      showToast('退出成功')
+      showToast({ type: 'success', message: '退出成功' })
 
       // 跳转到登录页
       router.push('/login')
     } catch (error) {
       // 用户取消或操作失败
       if (error !== 'cancel') {
-        showToast('退出失败，请重试')
+        showToast({ type: 'fail', message: '退出失败，请重试' })
       }
     } finally {
       isLoggingOut.value = false
@@ -372,12 +389,31 @@
   // 加载用户数据
   const loadUserData = async () => {
     try {
-      // 模拟API调用获取用户统计数据
-      await new Promise(resolve => setTimeout(resolve, 500))
+      isLoading.value = true
+
+      // 获取用户详细信息
+      const profileResult = await authService.getProfile()
+      if (profileResult.success && profileResult.data) {
+        authStore.updateUser(profileResult.data)
+      }
+
+      // 获取用户统计数据
+      const statsResult = await authService.getUserStats()
+      if (statsResult.success && statsResult.data) {
+        userStats.value = {
+          points: statsResult.data.points,
+          coupons: statsResult.data.coupons,
+          favorites: statsResult.data.favorites,
+          unpaidOrders: statsResult.data.unpaidOrders || 0
+        }
+      }
 
       console.log('用户数据加载完成')
     } catch (error) {
-      showToast('加载用户数据失败')
+      console.error('加载用户数据失败:', error)
+      showToast({ type: 'fail', message: '加载用户数据失败' })
+    } finally {
+      isLoading.value = false
     }
   }
 

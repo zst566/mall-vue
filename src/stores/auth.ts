@@ -272,6 +272,22 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     localStorage.removeItem('refreshToken')
+
+    // 🔥 如果在微信小程序 webview 中，通知小程序重新登录
+    if (typeof window !== 'undefined' && window.wx?.miniProgram?.postMessage) {
+      try {
+        console.log('📱 通知小程序 Token 已清除，需要重新登录')
+        window.wx.miniProgram.postMessage({
+          type: 'authTokenCleared',
+          data: {
+            message: 'Token has been cleared, please login again',
+            timestamp: Date.now()
+          }
+        })
+      } catch (error) {
+        console.error('通知小程序失败:', error)
+      }
+    }
   }
 
   // 保存到localStorage
@@ -357,6 +373,65 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // 检查 token 是否为当天签发
+  const isTokenIssuedToday = (token: string): boolean => {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      const issueTime = payload.iat * 1000 // 签发时间（毫秒）
+      const now = Date.now()
+      const today = new Date(now)
+      const tokenIssuedDate = new Date(issueTime)
+      
+      // 比较年月日
+      return (
+        today.getFullYear() === tokenIssuedDate.getFullYear() &&
+        today.getMonth() === tokenIssuedDate.getMonth() &&
+        today.getDate() === tokenIssuedDate.getDate()
+      )
+    } catch (error) {
+      console.error('Failed to check token issue date:', error)
+      return false
+    }
+  }
+
+  // 检查 token 是否有效（未过期且为当天签发）
+  const isTokenValid = (): boolean => {
+    if (!token.value) {
+      return false
+    }
+
+    try {
+      const payload = JSON.parse(atob(token.value.split('.')[1]))
+      const exp = payload.exp
+      const iat = payload.iat
+      
+      // 检查是否过期
+      const currentTime = Math.floor(Date.now() / 1000)
+      if (exp && exp < currentTime) {
+        console.log('Token expired')
+        return false
+      }
+      
+      // 检查是否为当天签发
+      const today = new Date()
+      const issueDate = new Date(iat * 1000)
+      
+      if (
+        today.getFullYear() !== issueDate.getFullYear() ||
+        today.getMonth() !== issueDate.getMonth() ||
+        today.getDate() !== issueDate.getDate()
+      ) {
+        console.log('Token is not issued today')
+        return false
+      }
+      
+      return true
+    } catch (error) {
+      console.error('Failed to validate token:', error)
+      return false
+    }
+  }
+
   return {
     // 状态
     user,
@@ -387,6 +462,10 @@ export const useAuthStore = defineStore('auth', () => {
     initializeFromStorage,
     initializeAuth,
     setAuth,
-    setUser
+    setUser,
+
+    // Token 验证方法
+    isTokenIssuedToday,
+    isTokenValid
   }
 })

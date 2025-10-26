@@ -270,6 +270,19 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
+    path: '/bridge-login-test',
+    name: 'BridgeLoginTest',
+    component: () => import('@/views/BridgeLoginTest.vue'),
+    meta: {
+      title: 'Bridge 登录测试',
+      permission: 'public' as Permission,
+      requiresAuth: false,
+      hideHeader: true,
+      hideFooter: true,
+      hideVersionSwitcher: true
+    }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/views/common/NotFound.vue'),

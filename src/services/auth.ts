@@ -176,7 +176,7 @@ export class AuthService extends BaseApiService {
   // 更新用户资料
   async updateProfile(profileData: Partial<User>): Promise<User> {
     try {
-      const response = await this.client.patch<User>('/user/profile', profileData)
+      const response = await this.client.put<User>('/auth/user-info', profileData)
 
       // 更新本地存储的用户信息
       const authStore = useAuthStore()
@@ -192,7 +192,11 @@ export class AuthService extends BaseApiService {
   // 更新用户头像
   async updateAvatar(file: File): Promise<{ avatarUrl: string }> {
     try {
-      const response = await this.client.post<{ avatarUrl: string }>('/user/avatar', file, {
+      // 将文件包装在 FormData 中
+      const formData = new FormData()
+      formData.append('avatar', file)
+      
+      const response = await this.client.put<{ avatarUrl: string }>('/auth/user-info', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -212,7 +216,7 @@ export class AuthService extends BaseApiService {
   // 获取用户资料
   async getProfile(): Promise<{ success: boolean; data: User; message: string }> {
     try {
-      const response = await this.client<User>('/user/profile')
+      const response = await this.client.get<User>('/auth/current-user')
       return { success: true, data: response.data, message: '获取用户信息成功' }
     } catch (error) {
       const errorMessage = ApiErrorHandler.handleApiError(error)
@@ -270,6 +274,62 @@ export class AuthService extends BaseApiService {
     } catch (error) {
       const errorMessage = ApiErrorHandler.handleApiError(error)
       throw new Error(errorMessage)
+    }
+  }
+
+  // 获取用户统计数据（积分、优惠券、收藏等）
+  // 注意：后端暂未实现此接口，返回默认值
+  async getUserStats(): Promise<{ 
+    success: boolean
+    data: { 
+      points: number
+      coupons: number
+      favorites: number
+      unpaidOrders: number
+    }
+    message: string 
+  }> {
+    // TODO: 后端实现 /api/auth/stats 接口后，取消注释以下代码
+    /*
+    try {
+      const response = await this.client.get<{
+        points: number
+        coupons: number
+        favorites: number
+        unpaidOrders: number
+      }>('/auth/stats')
+      return { 
+        success: true, 
+        data: response.data, 
+        message: '获取统计数据成功' 
+      }
+    } catch (error) {
+      const errorMessage = ApiErrorHandler.handleApiError(error)
+      console.error('获取用户统计数据失败:', errorMessage)
+      return { 
+        success: false, 
+        data: { 
+          points: 0, 
+          coupons: 0, 
+          favorites: 0,
+          unpaidOrders: 0
+        }, 
+        message: errorMessage 
+      }
+    }
+    */
+    
+    // 暂时返回默认值
+    console.warn('⚠️ 用户统计数据接口暂未实现，返回默认值')
+    return { 
+      success: true, 
+      data: { 
+        points: 0, 
+        coupons: 0, 
+        favorites: 0,
+        unpaidOrders: 0
+      }, 
+      message: '统计数据暂未实现' 
     }
   }
 }
