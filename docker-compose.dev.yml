@@ -1,0 +1,39 @@
+version: '3'
+
+services:
+  mall-vue:
+    image: node:18-alpine
+    container_name: mall-vue-dev
+    working_dir: /app
+    command: sh -c "npm install --legacy-peer-deps && npm run dev -- --host 0.0.0.0"
+    env_file:
+      - .env.dev
+    volumes:
+      # 挂载源代码（热更新）
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
+      - ./vite.config.ts:/app/vite.config.ts
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./index.html:/app/index.html
+      - ./manifest.json:/app/manifest.json
+      # 挂载 node_modules（持久化）
+      - vue_node_modules_dev:/app/node_modules
+    ports:
+      # 暴露端口给宿主机（开发调试用）
+      - "3000:3000"
+    networks:
+      web-network-dev:
+        aliases:
+          - mall-vue
+    restart: unless-stopped
+
+volumes:
+  vue_node_modules_dev:
+
+networks:
+  web-network-dev:
+    external: true
+    name: web-network-dev
+

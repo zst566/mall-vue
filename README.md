@@ -47,6 +47,10 @@ yarn dev
 
 开发服务器将在 http://localhost:3000 启动。
 
+**生产环境访问地址**: `https://wepark-a.gdtvdv.com`
+
+> 📌 **重要**: 所有环境配置请参考根目录的 [环境配置说明](../ENVIRONMENT_CONFIG.md)
+
 ### 构建生产版本
 
 ```bash
