@@ -69,7 +69,8 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (response.success) {
         user.value = response.data.user
-        token.value = response.data.token
+        // 后端返回的是 accessToken，需要映射为 token
+        token.value = response.data.accessToken || response.data.token
         refreshToken.value = response.data.refreshToken || ''
         if (response.data.user && response.data.user.role) {
           userRole.value = response.data.user.role
@@ -109,10 +110,11 @@ export const useAuthStore = defineStore('auth', () => {
       if (response.success) {
         console.log('✅ 微信登录成功')
         console.log('📋 用户信息:', response.data.user)
-        console.log('🔑 Token:', response.data.token ? '已获取' : '未获取')
+        console.log('🔑 Token:', (response.data.accessToken || response.data.token) ? '已获取' : '未获取')
         
         user.value = response.data.user
-        token.value = response.data.token
+        // 后端返回的是 accessToken，需要映射为 token
+        token.value = response.data.accessToken || response.data.token
         refreshToken.value = response.data.refreshToken || ''
         userRole.value = response.data.user.role
 
@@ -408,7 +410,8 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // 检查 token 是否有效（未过期且为当天签发）
+  // 检查 token 是否有效（只检查是否过期，不检查签发日期）
+  // 注意：JWT token 的有效期是 24 小时，不需要限制为当天签发
   const isTokenValid = (): boolean => {
     if (!token.value) {
       return false
@@ -417,28 +420,15 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const payload = JSON.parse(atob(token.value.split('.')[1]))
       const exp = payload.exp
-      const iat = payload.iat
       
-      // 检查是否过期
+      // 只检查是否过期
       const currentTime = Math.floor(Date.now() / 1000)
       if (exp && exp < currentTime) {
         console.log('Token expired')
         return false
       }
       
-      // 检查是否为当天签发
-      const today = new Date()
-      const issueDate = new Date(iat * 1000)
-      
-      if (
-        today.getFullYear() !== issueDate.getFullYear() ||
-        today.getMonth() !== issueDate.getMonth() ||
-        today.getDate() !== issueDate.getDate()
-      ) {
-        console.log('Token is not issued today')
-        return false
-      }
-      
+      // Token 未过期，认为有效
       return true
     } catch (error) {
       console.error('Failed to validate token:', error)

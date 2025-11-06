@@ -14,9 +14,10 @@ export class AuthService extends BaseApiService {
       const response = await this.client.post<LoginResponse>('/auth/login', credentials)
 
       // 保存认证信息到Pinia
+      // 注意：后端返回的是 accessToken，需要映射为 token
       const authStore = useAuthStore()
       authStore.setAuth({
-        token: response.data.data.token,
+        token: response.data.data.accessToken || response.data.data.token,
         refreshToken: response.data.data.refreshToken,
         user: response.data.data.user
       })

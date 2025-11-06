@@ -25,12 +25,12 @@ export const createApiInstance = (): AxiosInstance => {
     async (config) => {
       const authStore = useAuthStore()
 
-      // 在发送请求前检查 token 是否有效（未过期且为当天签发）
+      // 在发送请求前检查 token 是否有效（只检查是否过期）
       if (authStore.token) {
         const isValid = authStore.isTokenValid()
         
         if (!isValid) {
-          console.log('⚠️ Token 无效（过期或非当天签发），将在响应拦截器中处理')
+          console.log('⚠️ Token 无效（已过期），将在响应拦截器中处理')
         }
       }
 
@@ -147,17 +147,21 @@ export const createApiInstance = (): AxiosInstance => {
             console.log('🗑️ 清除本地认证信息')
             authStore.clearAuth()
             
-            // 如果不在小程序环境或者是刷新token请求，跳转到登录页
-            if (typeof window === 'undefined' || !window.wx?.miniProgram) {
+            // 开发环境：如果不在小程序环境，跳转到登录页
+            // 生产环境：不跳转，保持小程序登录流程
+            const isDevelopment = process.env.NODE_ENV === 'development'
+            if (isDevelopment && (typeof window === 'undefined' || !window.wx?.miniProgram)) {
               window.location.href = '/login'
-            } else {
-              // 在小程序环境中，可能需要重新加载页面以触发登录流程
+            } else if (!isDevelopment) {
+              // 生产环境：在小程序环境中，可能需要重新加载页面以触发登录流程
               console.warn('⚠️ Token 失效，但无法重新登录')
             }
           } catch (error) {
             console.error('❌ 处理 401 错误失败:', error)
             authStore.clearAuth()
-            if (typeof window !== 'undefined') {
+            // 开发环境才跳转登录页
+            const isDevelopment = process.env.NODE_ENV === 'development'
+            if (isDevelopment && typeof window !== 'undefined') {
               window.location.href = '/login'
             }
           }

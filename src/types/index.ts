@@ -305,7 +305,8 @@ export interface LoginRequest {
 export interface LoginResponse {
   success: boolean
   data: {
-    token: string
+    accessToken?: string  // 后端返回的字段名
+    token?: string        // 兼容字段名
     refreshToken: string
     user: User
   }

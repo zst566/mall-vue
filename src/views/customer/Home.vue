@@ -57,7 +57,8 @@
     { icon: 'gift-o', text: '积分兑换', action: goToPoints },
     { icon: 'discount', text: '限时优惠', action: goToPromotions },
     { icon: 'star-o', text: '会员专享', action: goToVip },
-    { icon: 'trending-up-o', text: '热门推荐', action: goToHot }
+    // 修正图标名称：Vant 4 无 `trending-up-o`，使用 `fire-o` 表示热门
+    { icon: 'fire-o', text: '热门推荐', action: goToHot }
   ])
 
   const handleQuickNavClick = (item: QuickNavItem) => {
