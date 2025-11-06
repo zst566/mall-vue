@@ -63,7 +63,7 @@ fi
 show_progress "检查并安装依赖"
 if [ ! -d "node_modules" ]; then
     echo "安装项目依赖..."
-    if ! npm install; then
+    if ! npm install --legacy-peer-deps; then
         show_error "依赖安装失败"
         exit 1
     fi

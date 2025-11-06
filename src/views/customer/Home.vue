@@ -1,104 +1,21 @@
 <template>
   <div class="home-page">
-    <!-- 搜索栏 -->
-    <div class="search-section">
-      <van-search
-        v-model="searchQuery"
-        placeholder="🔍 搜索商品、品牌、店铺"
-        @input="onSearchInput"
-        @search="onSearch"
-        shape="round"
-        background="transparent"
-        class="search-bar"
-      />
-    </div>
+    <!-- 顶部欢迎横幅（橙色渐变） -->
+    <section class="hero-section">
+      <div class="hero-title">欢迎来到黄金海岸</div>
+      <div class="hero-subtitle">精选优惠 · 积分好礼</div>
+    </section>
 
-    <!-- Banner轮播 -->
-    <div class="banner-section">
-      <van-swipe :autoplay="3000" indicator-color="white">
-        <van-swipe-item v-for="(item, index) in banners" :key="index">
-          <PlaceholderImage width="100%" height="200px" />
-        </van-swipe-item>
-      </van-swipe>
-    </div>
+    <!-- 四功能入口 -->
+    <QuickNav :items="quickNavItems" @click="handleQuickNavClick" />
 
-    <!-- 功能入口 -->
-    <div class="function-entries">
-      <van-grid :column-num="4" :border="false">
-        <van-grid-item icon="hot-o" text="热门商品" @click="goToProducts" />
-        <van-grid-item icon="shop-o" text="店铺" @click="goToShops" />
-        <van-grid-item icon="discount" text="促销活动" @click="goToPromotions" />
-        <van-grid-item icon="service-o" text="客服" @click="contactService" />
-      </van-grid>
-    </div>
-
-    <!-- 商品分类 -->
-    <div class="category-section">
-      <div class="section-header">
-        <h3>商品分类</h3>
-        <van-icon name="arrow" @click="goToCategories" />
-      </div>
-      <van-grid :column-num="4" :border="false">
-        <van-grid-item
-          v-for="(category, index) in categories"
-          :key="index"
-          :icon="category.icon"
-          :text="category.name"
-          @click="goToCategory(category.id)"
-        />
-      </van-grid>
-    </div>
-
-    <!-- 推荐商品 -->
-    <div class="products-section">
-      <div class="section-header">
-        <h3>推荐商品</h3>
-        <span class="more" @click="goToProducts">查看更多</span>
-      </div>
-      <div class="product-grid">
-        <div
-          v-for="product in featuredProducts"
-          :key="product.id"
-          class="product-card"
-          @click="goToProductDetail(product.id)"
-        >
-          <div class="product-image">
-            <PlaceholderImage width="100%" height="120px" />
-            <div class="product-badge" v-if="product.isHot">热卖</div>
-          </div>
-          <div class="product-info">
-            <h4 class="product-name">{{ product.name }}</h4>
-            <div class="product-price">¥{{ product.price }}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 活动专区 -->
-    <div class="activity-section">
-      <div class="section-header">
-        <h3>活动专区</h3>
-        <span class="more" @click="goToActivities">查看更多</span>
-      </div>
-      <div class="activity-list">
-        <div
-          v-for="activity in activities"
-          :key="activity.id"
-          class="activity-card"
-          @click="goToActivity(activity.id)"
-        >
-          <div class="activity-image">
-            <PlaceholderImage width="100%" height="100px" />
-          </div>
-          <div class="activity-info">
-            <h4 class="activity-title">{{ activity.title }}</h4>
-            <p class="activity-desc">{{ activity.description }}</p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- 热门促销列表 -->
+    <HotPromotions
+      @view-all="goToPromotions"
+      @item-click="goToProductDetail"
+    />
   </div>
-</template>
+  </template>
 
 <script setup lang="ts">
   import { ref, onMounted } from 'vue'
@@ -106,106 +23,13 @@
   import { showToast } from 'vant'
   import { useAuthStore } from '@/stores/auth'
   import PlaceholderImage from '@/components/common/PlaceholderImage.vue'
+  import HotPromotions from '@/components/customer/HotPromotions.vue'
+  import QuickNav, { type QuickNavItem } from '@/components/customer/QuickNav.vue'
 
   const router = useRouter()
   const authStore = useAuthStore()
 
-  // 搜索查询
-  const searchQuery = ref('')
-
-  // Banner数据
-  const banners = ref([
-    {
-      id: 1,
-      title: '首页Banner1',
-      image: '/images/banner1.jpg'
-    },
-    {
-      id: 2,
-      title: '首页Banner2',
-      image: '/images/banner2.jpg'
-    },
-    {
-      id: 3,
-      title: '首页Banner3',
-      image: '/images/banner3.jpg'
-    }
-  ])
-
-  // 商品分类
-  const categories = ref([
-    { id: 1, name: '数码家电', icon: 'apps-o' },
-    { id: 2, name: '服装鞋包', icon: 'shop-o' },
-    { id: 3, name: '美妆护肤', icon: 'diamond-o' },
-    { id: 4, name: '食品生鲜', icon: 'food-o' },
-    { id: 5, name: '母婴用品', icon: 'gift-o' },
-    { id: 6, name: '家居家装', icon: 'home-o' },
-    { id: 7, name: '运动户外', icon: 'basketball-o' },
-    { id: 8, name: '图书文具', icon: 'records-o' }
-  ])
-
-  // 推荐商品
-  const featuredProducts = ref([
-    {
-      id: 1,
-      name: 'iPhone 15 Pro',
-      price: 8999,
-      image: '/images/product1.jpg',
-      isHot: true
-    },
-    {
-      id: 2,
-      name: '华为 Mate 60',
-      price: 6999,
-      image: '/images/product2.jpg',
-      isHot: false
-    },
-    {
-      id: 3,
-      name: '小米手机',
-      price: 2999,
-      image: '/images/product3.jpg',
-      isHot: true
-    },
-    {
-      id: 4,
-      name: 'OPPO 手机',
-      price: 3999,
-      image: '/images/product4.jpg',
-      isHot: false
-    }
-  ])
-
-  // 活动数据
-  const activities = ref([
-    {
-      id: 1,
-      title: '双十一大促',
-      description: '全场商品5折起',
-      image: '/images/activity1.jpg'
-    },
-    {
-      id: 2,
-      title: '新人专享',
-      description: '新人首单立减50元',
-      image: '/images/activity2.jpg'
-    }
-  ])
-
-  // 搜索相关方法
-  const onSearchInput = (value: string) => {
-    // 处理搜索输入
-    console.log('搜索输入:', value)
-  }
-
-  const onSearch = () => {
-    if (searchQuery.value.trim()) {
-      router.push({
-        name: 'Products',
-        query: { keyword: searchQuery.value.trim() }
-      })
-    }
-  }
+  // 热门促销数据改为在 HotPromotions 组件内从后端获取
 
   // 导航相关方法
   const goToProducts = () => {
@@ -224,34 +48,30 @@
     showToast('联系客服中...')
   }
 
-  const goToCategories = () => {
-    router.push({ name: 'Categories' })
+  const goToPoints = () => showToast('积分兑换 敬请期待')
+  const goToVip = () => showToast('会员专享 敬请期待')
+  const goToHot = () => goToPromotions()
+
+  // 快速导航项配置
+  const quickNavItems = ref<QuickNavItem[]>([
+    { icon: 'gift-o', text: '积分兑换', action: goToPoints },
+    { icon: 'discount', text: '限时优惠', action: goToPromotions },
+    { icon: 'star-o', text: '会员专享', action: goToVip },
+    { icon: 'trending-up-o', text: '热门推荐', action: goToHot }
+  ])
+
+  const handleQuickNavClick = (item: QuickNavItem) => {
+    // 点击事件已通过 action 处理，这里可以添加额外逻辑
   }
 
-  const goToCategory = (categoryId: number) => {
-    router.push({
-      name: 'Products',
-      query: { category: categoryId.toString() }
-    })
-  }
-
-  const goToProductDetail = (productId: number) => {
+  const goToProductDetail = (productId: number | string) => {
     router.push({
       name: 'ProductDetail',
       params: { id: productId.toString() }
     })
   }
 
-  const goToActivities = () => {
-    router.push({ name: 'Activities' })
-  }
-
-  const goToActivity = (activityId: number) => {
-    router.push({
-      name: 'ActivityDetail',
-      params: { id: activityId.toString() }
-    })
-  }
+  // 其余保留的导航见详情页
 
   // 检查用户登录状态的函数
   const checkUserLoginStatus = () => {
@@ -315,19 +135,20 @@
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
   // 现代化色系定义
-  $primary-color: #1989fa;
+  $primary-color: $primary;
   $primary-gradient: linear-gradient(135deg, #1989fa 0%, #0a86ff 100%);
-  $danger-color: #ee0a24;
-  $warning-color: #ff976a;
-  $success-color: #07c160;
-  $text-primary: #1a1a1a;
-  $text-secondary: #666;
+  $danger-color: $danger;
+  $warning-color: $warning;
+  $success-color: $success;
+  $text-primary: $text-color-primary;
+  $text-secondary: $text-color-tertiary;
   $bg-light: #f8f9fb;
-  $bg-white: #ffffff;
-  $shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
-  $shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
-  $shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  $bg-white: $bg-color-secondary;
+  $shadow-sm: $shadow-sm;
+  $shadow-md: $shadow-base;
+  $shadow-lg: $shadow-lg;
 
   .home-page {
     padding-bottom: 24px;
@@ -336,389 +157,32 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
   }
 
-  // 搜索栏优化
-  .search-section {
-    padding: 12px 12px 8px;
-    background: $bg-white;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-
-    .search-bar {
-      :deep(.van-search__input) {
-        border-radius: 24px;
-        background: linear-gradient(135deg, #f0f5ff 0%, #f5f7fc 100%);
-        border: 2px solid transparent;
-        transition: all 0.3s ease;
-        font-size: 14px;
-        color: $text-primary;
-
-        &:focus {
-          border-color: $primary-color;
-          background: $bg-white;
-          box-shadow: 0 0 0 3px rgba(25, 137, 250, 0.1);
-        }
-      }
-
-      :deep(.van-search__action) {
-        color: $primary-color;
-        font-weight: 600;
-
-        &:active {
-          opacity: 0.8;
-        }
-      }
-    }
-  }
-
-  // Banner优化
-  .banner-section {
-    height: 220px;
-    margin: 16px 12px;
-    border-radius: 12px;
-    overflow: hidden;
+  // 顶部欢迎横幅
+  .hero-section {
+    margin: 12px 12px 8px;
+    padding: 28px 18px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #ff9d2f 0%, #ff7f00 100%);
+    color: #fff;
     box-shadow: $shadow-md;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    position: relative;
 
-    :deep(.van-swipe__indicator) {
-      background: rgba(255, 255, 255, 0.6);
-
-      .van-swipe__indicator--active {
-        background: rgba(255, 255, 255, 1);
-      }
+    .hero-title {
+      font-size: $font-size-xxl;
+      font-weight: 800;
+      letter-spacing: 0.5px;
     }
 
-    &::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, transparent 50%, rgba(0, 0, 0, 0.2) 100%);
-      pointer-events: none;
-    }
-
-    .banner-image {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-  }
-
-  // 功能入口优化
-  .function-entries {
-    margin: 16px 12px;
-    padding: 0;
-
-    :deep(.van-grid) {
-      gap: 12px;
-    }
-
-    :deep(.van-grid-item) {
-      background: $bg-white;
-      border-radius: 12px;
-      box-shadow: $shadow-sm;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      padding: 12px 8px !important;
-      cursor: pointer;
-
-      &:active {
-        transform: scale(0.95);
-      }
-
-      &:hover {
-        box-shadow: $shadow-md;
-        transform: translateY(-4px);
-      }
-
-      .van-grid-item__content {
-        padding: 8px 0;
-      }
-
-      .van-grid-item__icon {
-        font-size: 28px;
-        color: $primary-color;
-        margin-bottom: 8px;
-      }
-
-      .van-grid-item__text {
-        font-size: 12px;
-        color: $text-primary;
-        font-weight: 500;
-        margin-top: 4px;
-      }
-    }
-  }
-
-  // 分组标题优化
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 16px 12px;
-    background: transparent;
-
-    h3 {
-      font-size: 18px;
-      font-weight: 700;
-      color: $text-primary;
-      margin: 0;
-      letter-spacing: -0.5px;
-    }
-
-    .more {
-      font-size: 13px;
-      color: $primary-color;
-      cursor: pointer;
-      font-weight: 500;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-
-      &::after {
-        content: '→';
-        font-size: 16px;
-      }
-
-      &:active {
-        opacity: 0.8;
-      }
-    }
-  }
-
-  // 分类部分优化
-  .category-section {
-    background: $bg-white;
-    border-radius: 12px;
-    margin: 8px 12px;
-    padding: 0;
-    box-shadow: $shadow-sm;
-    overflow: hidden;
-
-    :deep(.van-grid) {
-      padding: 16px;
-      gap: 8px;
-    }
-
-    :deep(.van-grid-item) {
-      background: linear-gradient(135deg, #f5f7fc 0%, #f0f5ff 100%);
-      border-radius: 10px;
-      padding: 12px 8px !important;
-      transition: all 0.3s ease;
-      cursor: pointer;
-
-      &:hover {
-        background: linear-gradient(135deg, #e8f0ff 0%, #e3ecff 100%);
-        transform: scale(1.05);
-      }
-
-      .van-grid-item__icon {
-        font-size: 24px;
-        color: $primary-color;
-      }
-
-      .van-grid-item__text {
-        font-size: 12px;
-        color: $text-primary;
-        font-weight: 500;
-      }
-    }
-  }
-
-  // 推荐商品部分优化
-  .products-section {
-    background: $bg-white;
-    border-radius: 12px;
-    margin: 8px 12px;
-    padding: 16px;
-    box-shadow: $shadow-sm;
-
-    .product-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
+    .hero-subtitle {
       margin-top: 8px;
-    }
-
-    .product-card {
-      background: $bg-white;
-      border: 1px solid #f0f0f0;
-      border-radius: 10px;
-      overflow: hidden;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      box-shadow: $shadow-sm;
-
-      &:hover {
-        transform: translateY(-8px);
-        box-shadow: $shadow-lg;
-        border-color: $primary-color;
-
-        .product-image {
-          transform: scale(1.08);
-
-          &::before {
-            opacity: 1;
-          }
-        }
-      }
-
-      .product-image {
-        position: relative;
-        height: 140px;
-        overflow: hidden;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-
-        &::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(135deg, rgba(25, 137, 250, 0.2) 0%, transparent 50%);
-          opacity: 0;
-          transition: opacity 0.3s ease;
-          z-index: 2;
-        }
-
-        img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          transition: transform 0.3s ease;
-        }
-
-        .product-badge {
-          position: absolute;
-          top: 6px;
-          right: 6px;
-          background: linear-gradient(135deg, $danger-color 0%, #ff5047 100%);
-          color: white;
-          padding: 4px 8px;
-          border-radius: 6px;
-          font-size: 11px;
-          font-weight: 600;
-          z-index: 3;
-          box-shadow: 0 2px 6px rgba(238, 10, 36, 0.3);
-        }
-      }
-
-      .product-info {
-        padding: 10px;
-
-        .product-name {
-          font-size: 13px;
-          color: $text-primary;
-          margin-bottom: 6px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          font-weight: 500;
-        }
-
-        .product-price {
-          font-size: 16px;
-          color: $danger-color;
-          font-weight: 700;
-          letter-spacing: -0.5px;
-        }
-      }
+      font-size: $font-size-base;
+      opacity: 0.95;
     }
   }
 
-  // 活动专区优化
-  .activity-section {
-    background: $bg-white;
-    border-radius: 12px;
-    margin: 8px 12px;
-    padding: 16px;
-    box-shadow: $shadow-sm;
 
-    .activity-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 8px;
-    }
+  // 分组标题与促销列表样式已迁移至 HotPromotions 组件
 
-    .activity-card {
-      display: flex;
-      align-items: stretch;
-      gap: 12px;
-      padding: 10px;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      background: linear-gradient(135deg, #f8f9fb 0%, #f5f7fc 100%);
-      border: 1px solid #f0f0f0;
-      overflow: hidden;
-
-      &:hover {
-        background: linear-gradient(135deg, #f0f5ff 0%, #e8f0ff 100%);
-        transform: translateX(4px);
-        box-shadow: $shadow-md;
-        border-color: $primary-color;
-      }
-
-      .activity-image {
-        width: 100px;
-        height: 80px;
-        border-radius: 8px;
-        overflow: hidden;
-        flex-shrink: 0;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        position: relative;
-
-        img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          transition: transform 0.3s ease;
-        }
-
-        &:hover img {
-          transform: scale(1.1);
-        }
-
-        &::after {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(135deg, rgba(0, 0, 0, 0.1) 0%, transparent 100%);
-        }
-      }
-
-      .activity-info {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        min-width: 0;
-
-        .activity-title {
-          font-size: 14px;
-          color: $text-primary;
-          margin-bottom: 4px;
-          font-weight: 600;
-          letter-spacing: -0.3px;
-        }
-
-        .activity-desc {
-          font-size: 12px;
-          color: $text-secondary;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-      }
-    }
-  }
+  // 旧的活动/分类/商品区块已由促销列表替换
 
   // 响应式设计
   @media (max-width: 768px) {
@@ -726,37 +190,14 @@
       padding-bottom: 16px;
     }
 
-    .banner-section {
-      height: 180px;
-      margin: 12px 8px;
-    }
+    .hero-section { margin: 12px 8px 6px; padding: 24px 16px; }
 
     .search-section {
       padding: 10px 8px 6px;
     }
 
-    .section-header {
-      padding: 16px 12px 8px;
 
-      h3 {
-        font-size: 16px;
-      }
-    }
-
-    .products-section,
-    .category-section,
-    .activity-section {
-      margin: 6px 8px;
-      padding: 12px;
-    }
-
-    .product-grid {
-      gap: 10px;
-    }
-
-    .product-card .product-image {
-      height: 120px;
-    }
+    // 响应式样式由 HotPromotions 组件内处理
   }
 
   // 暗色模式支持
@@ -770,92 +211,6 @@
       color: $text-dark;
     }
 
-    .search-section {
-      background: $bg-dark-card;
-      border-bottom-color: rgba(255, 255, 255, 0.1);
-
-      :deep(.van-search__input) {
-        background: linear-gradient(135deg, #2a2a2a 0%, #1f1f1f 100%);
-        color: $text-dark;
-
-        &:focus {
-          border-color: #4a9eff;
-          background: #2a2a2a;
-        }
-      }
-    }
-
-    .function-entries :deep(.van-grid-item) {
-      background: $bg-dark-card;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-
-      .van-grid-item__text {
-        color: $text-dark;
-      }
-
-      &:hover {
-        box-shadow: 0 4px 16px rgba(25, 137, 250, 0.2);
-      }
-    }
-
-    .category-section {
-      background: $bg-dark-card;
-
-      :deep(.van-grid-item) {
-        background: linear-gradient(135deg, #2a2a2a 0%, #252525 100%);
-
-        .van-grid-item__text {
-          color: $text-dark;
-        }
-
-        &:hover {
-          background: linear-gradient(135deg, #323232 0%, #2a2a2a 100%);
-        }
-      }
-    }
-
-    .products-section {
-      background: $bg-dark-card;
-      border-color: rgba(255, 255, 255, 0.1);
-
-      .product-card {
-        background: $bg-dark;
-        border-color: rgba(255, 255, 255, 0.1);
-
-        .product-name {
-          color: $text-dark;
-        }
-      }
-    }
-
-    .activity-section {
-      background: $bg-dark-card;
-
-      .activity-card {
-        background: linear-gradient(135deg, #2a2a2a 0%, #1f1f1f 100%);
-        border-color: rgba(255, 255, 255, 0.1);
-
-        &:hover {
-          background: linear-gradient(135deg, #323232 0%, #2a2a2a 100%);
-          border-color: #4a9eff;
-        }
-
-        .activity-title {
-          color: $text-dark;
-        }
-
-        .activity-desc {
-          color: #999;
-        }
-      }
-    }
-
-    .section-header h3 {
-      color: $text-dark;
-    }
-
-    .more {
-      color: #4a9eff !important;
-    }
+    // 暗色样式由 HotPromotions 组件内处理
   }
 </style>
