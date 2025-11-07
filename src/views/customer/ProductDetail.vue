@@ -22,7 +22,7 @@
           <span class="price-value">{{ product.price }}</span>
           <span class="price-unit">起</span>
         </div>
-        <div class="original-price" v-if="product.originalPrice > product.price">
+        <div class="original-price" v-if="product.originalPrice && product.price && product.originalPrice > product.price">
           <span class="original-symbol">¥</span>
           <span class="original-value">{{ product.originalPrice }}</span>
           <span class="discount-text">省¥{{ product.originalPrice - product.price }}</span>

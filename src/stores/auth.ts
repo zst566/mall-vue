@@ -157,8 +157,8 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (response.success) {
         user.value = response.data.user
-        // 优先使用 token 字段（与微信小程序 webview 统一命名），如果没有则使用 accessToken（向后兼容）
-        const authToken = response.data.token || response.data.accessToken
+        // RegisterResponse 的 data 字段只有 accessToken，没有 token
+        const authToken = (response.data as any).token || response.data.accessToken
         if (!authToken) {
           throw new Error('注册失败：未获取到 token 或 accessToken')
         }
@@ -203,8 +203,8 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await authService.refreshToken()
 
       if (response.success) {
-        // 优先使用 token 字段（与微信小程序 webview 统一命名），如果没有则使用 accessToken（向后兼容）
-        const authToken = response.data.token || response.data.accessToken
+        // refreshToken 返回的 data 只有 token，没有 accessToken
+        const authToken = response.data.token || (response.data as any).accessToken
         if (!authToken) {
           throw new Error('刷新令牌失败：未获取到 token 或 accessToken')
         }

@@ -294,7 +294,18 @@
     })
 
     try {
-      const data = await api.get(`/promotions/${promotionId}`)
+      const data = await api.get<{
+        id: string
+        name: string
+        description?: string
+        salePrice: number
+        originalPrice: number
+        promotionQuantity: number
+        soldQuantity: number
+        startTime: string
+        endTime: string
+        images: any
+      }>(`/promotions/${promotionId}`)
       
       Object.assign(promotion, {
         id: data.id,
