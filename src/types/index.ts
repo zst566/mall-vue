@@ -324,7 +324,7 @@ export interface RegisterRequest {
 export interface RegisterResponse {
   success: boolean
   data: {
-    token: string
+    accessToken: string  // 统一使用 accessToken（后端返回的字段名）
     refreshToken: string
     user: User
   }

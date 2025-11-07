@@ -14,10 +14,13 @@ export class AuthService extends BaseApiService {
       const response = await this.client.post<LoginResponse>('/auth/login', credentials)
 
       // 保存认证信息到Pinia
-      // 注意：后端返回的是 accessToken，需要映射为 token
+      // 统一使用 accessToken（后端返回的字段名），避免不同项目使用不同的变量名
       const authStore = useAuthStore()
+      if (!response.data.data.accessToken) {
+        throw new Error('登录失败：未获取到 accessToken')
+      }
       authStore.setAuth({
-        token: response.data.data.accessToken || response.data.data.token,
+        token: response.data.data.accessToken,
         refreshToken: response.data.data.refreshToken,
         user: response.data.data.user
       })
@@ -64,9 +67,13 @@ export class AuthService extends BaseApiService {
       const response = await this.client.post<RegisterResponse>('/auth/register', userData)
 
       // 注册成功后自动登录
+      // 统一使用 accessToken（后端返回的字段名），避免不同项目使用不同的变量名
       const authStore = useAuthStore()
+      if (!response.data.data.accessToken) {
+        throw new Error('注册失败：未获取到 accessToken')
+      }
       authStore.setAuth({
-        token: response.data.data.token,
+        token: response.data.data.accessToken,
         refreshToken: response.data.data.refreshToken,
         user: response.data.data.user
       })
@@ -110,8 +117,13 @@ export class AuthService extends BaseApiService {
         refreshToken: authStore.refreshToken
       })
 
-      const newToken = response.data.token
+      // 统一使用 accessToken（后端返回的字段名），避免不同项目使用不同的变量名
+      const newToken = response.data.accessToken || response.data.token
       const newRefreshToken = response.data.refreshToken
+
+      if (!newToken) {
+        throw new Error('刷新令牌失败：未获取到 accessToken')
+      }
 
       // 更新存储的令牌
       authStore.updateTokens({

@@ -69,8 +69,11 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (response.success) {
         user.value = response.data.user
-        // 后端返回的是 accessToken，需要映射为 token
-        token.value = response.data.accessToken || response.data.token
+        // 统一使用 accessToken（后端返回的字段名），避免不同项目使用不同的变量名
+        if (!response.data.accessToken) {
+          throw new Error('登录失败：未获取到 accessToken')
+        }
+        token.value = response.data.accessToken
         refreshToken.value = response.data.refreshToken || ''
         if (response.data.user && response.data.user.role) {
           userRole.value = response.data.user.role
@@ -110,11 +113,14 @@ export const useAuthStore = defineStore('auth', () => {
       if (response.success) {
         console.log('✅ 微信登录成功')
         console.log('📋 用户信息:', response.data.user)
-        console.log('🔑 Token:', (response.data.accessToken || response.data.token) ? '已获取' : '未获取')
+        console.log('🔑 AccessToken:', response.data.accessToken ? '已获取' : '未获取')
         
         user.value = response.data.user
-        // 后端返回的是 accessToken，需要映射为 token
-        token.value = response.data.accessToken || response.data.token
+        // 统一使用 accessToken（后端返回的字段名），避免不同项目使用不同的变量名
+        if (!response.data.accessToken) {
+          throw new Error('微信登录失败：未获取到 accessToken')
+        }
+        token.value = response.data.accessToken
         refreshToken.value = response.data.refreshToken || ''
         userRole.value = response.data.user.role
 
@@ -149,7 +155,11 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (response.success) {
         user.value = response.data.user
-        token.value = response.data.token
+        // 统一使用 accessToken（后端返回的字段名），避免不同项目使用不同的变量名
+        if (!response.data.accessToken) {
+          throw new Error('注册失败：未获取到 accessToken')
+        }
+        token.value = response.data.accessToken
         refreshToken.value = response.data.refreshToken || ''
         userRole.value = response.data.user.role
 
@@ -190,6 +200,11 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await authService.refreshToken()
 
       if (response.success) {
+        // 统一使用 accessToken（后端返回的字段名），避免不同项目使用不同的变量名
+        // 注意：refreshToken 方法返回的 data.token 实际上应该是 accessToken
+        if (!response.data.token) {
+          throw new Error('刷新令牌失败：未获取到访问令牌')
+        }
         token.value = response.data.token
         refreshToken.value = response.data.refreshToken || ''
         saveToLocalStorage()

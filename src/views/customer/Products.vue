@@ -89,11 +89,12 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted, computed } from 'vue'
+  import { ref, reactive, onMounted, computed, onUnmounted } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
   import { showToast, showLoadingToast, closeToast } from 'vant'
   import PlaceholderImage from '@/components/common/PlaceholderImage.vue'
   import type { Product } from '@/types'
+  import { productService } from '@/services/products'
 
   const router = useRouter()
   const route = useRoute()
@@ -147,154 +148,7 @@
   const hasMore = ref(true)
   const page = ref(1)
   const pageSize = ref(10)
-
-  // 模拟商品数据
-  const mockProducts: Product[] = [
-    {
-      id: '1',
-      name: 'iPhone 15 Pro 256GB',
-      description: 'A17 Pro芯片，钛金属设计，专业级摄影系统',
-      price: 8999,
-      originalPrice: 9999,
-      image: '/images/product1.jpg',
-      images: ['/images/product1.jpg'],
-      category: '手机数码',
-      categoryId: '1',
-      brand: 'Apple',
-      stock: 100,
-      sales: 1250,
-      salesCount: 1250,
-      rating: 4.8,
-      isHot: true,
-      isNew: true,
-      discount: 9,
-      shopName: '苹果官方旗舰店',
-      tags: ['热卖', '新品'],
-      status: 'active',
-      createdAt: '2024-10-01T00:00:00Z',
-      updatedAt: '2024-10-01T00:00:00Z'
-    },
-    {
-      id: '2',
-      name: '华为 Mate 60 Pro',
-      description: '麒麟9000S芯片，卫星通信，超光变影像',
-      price: 6999,
-      originalPrice: 7999,
-      image: '/images/product2.jpg',
-      images: ['/images/product2.jpg'],
-      category: '手机数码',
-      categoryId: '1',
-      brand: 'HUAWEI',
-      stock: 80,
-      sales: 890,
-      salesCount: 890,
-      rating: 4.7,
-      isHot: false,
-      isNew: false,
-      discount: 0,
-      shopName: '华为智能生活馆',
-      tags: ['国产'],
-      status: 'active',
-      createdAt: '2024-10-01T00:00:00Z',
-      updatedAt: '2024-10-01T00:00:00Z'
-    },
-    {
-      id: '3',
-      name: '小米14 Ultra',
-      description: '徕卡光学镜头，骁龙8 Gen3，90W快充',
-      price: 5999,
-      originalPrice: 6999,
-      image: '/images/product3.jpg',
-      images: ['/images/product3.jpg'],
-      category: '手机数码',
-      categoryId: '1',
-      brand: 'Xiaomi',
-      stock: 150,
-      sales: 2100,
-      salesCount: 2100,
-      rating: 4.6,
-      isHot: true,
-      isNew: false,
-      discount: 8.5,
-      shopName: '小米之家',
-      tags: ['热卖', '性价比'],
-      status: 'active',
-      createdAt: '2024-10-01T00:00:00Z',
-      updatedAt: '2024-10-01T00:00:00Z'
-    },
-    {
-      id: '4',
-      name: 'OPPO Find X6',
-      description: '哈苏影像，天玑9200，100W超级闪充',
-      price: 3999,
-      originalPrice: 4999,
-      image: '/images/product4.jpg',
-      images: ['/images/product4.jpg'],
-      category: '手机数码',
-      categoryId: '1',
-      brand: 'OPPO',
-      stock: 120,
-      sales: 650,
-      salesCount: 650,
-      rating: 4.5,
-      isHot: false,
-      isNew: false,
-      discount: 8,
-      shopName: 'OPPO体验店',
-      tags: ['摄影'],
-      status: 'active',
-      createdAt: '2024-10-01T00:00:00Z',
-      updatedAt: '2024-10-01T00:00:00Z'
-    },
-    {
-      id: '5',
-      name: 'vivo X100 Pro',
-      description: '蔡司光学镜头，天玑9300，蓝海电池技术',
-      price: 4699,
-      originalPrice: 5499,
-      image: '/images/product5.jpg',
-      images: ['/images/product5.jpg'],
-      category: '手机数码',
-      categoryId: '1',
-      brand: 'vivo',
-      stock: 90,
-      sales: 980,
-      salesCount: 980,
-      rating: 4.7,
-      isHot: true,
-      isNew: false,
-      discount: 8.5,
-      shopName: 'vivo线下店',
-      tags: ['热卖', '摄影'],
-      status: 'active',
-      createdAt: '2024-10-01T00:00:00Z',
-      updatedAt: '2024-10-01T00:00:00Z'
-    },
-    {
-      id: '6',
-      name: '三星 S24 Ultra',
-      description: '骁龙8 Gen3，S Pen，2亿像素摄影',
-      price: 9699,
-      originalPrice: 10999,
-      image: '/images/product6.jpg',
-      images: ['/images/product6.jpg'],
-      category: '手机数码',
-      categoryId: '1',
-      brand: 'Samsung',
-      stock: 60,
-      sales: 320,
-      salesCount: 320,
-      rating: 4.8,
-      isHot: true,
-      isNew: false,
-      discount: 8.8,
-      shopName: '三星电子',
-      tags: ['热卖', '高端'],
-      status: 'active',
-      createdAt: '2024-10-01T00:00:00Z',
-      updatedAt: '2024-10-01T00:00:00Z'
-    }
-  ]
+  const total = ref(0)
 
   // 筛选变化处理
   const onCategoryChange = (value: string) => {
@@ -312,7 +166,7 @@
   }
 
   // 加载商品
-  const loadProducts = (reset = false) => {
+  const loadProducts = async (reset = false) => {
     if (reset) {
       page.value = 1
       products.value = []
@@ -328,70 +182,80 @@
       duration: 0
     })
 
-    // 模拟API请求延迟
-    setTimeout(() => {
-      let filteredProducts = [...mockProducts]
+    try {
+      // 构建查询参数
+      const params: any = {
+        page: page.value,
+        limit: pageSize.value
+      }
 
-      // 搜索过滤
+      // 搜索参数
       if (searchQuery.value.trim()) {
-        const query = searchQuery.value.toLowerCase()
-        filteredProducts = filteredProducts.filter(
-          product =>
-            product.name.toLowerCase().includes(query) ||
-            product.description.toLowerCase().includes(query)
-        )
+        params.search = searchQuery.value.trim()
       }
 
-      // 分类过滤
+      // 分类参数
       if (selectedCategory.value) {
-        filteredProducts = filteredProducts.filter(
-          product => product.categoryId === selectedCategory.value
-        )
+        params.categoryId = selectedCategory.value
       }
 
-      // 价格过滤
+      // 价格范围参数
       if (selectedPrice.value) {
-        const [min, max] = selectedPrice.value.split('-')
-        filteredProducts = filteredProducts.filter(product => {
-          if (max) {
-            return product.price >= parseInt(min) && product.price <= parseInt(max)
-          } else {
-            return product.price >= parseInt(min)
-          }
-        })
+        if (selectedPrice.value.includes('+')) {
+          // 处理 "1000+" 这种情况
+          const min = selectedPrice.value.replace('+', '')
+          params.minPrice = parseInt(min)
+        } else if (selectedPrice.value.includes('-')) {
+          // 处理 "100-500" 这种情况
+          const [min, max] = selectedPrice.value.split('-')
+          params.minPrice = parseInt(min)
+          params.maxPrice = parseInt(max)
+        }
       }
 
-      // 排序
+      // 排序参数
       switch (selectedSort.value) {
         case 'price_asc':
-          filteredProducts.sort((a, b) => a.price - b.price)
+          params.sortBy = 'price'
+          params.sortOrder = 'asc'
           break
         case 'price_desc':
-          filteredProducts.sort((a, b) => b.price - a.price)
+          params.sortBy = 'price'
+          params.sortOrder = 'desc'
           break
         case 'sales_desc':
-          filteredProducts.sort((a, b) => b.salesCount - a.salesCount)
+          params.sortBy = 'sales'
+          params.sortOrder = 'desc'
           break
         case 'newest':
-          filteredProducts.sort((a, b) => parseInt(b.id) - parseInt(a.id))
+          params.sortBy = 'createdAt'
+          params.sortOrder = 'desc'
           break
       }
 
-      // 分页
-      const startIndex = (page.value - 1) * pageSize.value
-      const endIndex = startIndex + pageSize.value
-      const newProducts = filteredProducts.slice(startIndex, endIndex)
+      // 调用API
+      const result = await productService.getProducts(params)
 
-      products.value.push(...newProducts)
-      hasMore.value = endIndex < filteredProducts.length
-
-      loading.value = false
-      closeToast()
-
+      // 更新数据
       if (reset) {
+        products.value = result.products || []
+      } else {
+        products.value.push(...(result.products || []))
+      }
+
+      total.value = result.total || 0
+      hasMore.value = page.value < result.totalPages
+
+      if (reset && result.products && result.products.length > 0) {
         showToast('刷新成功')
       }
-    }, 1000)
+    } catch (error: any) {
+      console.error('加载商品失败:', error)
+      showToast(error.message || '加载商品失败，请稍后重试')
+    } finally {
+      loading.value = false
+      closeToast()
+    }
   }
 
   // 导航到商品详情
@@ -408,17 +272,23 @@
     const scrollTop = document.documentElement.scrollTop
     const clientHeight = document.documentElement.clientHeight
 
-    if (scrollTop + clientHeight >= scrollHeight - 100) {
+    if (scrollTop + clientHeight >= scrollHeight - 100 && hasMore.value && !loading.value) {
+      page.value++
       loadProducts()
     }
   }
 
   // 初始化
   onMounted(() => {
-    loadProducts()
+    loadProducts(true)
 
     // 监听滚动事件
     window.addEventListener('scroll', onScroll)
+  })
+
+  // 清理
+  onUnmounted(() => {
+    window.removeEventListener('scroll', onScroll)
   })
 </script>
 

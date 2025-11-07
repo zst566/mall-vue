@@ -16,6 +16,9 @@ module.exports = {
     sourceType: 'module',
   },
   rules: {
+    // 禁止对象字面量中的重复键（防止语法错误）
+    'no-dupe-keys': 'error',
+    // TypeScript 相关规则
     'vue/multi-word-component-names': 'off',
     'vue/no-unused-vars': 'warn',
     '@typescript-eslint/no-unused-vars': 'warn',

@@ -65,11 +65,20 @@
     // 点击事件已通过 action 处理，这里可以添加额外逻辑
   }
 
-  const goToProductDetail = (productId: number | string) => {
-    router.push({
-      name: 'ProductDetail',
-      params: { id: productId.toString() }
-    })
+  const goToProductDetail = (data: { promotionId: number; productId?: string | number }) => {
+    // 优先跳转到促销详情页面
+    if (data.promotionId) {
+      router.push({
+        name: 'PromotionDetail',
+        params: { id: data.promotionId.toString() }
+      })
+    } else if (data.productId) {
+      // 如果没有促销ID，则跳转到商品详情页面
+      router.push({
+        name: 'ProductDetail',
+        params: { id: data.productId.toString() }
+      })
+    }
   }
 
   // 其余保留的导航见详情页

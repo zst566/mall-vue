@@ -10,7 +10,7 @@
         v-for="item in displayPromotions"
         :key="item.id"
         class="promo-card"
-        @click="$emit('item-click', item.productId ?? item.id)"
+        @click="$emit('item-click', { promotionId: item.id, productId: item.productId })"
       >
         <div class="promo-thumb">
           <img v-if="item.thumbnail" :src="item.thumbnail" class="promo-img" alt="promotion" />
@@ -48,7 +48,7 @@
   }
 
   const props = defineProps<{ promotions?: PromotionItem[] }>()
-  defineEmits<{ (e: 'view-all'): void; (e: 'item-click', id: number): void }>()
+  defineEmits<{ (e: 'view-all'): void; (e: 'item-click', data: { promotionId: number; productId?: string | number }): void }>()
 
   type BackendPromotion = {
     id: string
