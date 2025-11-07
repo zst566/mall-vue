@@ -215,12 +215,11 @@
     return ''
   }
 
-  // 格式化价格（从分转换为元，兼容可能已经是元的数据）
+  // 格式化价格（从分转换为元，统一使用与首页相同的处理标准）
   const formatPrice = (price: number): string => {
     if (!price && price !== 0) return '0.00'
-    // 如果价格大于10000，可能是以分为单位，需要除以100
-    // 否则可能是以元为单位，直接使用
-    const priceInYuan = price > 10000 ? price / 100 : price
+    // 后端返回的价格始终以分为单位，需要除以100转换为元
+    const priceInYuan = Math.round(price) / 100
     return priceInYuan.toFixed(2)
   }
 
