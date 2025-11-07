@@ -146,7 +146,7 @@
     images: null as any
   })
 
-  // 主图列表（用于顶部banner）
+  // 主图列表（用于顶部banner）- 只显示主图，如无主图标记则显示第1张图
   const mainImages = computed(() => {
     if (!promotion.images) return []
     
@@ -162,23 +162,19 @@
       }
     }
     
-    // 获取主图（isMain为true的图片，或第一张）
+    if (images.length === 0) return []
+    
+    // 获取主图（isMain为true的图片）
     const mainImage = images.find((img: any) => {
       if (typeof img === 'string') return false
       return img.isMain === true
     })
     
-    if (mainImage) {
-      return [mainImage, ...images.filter((img: any) => {
-        if (typeof img === 'string') return true
-        return img.isMain !== true
-      })]
-    }
-    
-    return images.length > 0 ? images : []
+    // 如果有主图，返回主图；否则返回第1张图
+    return mainImage ? [mainImage] : [images[0]]
   })
 
-  // 详情图片列表（排除主图）
+  // 详情图片列表（显示所有图片，按排序逐个显示）
   const detailImages = computed(() => {
     if (!promotion.images) return []
     
@@ -192,10 +188,30 @@
       }
     }
     
-    // 排除主图，返回其他图片
-    return images.filter((img: any) => {
-      if (typeof img === 'string') return true
-      return img.isMain !== true
+    if (images.length === 0) return []
+    
+    // 处理图片数据，统一格式并提取排序字段
+    const processedImages = images.map((img: any, index: number) => {
+      if (typeof img === 'string') {
+        return {
+          url: img,
+          position: index,
+          id: '',
+          isMain: false
+        }
+      }
+      return {
+        url: img.url || img.src || '',
+        position: img.position ?? img.sortOrder ?? index,
+        id: img.id || img.key || '',
+        isMain: img.isMain === true,
+        ...img // 保留其他字段
+      }
+    })
+    
+    // 按position/sortOrder排序，如果相同则保持原顺序
+    return processedImages.sort((a: any, b: any) => {
+      return (a.position ?? 0) - (b.position ?? 0)
     })
   })
 
@@ -519,7 +535,7 @@
       .detail-images {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 0;
 
         .detail-image-item {
           width: 100%;

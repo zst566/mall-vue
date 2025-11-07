@@ -69,11 +69,12 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (response.success) {
         user.value = response.data.user
-        // 统一使用 accessToken（后端返回的字段名），避免不同项目使用不同的变量名
-        if (!response.data.accessToken) {
-          throw new Error('登录失败：未获取到 accessToken')
+        // 优先使用 token 字段（与微信小程序 webview 统一命名），如果没有则使用 accessToken（向后兼容）
+        const authToken = response.data.token || response.data.accessToken
+        if (!authToken) {
+          throw new Error('登录失败：未获取到 token 或 accessToken')
         }
-        token.value = response.data.accessToken
+        token.value = authToken
         refreshToken.value = response.data.refreshToken || ''
         if (response.data.user && response.data.user.role) {
           userRole.value = response.data.user.role
@@ -116,11 +117,12 @@ export const useAuthStore = defineStore('auth', () => {
         console.log('🔑 AccessToken:', response.data.accessToken ? '已获取' : '未获取')
         
         user.value = response.data.user
-        // 统一使用 accessToken（后端返回的字段名），避免不同项目使用不同的变量名
-        if (!response.data.accessToken) {
-          throw new Error('微信登录失败：未获取到 accessToken')
+        // 优先使用 token 字段（与微信小程序 webview 统一命名），如果没有则使用 accessToken（向后兼容）
+        const authToken = response.data.token || response.data.accessToken
+        if (!authToken) {
+          throw new Error('微信登录失败：未获取到 token 或 accessToken')
         }
-        token.value = response.data.accessToken
+        token.value = authToken
         refreshToken.value = response.data.refreshToken || ''
         userRole.value = response.data.user.role
 
@@ -155,11 +157,12 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (response.success) {
         user.value = response.data.user
-        // 统一使用 accessToken（后端返回的字段名），避免不同项目使用不同的变量名
-        if (!response.data.accessToken) {
-          throw new Error('注册失败：未获取到 accessToken')
+        // 优先使用 token 字段（与微信小程序 webview 统一命名），如果没有则使用 accessToken（向后兼容）
+        const authToken = response.data.token || response.data.accessToken
+        if (!authToken) {
+          throw new Error('注册失败：未获取到 token 或 accessToken')
         }
-        token.value = response.data.accessToken
+        token.value = authToken
         refreshToken.value = response.data.refreshToken || ''
         userRole.value = response.data.user.role
 
@@ -200,12 +203,12 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await authService.refreshToken()
 
       if (response.success) {
-        // 统一使用 accessToken（后端返回的字段名），避免不同项目使用不同的变量名
-        // 注意：refreshToken 方法返回的 data.token 实际上应该是 accessToken
-        if (!response.data.token) {
-          throw new Error('刷新令牌失败：未获取到访问令牌')
+        // 优先使用 token 字段（与微信小程序 webview 统一命名），如果没有则使用 accessToken（向后兼容）
+        const authToken = response.data.token || response.data.accessToken
+        if (!authToken) {
+          throw new Error('刷新令牌失败：未获取到 token 或 accessToken')
         }
-        token.value = response.data.token
+        token.value = authToken
         refreshToken.value = response.data.refreshToken || ''
         saveToLocalStorage()
         return { success: true, message: 'Token刷新成功' }
