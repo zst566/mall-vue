@@ -83,7 +83,7 @@
     </div>
 
     <!-- 底部操作栏 -->
-    <div class="bottom-bar">
+    <div class="bottom-bar" :class="{ 'hidden': !isBottomBarVisible }">
       <div class="left-buttons">
         <div class="action-item" @click="goToHome">
           <van-icon name="home-o" />
@@ -113,7 +113,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, computed, onMounted } from 'vue'
+  import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
   import { showToast, showLoadingToast, closeToast } from 'vant'
   import PlaceholderImage from '@/components/common/PlaceholderImage.vue'
@@ -124,6 +124,11 @@
 
   // 收藏状态
   const isFavorite = ref(false)
+
+  // 底部导航显示/隐藏状态
+  const isBottomBarVisible = ref(true)
+  const lastScrollTop = ref(0)
+  const scrollTimer = ref<number | null>(null)
 
   // 促销活动信息
   const promotionId = route.params.id as string
@@ -301,9 +306,67 @@
     }
   }
 
+  // 处理滚动事件
+  const handleScroll = (event?: Event) => {
+    // 获取滚动位置（优先使用.app-main容器，如果没有则使用window）
+    const appMain = document.querySelector('.app-main') as HTMLElement
+    const currentScrollTop = appMain 
+      ? appMain.scrollTop
+      : (window.pageYOffset || document.documentElement.scrollTop)
+    
+    // 向下滚动时隐藏底部导航（需要滚动超过50px才隐藏）
+    if (currentScrollTop > lastScrollTop.value && currentScrollTop > 50) {
+      isBottomBarVisible.value = false
+    } else if (currentScrollTop < lastScrollTop.value) {
+      // 向上滚动时立即显示底部导航
+      isBottomBarVisible.value = true
+    }
+    
+    lastScrollTop.value = currentScrollTop
+    
+    // 清除之前的定时器
+    if (scrollTimer.value !== null) {
+      clearTimeout(scrollTimer.value)
+    }
+    
+    // 停止滚动1秒后显示底部导航
+    scrollTimer.value = window.setTimeout(() => {
+      isBottomBarVisible.value = true
+      scrollTimer.value = null
+    }, 1000)
+  }
+
   // 初始化
   onMounted(() => {
     loadPromotionDetail()
+    
+    // 等待DOM渲染完成后添加滚动监听
+    setTimeout(() => {
+      // 优先监听.app-main容器（这是实际的滚动容器）
+      const appMain = document.querySelector('.app-main') as HTMLElement
+      if (appMain) {
+        appMain.addEventListener('scroll', handleScroll, { passive: true })
+      } else {
+        // 如果没有.app-main，则监听window
+        window.addEventListener('scroll', handleScroll, { passive: true })
+      }
+    }, 100)
+  })
+
+  // 清理
+  onUnmounted(() => {
+    // 移除滚动监听
+    const appMain = document.querySelector('.app-main') as HTMLElement
+    if (appMain) {
+      appMain.removeEventListener('scroll', handleScroll)
+    } else {
+      window.removeEventListener('scroll', handleScroll)
+    }
+    
+    // 清除定时器
+    if (scrollTimer.value !== null) {
+      clearTimeout(scrollTimer.value)
+    }
   })
 </script>
 
@@ -504,6 +567,12 @@
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
     z-index: 100;
     gap: 12px;
+    transition: transform 0.3s ease-in-out;
+    transform: translateY(0);
+
+    &.hidden {
+      transform: translateY(100%);
+    }
 
     .left-buttons {
       display: flex;
