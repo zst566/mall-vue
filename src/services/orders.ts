@@ -217,6 +217,30 @@ export class OrderService extends BaseApiService {
     }
   }
 
+  // 创建促销活动订单
+  async createPromotionOrder(promotionId: string, quantity: number, remark?: string): Promise<{
+    order: Order
+    message: string
+    requiresPayment?: boolean
+    paymentAmount?: number
+  }> {
+    try {
+      const response = await this.client.post<{
+        order: Order
+        message: string
+        requiresPayment?: boolean
+        paymentAmount?: number
+      }>('/orders/promotion', {
+        promotionId,
+        quantity,
+        remark
+      })
+      return response.data
+    } catch (error) {
+      throw new Error(this.handleApiError(error))
+    }
+  }
+
   // 错误处理代理方法
   private handleApiError(error: any): string {
     if (error.response) {

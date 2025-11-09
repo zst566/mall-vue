@@ -92,7 +92,14 @@
     try {
       const result = await api.get<{ data: BackendPromotion[]; pagination: any }>(
         '/promotions',
-        { params: { status: 'active', limit: 4 } }
+        { 
+          params: { 
+            status: 'active', 
+            limit: 4,
+            showOnHomepage: true, // 只获取首页显示的促销活动
+            sortByPriority: true  // 按优先级排序（数字越小优先级越高）
+          } 
+        }
       )
       const list = (result?.data ?? []).map((p) => {
         const left = Math.max(0, (p.promotionQuantity || 0) - (p.soldQuantity || 0))

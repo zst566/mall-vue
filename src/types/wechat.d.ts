@@ -3,7 +3,7 @@ declare global {
   interface Window {
     wx?: {
       miniProgram?: {
-        navigateTo: (options: { url: string }) => void
+        navigateTo: (options: { url: string; success?: () => void; fail?: (error: any) => void }) => void
         redirectTo: (options: { url: string }) => void
         switchTab: (options: { url: string }) => void
         reLaunch: (options: { url: string }) => void

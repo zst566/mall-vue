@@ -102,8 +102,10 @@
         <van-button 
           type="danger" 
           size="large" 
-          @click="handlePurchase"
+          @click.stop="handlePurchase"
+          @touchstart.stop
           :disabled="leftQuantity <= 0"
+          style="position: relative; z-index: 102; pointer-events: auto;"
         >
           {{ leftQuantity > 0 ? '立即购买' : '已售罄' }}
         </van-button>
@@ -115,12 +117,18 @@
 <script setup lang="ts">
   import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
-  import { showToast, showLoadingToast, closeToast } from 'vant'
+  import { showToast, showLoadingToast, closeToast, showConfirmDialog, showDialog } from 'vant'
   import PlaceholderImage from '@/components/common/PlaceholderImage.vue'
   import { api } from '@/services/api'
+  import { orderService } from '@/services/orders'
+  import { PointsService } from '@/services/points'
+  import { useAuthStore } from '@/stores/auth'
+  import webViewBridge from '@/utils/webview-bridge'
 
   const router = useRouter()
   const route = useRoute()
+  const authStore = useAuthStore()
+  const pointsService = new PointsService()
 
   // 收藏状态
   const isFavorite = ref(false)
@@ -143,7 +151,10 @@
     soldQuantity: 0,
     startTime: '',
     endTime: '',
-    images: null as any
+    images: null as any,
+    promotionMode: '' as 'mall_subsidy' | 'normal_split' | 'points_exchange' | '', // 分账模式
+    settlementPrice: 0, // 结算价（积分兑换模式）
+    pointsValue: 0, // 积分价值（积分兑换模式）
   })
 
   // 主图列表（用于顶部banner）- 只显示主图，如无主图标记则显示第1张图
@@ -275,13 +286,263 @@
   }
 
   // 立即购买
-  const handlePurchase = () => {
+  const handlePurchase = async (event?: Event) => {
+    // 阻止事件冒泡和默认行为
+    if (event) {
+      event.preventDefault()
+      event.stopPropagation()
+    }
+    
+    console.log('========== [PromotionDetail] 立即购买按钮被点击 ==========')
+    console.log('📦 促销活动信息:', {
+      id: promotionId,
+      name: promotion.name,
+      leftQuantity: leftQuantity.value,
+      promotionMode: promotion.promotionMode
+    })
+    
     if (leftQuantity.value <= 0) {
+      console.warn('⚠️ 促销活动已售罄')
       showToast('该促销活动已售罄')
       return
     }
-    showToast('正在跳转到购买页面...')
-    // TODO: 跳转到购买页面
+
+    // 检查用户是否登录
+    console.log('🔐 检查用户登录状态:', {
+      isAuthenticated: authStore.isAuthenticated,
+      hasUser: !!authStore.user,
+      userId: authStore.user?.id
+    })
+    
+    if (!authStore.isAuthenticated || !authStore.user) {
+      console.warn('⚠️ 用户未登录')
+      showToast('请先登录')
+      router.push({ name: 'Login' })
+      return
+    }
+
+    const userId = authStore.user.id
+    const promotionMode = promotion.promotionMode
+
+    console.log('✅ 用户已登录，开始购买流程')
+    console.log('📋 购买参数:', {
+      userId,
+      promotionMode
+    })
+
+    try {
+      showLoadingToast({
+        message: '处理中...',
+        forbidClick: true,
+        duration: 0
+      })
+
+      // 根据分账模式处理
+      if (promotionMode === 'points_exchange') {
+        console.log('🔄 使用积分兑换模式')
+        // 积分兑换模式
+        await handlePointsExchangePurchase(userId)
+      } else {
+        console.log('🔄 使用支付模式')
+        // 商场补贴/普通分账模式
+        await handlePaymentPurchase(userId)
+      }
+    } catch (error: any) {
+      console.error('========== [PromotionDetail] 购买失败 ==========')
+      console.error('❌ 错误类型:', error?.constructor?.name)
+      console.error('❌ 错误消息:', error?.message)
+      console.error('❌ 错误堆栈:', error?.stack)
+      console.error('❌ 完整错误对象:', error)
+      closeToast()
+      showToast(error.message || '购买失败，请稍后重试')
+    }
+  }
+
+  // 积分兑换模式购买
+  const handlePointsExchangePurchase = async (userId: string) => {
+    const settlementPrice = promotion.settlementPrice || 0
+    const pointsValue = promotion.pointsValue || 20
+    const requiredPoints = Math.round(settlementPrice * pointsValue)
+
+    // 先验证积分
+    const currentPoints = await pointsService.getUserPoints(userId)
+    
+    if (currentPoints < requiredPoints) {
+      closeToast()
+      showToast(`积分不足，当前积分：${currentPoints}，所需积分：${requiredPoints}`)
+      return
+    }
+
+    // 确认购买
+    try {
+      await showConfirmDialog({
+        title: '确认兑换',
+        message: `使用 ${requiredPoints} 积分兑换此促销活动？`,
+        confirmButtonText: '确认兑换',
+        cancelButtonText: '取消'
+      })
+    } catch {
+      // 用户取消
+      closeToast()
+      return
+    }
+
+    // 创建订单（后端会扣减积分）
+    const result = await orderService.createPromotionOrder(promotionId, 1)
+    
+    closeToast()
+    showToast('兑换成功！')
+    
+    // 跳转到订单详情
+    setTimeout(() => {
+      router.push({ name: 'OrderDetail', params: { id: result.order.id } })
+    }, 1500)
+  }
+
+  // 商场补贴/普通分账模式购买（需要微信支付）
+  const handlePaymentPurchase = async (userId: string) => {
+    console.log('========== [PromotionDetail] 开始支付购买流程 ==========')
+    console.log('🛒 促销活动 ID:', promotionId)
+    
+    // 检查是否在小程序环境中
+    // 优先检查 navigateTo 是否存在，因为这是最直接的判断方式
+    const miniProgram = (window.wx?.miniProgram as any) || null
+    const hasNavigateTo = typeof miniProgram?.navigateTo === 'function'
+    const hasPostMessage = typeof miniProgram?.postMessage === 'function'
+    const hasGetEnv = typeof miniProgram?.getEnv === 'function'
+    
+    // 如果 navigateTo 存在，说明一定在小程序环境中
+    // 如果只有 postMessage 或 getEnv，也可以认为在小程序环境中
+    const isInMiniProgramEnv = hasNavigateTo || hasPostMessage || hasGetEnv || webViewBridge.isInMiniProgram
+    
+    console.log('📱 小程序环境检测:', {
+      webViewBridgeIsInMiniProgram: webViewBridge.isInMiniProgram,
+      hasWx: typeof window !== 'undefined' && !!window.wx,
+      hasMiniProgram: !!miniProgram,
+      hasNavigateTo,
+      hasPostMessage,
+      hasGetEnv,
+      isInMiniProgramEnv,
+      windowWx: window.wx,
+      miniProgramObject: miniProgram
+    })
+    
+    // 直接跳转到小程序原生支付页面，传递 promotionId
+    // 小程序会从后端获取促销活动详情，显示给用户确认，然后创建订单并支付
+    const paymentUrl = `/pages/payment/payment?promotionId=${encodeURIComponent(promotionId)}`
+    console.log('📤 [PromotionDetail] 支付页面 URL:', paymentUrl)
+    
+    // 尝试多种方式跳转
+    try {
+      closeToast() // 关闭 loading，因为要跳转了
+      
+      // 方式1: 使用 navigateTo（推荐）
+      if (hasNavigateTo) {
+        console.log('📤 [PromotionDetail] 使用 navigateTo 跳转...')
+        miniProgram.navigateTo({
+          url: paymentUrl,
+          success: () => {
+            console.log('✅ [PromotionDetail] 跳转到支付页面成功')
+          },
+          fail: (error: any) => {
+            console.error('❌ [PromotionDetail] navigateTo 跳转失败:', error)
+            console.error('❌ [PromotionDetail] 错误详情:', JSON.stringify(error, null, 2))
+            // 尝试使用 postMessage 方式
+            tryPostMessageFallback(paymentUrl, error)
+          }
+        })
+        return
+      }
+      
+      // 方式2: 使用 postMessage（备用）
+      if (hasPostMessage) {
+        console.log('📤 [PromotionDetail] 使用 postMessage 跳转...')
+        tryPostMessageFallback(paymentUrl)
+        return
+      }
+      
+      // 方式3: 都不存在，提示用户
+      console.error('❌ 不在小程序环境或跳转方法不可用')
+      showToast('请在微信小程序中打开')
+    } catch (error: any) {
+      console.error('❌ [PromotionDetail] 跳转异常:', error)
+      console.error('❌ [PromotionDetail] 异常详情:', JSON.stringify(error, null, 2))
+      showToast(error.message || '跳转失败，请稍后重试')
+    }
+  }
+  
+  // 使用 postMessage 作为备用跳转方式
+  const tryPostMessageFallback = (paymentUrl: string, previousError?: any) => {
+    try {
+      const miniProgram = window.wx?.miniProgram as any
+      if (miniProgram?.postMessage) {
+        console.log('📤 [PromotionDetail] 尝试使用 postMessage 跳转...')
+        miniProgram.postMessage({
+          data: {
+            type: 'navigate',
+            url: paymentUrl
+          }
+        })
+        console.log('✅ [PromotionDetail] postMessage 已发送')
+      } else {
+        throw new Error('postMessage 不可用')
+      }
+    } catch (error: any) {
+      console.error('❌ [PromotionDetail] postMessage 跳转也失败:', error)
+      showToast(previousError?.errMsg || error.message || '跳转失败，请稍后重试')
+    }
+  }
+
+  // 处理微信支付（跳转到小程序支付页面）
+  const handleWechatPayment = async (orderId: string, amount: number, order?: any) => {
+    try {
+      console.log('========== [PromotionDetail] 开始支付流程 ==========')
+      console.log('💰 准备跳转到小程序原生支付页面')
+      console.log('📱 小程序环境检测:', webViewBridge.isInMiniProgram)
+      const miniProgram = window.wx?.miniProgram as any
+      console.log('📱 环境详情:', {
+        hasWindow: typeof window !== 'undefined',
+        hasWx: typeof window !== 'undefined' && !!window.wx,
+        hasMiniProgram: typeof window !== 'undefined' && !!miniProgram,
+        hasNavigateTo: typeof window !== 'undefined' && typeof miniProgram?.navigateTo === 'function',
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'
+      })
+
+      // 检查是否在小程序环境中
+      if (!webViewBridge.isInMiniProgram || !miniProgram?.navigateTo) {
+        console.error('❌ 不在小程序环境或 navigateTo 不可用')
+        closeToast()
+        showToast('请在微信小程序中打开')
+        return
+      }
+
+      // 直接使用 wx.miniProgram.navigateTo 跳转到小程序原生支付页面
+      // 传递 promotionId，让小程序从后端获取促销活动详情（价格、分账模式等）
+      const paymentUrl = `/pages/payment/payment?promotionId=${encodeURIComponent(promotionId)}`
+      
+      console.log('📤 [PromotionDetail] 跳转到小程序支付页面:', paymentUrl)
+      
+      miniProgram.navigateTo({
+        url: paymentUrl,
+        success: () => {
+          console.log('✅ [PromotionDetail] 跳转成功')
+          closeToast()
+        },
+        fail: (error: any) => {
+          console.error('❌ [PromotionDetail] 跳转失败:', error)
+          closeToast()
+          showToast(error.errMsg || '跳转失败，请稍后重试')
+        }
+      })
+      
+      // 注意：支付结果会在支付页面完成后处理
+      // 如果用户取消支付或支付失败，会返回到当前页面
+      // 如果支付成功，支付页面会自动处理跳转
+    } catch (error: any) {
+      closeToast()
+      console.error('跳转到支付页面失败:', error)
+      showToast(error.message || '跳转到支付页面失败，请稍后重试')
+    }
   }
 
   // 加载促销活动详情
@@ -305,6 +566,9 @@
         startTime: string
         endTime: string
         images: any
+        promotionMode?: 'mall_subsidy' | 'normal_split' | 'points_exchange'
+        settlementPrice?: number
+        pointsValue?: number
       }>(`/promotions/${promotionId}`)
       
       Object.assign(promotion, {
@@ -317,7 +581,10 @@
         soldQuantity: data.soldQuantity || 0,
         startTime: data.startTime || '',
         endTime: data.endTime || '',
-        images: data.images || null
+        images: data.images || null,
+        promotionMode: data.promotionMode || '',
+        settlementPrice: data.settlementPrice || 0,
+        pointsValue: data.pointsValue || 0,
       })
     } catch (error: any) {
       console.error('加载促销活动详情失败:', error)
@@ -638,9 +905,14 @@
 
     .right-buttons {
       flex-shrink: 0;
+      position: relative;
+      z-index: 101; // 确保按钮在最上层
 
       .van-button {
         min-width: 120px;
+        position: relative;
+        z-index: 102; // 确保按钮在最上层
+        pointer-events: auto; // 确保可以点击
       }
     }
   }
