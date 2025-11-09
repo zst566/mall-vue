@@ -154,7 +154,7 @@ export const useOrderStore = defineStore('order', () => {
         id,
         orderNo: `ORD${id}00${Math.floor(Math.random() * 100)}`,
         userId: 'user1',
-        status: 'delivered',
+        status: 'verified',
         totalAmount: 8999.00,
         paymentMethod: 'wechat',
         paymentStatus: 'paid',
@@ -188,8 +188,7 @@ export const useOrderStore = defineStore('order', () => {
         createdAt: '2024-10-15T10:00:00Z',
         updatedAt: '2024-10-17T16:45:00Z',
         paidAt: '2024-10-15T14:35:00Z',
-        shippedAt: '2024-10-16T09:20:00Z',
-        deliveredAt: '2024-10-17T16:45:00Z'
+        verifiedAt: '2024-10-17T16:45:00Z'
       }
 
       currentOrder.value = mockOrder
@@ -378,9 +377,9 @@ export const useOrderStore = defineStore('order', () => {
       if (index !== -1) {
         orderList.value[index] = {
           ...orderList.value[index],
-          status: 'delivered',
+          status: 'verified',
           updatedAt: new Date().toISOString(),
-          deliveredAt: new Date().toISOString()
+          verifiedAt: new Date().toISOString()
         }
 
         if (currentOrder.value?.id === id) {

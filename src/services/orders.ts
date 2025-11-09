@@ -17,10 +17,35 @@ export class OrderService extends BaseApiService {
   }
 
   // 获取订单列表
-  async getOrders(params?: OrderSearchParams): Promise<Order[]> {
+  async getOrders(params?: OrderSearchParams): Promise<{
+    data: Order[]
+    pagination?: {
+      page: number
+      limit: number
+      total: number
+      totalPages: number
+    }
+  }> {
     try {
-      const response = await this.client.get<Order[]>('/orders', { params })
-      return response.data
+      // 后端返回格式: { success: true, data: { data: Order[], pagination: {...} } }
+      // BaseApiService.get 会自动提取 response.data.data，所以这里返回的是 { data: Order[], pagination: {...} }
+      const response = await this.get<{
+        data: Order[]
+        pagination: {
+          page: number
+          limit: number
+          total: number
+          totalPages: number
+        }
+      }>('/orders', { params })
+      
+      // 如果返回的是数组（兼容旧格式）
+      if (Array.isArray(response)) {
+        return { data: response }
+      }
+      
+      // 如果返回的是 { data: [], pagination: {} } 格式
+      return response
     } catch (error) {
       throw new Error(this.handleApiError(error))
     }

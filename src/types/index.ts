@@ -123,7 +123,7 @@ export interface Order {
   id: string
   orderNo: string
   userId: string
-  status: 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
+  status: 'pending' | 'paid' | 'verified' | 'cancelled' | 'refunded'
   paymentMethod: 'wechat' | 'alipay' | 'cash' | 'other'
   paymentStatus: 'pending' | 'success' | 'failed' | 'cancelled' | 'unpaid' | 'paid' | 'refunded'
   shippingAddress: Address
@@ -174,6 +174,7 @@ export interface MerchantOrder {
   updatedAt: string
   paidAt?: string
   confirmedAt?: string
+  verifiedAt?: string
   shippedAt?: string
   deliveredAt?: string
   refundedAt?: string
@@ -185,7 +186,7 @@ export interface MerchantOrder {
 }
 
 // 订单状态类型
-export type OrderStatus = 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
+export type OrderStatus = 'pending' | 'paid' | 'verified' | 'cancelled' | 'refunded'
 
 // 商户订单状态类型
 export type MerchantOrderStatus = 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'pending_verification' | 'verified' | 'completed'
@@ -199,9 +200,8 @@ export type PaymentStatus = 'pending' | 'success' | 'failed' | 'cancelled'
 // 订单状��映射
 export const OrderStatusMap = {
   pending: { label: '待支付', color: '#ff976a' },
-  paid: { label: '已支付', color: '#07c160' },
-  shipped: { label: '已发货', color: '#1989fa' },
-  delivered: { label: '已送达', color: '#07c160' },
+  paid: { label: '已支付（待使用）', color: '#07c160' },
+  verified: { label: '已核销（已使用）', color: '#1989fa' },
   cancelled: { label: '已取消', color: '#ee0a24' },
   refunded: { label: '已退款', color: '#969799' }
 } as const
@@ -211,7 +211,7 @@ export interface OrderQueryParams extends PaginationParams {
   status?: Order['status']
   dateRange?: [string, string]
   paymentMethod?: Order['paymentMethod']
-  sortBy?: 'createdAt' | 'paidAt' | 'shippedAt' | 'totalAmount'
+  sortBy?: 'createdAt' | 'paidAt' | 'verifiedAt' | 'totalAmount'
   sortOrder?: 'asc' | 'desc'
 }
 

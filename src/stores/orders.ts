@@ -15,8 +15,7 @@ export const useOrderStore = defineStore('orders', () => {
   const totalOrders = computed(() => orders.value.length)
   const pendingOrders = computed(() => orders.value.filter(order => order.status === 'pending'))
   const paidOrders = computed(() => orders.value.filter(order => order.status === 'paid'))
-  const shippedOrders = computed(() => orders.value.filter(order => order.status === 'shipped'))
-  const deliveredOrders = computed(() => orders.value.filter(order => order.status === 'delivered'))
+  const verifiedOrders = computed(() => orders.value.filter(order => order.status === 'verified'))
   const cancelledOrders = computed(() => orders.value.filter(order => order.status === 'cancelled'))
   const refundedOrders = computed(() => orders.value.filter(order => order.status === 'refunded'))
 
@@ -336,8 +335,7 @@ export const useOrderStore = defineStore('orders', () => {
     totalOrders,
     pendingOrders,
     paidOrders,
-    shippedOrders,
-    deliveredOrders,
+    verifiedOrders,
     cancelledOrders,
     refundedOrders,
 

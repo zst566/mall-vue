@@ -1,6 +1,6 @@
 <template>
   <van-nav-bar
-    :title="title"
+    :title="displayTitle"
     :left-arrow="showBack"
     :right-arrow="showRight"
     :fixed="true"
@@ -37,13 +37,29 @@
     showBack?: boolean
     showRight?: boolean
     hideHeader?: boolean
+    showTitle?: boolean
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    title: '滨江宏岸商场',
+    title: '',
     showBack: false,
     showRight: false,
-    hideHeader: false
+    hideHeader: false,
+    showTitle: false
+  })
+
+  // 计算显示的标题：如果传入了 title 或 showTitle 为 true，则显示标题
+  const displayTitle = computed(() => {
+    // 如果明确传入了 title，则显示
+    if (props.title) {
+      return props.title
+    }
+    // 如果 showTitle 为 true，显示默认标题
+    if (props.showTitle) {
+      return '滨江宏岸商场'
+    }
+    // 默认不显示标题
+    return ''
   })
 
   // 计算是否显示头部

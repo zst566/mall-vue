@@ -293,29 +293,13 @@
       event.stopPropagation()
     }
     
-    console.log('========== [PromotionDetail] 立即购买按钮被点击 ==========')
-    console.log('📦 促销活动信息:', {
-      id: promotionId,
-      name: promotion.name,
-      leftQuantity: leftQuantity.value,
-      promotionMode: promotion.promotionMode
-    })
-    
     if (leftQuantity.value <= 0) {
-      console.warn('⚠️ 促销活动已售罄')
       showToast('该促销活动已售罄')
       return
     }
 
     // 检查用户是否登录
-    console.log('🔐 检查用户登录状态:', {
-      isAuthenticated: authStore.isAuthenticated,
-      hasUser: !!authStore.user,
-      userId: authStore.user?.id
-    })
-    
     if (!authStore.isAuthenticated || !authStore.user) {
-      console.warn('⚠️ 用户未登录')
       showToast('请先登录')
       router.push({ name: 'Login' })
       return
@@ -324,35 +308,22 @@
     const userId = authStore.user.id
     const promotionMode = promotion.promotionMode
 
-    console.log('✅ 用户已登录，开始购买流程')
-    console.log('📋 购买参数:', {
-      userId,
-      promotionMode
-    })
-
     try {
       showLoadingToast({
-        message: '处理中...',
+        message: '跳转中...',
         forbidClick: true,
         duration: 0
       })
 
       // 根据分账模式处理
       if (promotionMode === 'points_exchange') {
-        console.log('🔄 使用积分兑换模式')
         // 积分兑换模式
         await handlePointsExchangePurchase(userId)
       } else {
-        console.log('🔄 使用支付模式')
         // 商场补贴/普通分账模式
         await handlePaymentPurchase(userId)
       }
     } catch (error: any) {
-      console.error('========== [PromotionDetail] 购买失败 ==========')
-      console.error('❌ 错误类型:', error?.constructor?.name)
-      console.error('❌ 错误消息:', error?.message)
-      console.error('❌ 错误堆栈:', error?.stack)
-      console.error('❌ 完整错误对象:', error)
       closeToast()
       showToast(error.message || '购买失败，请稍后重试')
     }
@@ -406,20 +377,13 @@
       const checkWx = () => {
         attempts++
         const hasWx = typeof window !== 'undefined' && !!window.wx?.miniProgram
-        console.log(`🔍 [PromotionDetail] 等待 wx 对象注入 (尝试 ${attempts}/${maxAttempts})...`, {
-          hasWx,
-          hasWindow: typeof window !== 'undefined',
-          windowWx: window.wx
-        })
         
         if (hasWx) {
-          console.log('✅ [PromotionDetail] wx 对象已注入')
           resolve(true)
           return
         }
         
         if (attempts >= maxAttempts) {
-          console.warn('⚠️ [PromotionDetail] wx 对象等待超时')
           resolve(false)
           return
         }
@@ -432,11 +396,7 @@
 
   // 商场补贴/普通分账模式购买（需要微信支付）
   const handlePaymentPurchase = async (userId: string) => {
-    console.log('========== [PromotionDetail] 开始支付购买流程 ==========')
-    console.log('🛒 促销活动 ID:', promotionId)
-    
     // 先等待 wx 对象注入（微信小程序 webview 会在页面加载后异步注入）
-    console.log('⏳ [PromotionDetail] 等待 wx 对象注入...')
     const wxReady = await waitForWxObject(15, 200) // 最多等待 3 秒（15 * 200ms）
     
     // 检查是否在小程序环境中
@@ -450,40 +410,22 @@
     // 如果只有 postMessage 或 getEnv，也可以认为在小程序环境中
     const isInMiniProgramEnv = hasNavigateTo || hasPostMessage || hasGetEnv || webViewBridge.isInMiniProgram
     
-    console.log('📱 [PromotionDetail] 小程序环境检测:', {
-      wxReady,
-      webViewBridgeIsInMiniProgram: webViewBridge.isInMiniProgram,
-      hasWx: typeof window !== 'undefined' && !!window.wx,
-      hasMiniProgram: !!miniProgram,
-      hasNavigateTo,
-      hasPostMessage,
-      hasGetEnv,
-      isInMiniProgramEnv,
-      windowWx: window.wx,
-      miniProgramObject: miniProgram,
-      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'
-    })
-    
     // 直接跳转到小程序原生支付页面，传递 promotionId
     // 小程序会从后端获取促销活动详情，显示给用户确认，然后创建订单并支付
     const paymentUrl = `/pages/payment/payment?promotionId=${encodeURIComponent(promotionId)}`
-    console.log('📤 [PromotionDetail] 支付页面 URL:', paymentUrl)
     
     // 尝试多种方式跳转
     try {
-      closeToast() // 关闭 loading，因为要跳转了
-      
       // 方式1: 使用 navigateTo（推荐）
       if (hasNavigateTo) {
-        console.log('📤 [PromotionDetail] 使用 navigateTo 跳转...')
         miniProgram.navigateTo({
           url: paymentUrl,
           success: () => {
-            console.log('✅ [PromotionDetail] 跳转到支付页面成功')
+            // 跳转成功，保持loading直到页面切换
+            // loading会在页面切换时自动关闭
           },
           fail: (error: any) => {
-            console.error('❌ [PromotionDetail] navigateTo 跳转失败:', error)
-            console.error('❌ [PromotionDetail] 错误详情:', JSON.stringify(error, null, 2))
+            closeToast()
             // 尝试使用 postMessage 方式
             tryPostMessageFallback(paymentUrl, error)
           }
@@ -493,27 +435,15 @@
       
       // 方式2: 使用 postMessage（备用）
       if (hasPostMessage) {
-        console.log('📤 [PromotionDetail] 使用 postMessage 跳转...')
         tryPostMessageFallback(paymentUrl)
         return
       }
       
-      // 方式3: 都不存在，提示用户（提供更详细的错误信息）
-      console.error('❌ [PromotionDetail] 不在小程序环境或跳转方法不可用')
-      console.error('❌ [PromotionDetail] 详细环境信息:', {
-        wxReady,
-        hasWx: typeof window !== 'undefined' && !!window.wx,
-        hasMiniProgram: !!miniProgram,
-        hasNavigateTo,
-        hasPostMessage,
-        hasGetEnv,
-        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
-        locationHref: typeof window !== 'undefined' ? window.location.href : 'N/A'
-      })
+      // 方式3: 都不存在，提示用户
+      closeToast()
       showToast('请在微信小程序中打开')
     } catch (error: any) {
-      console.error('❌ [PromotionDetail] 跳转异常:', error)
-      console.error('❌ [PromotionDetail] 异常详情:', JSON.stringify(error, null, 2))
+      closeToast()
       showToast(error.message || '跳转失败，请稍后重试')
     }
   }
@@ -523,19 +453,17 @@
     try {
       const miniProgram = window.wx?.miniProgram as any
       if (miniProgram?.postMessage) {
-        console.log('📤 [PromotionDetail] 尝试使用 postMessage 跳转...')
         miniProgram.postMessage({
           data: {
             type: 'navigate',
             url: paymentUrl
           }
         })
-        console.log('✅ [PromotionDetail] postMessage 已发送')
       } else {
         throw new Error('postMessage 不可用')
       }
     } catch (error: any) {
-      console.error('❌ [PromotionDetail] postMessage 跳转也失败:', error)
+      closeToast()
       showToast(previousError?.errMsg || error.message || '跳转失败，请稍后重试')
     }
   }
@@ -543,21 +471,10 @@
   // 处理微信支付（跳转到小程序支付页面）
   const handleWechatPayment = async (orderId: string, amount: number, order?: any) => {
     try {
-      console.log('========== [PromotionDetail] 开始支付流程 ==========')
-      console.log('💰 准备跳转到小程序原生支付页面')
-      console.log('📱 小程序环境检测:', webViewBridge.isInMiniProgram)
       const miniProgram = window.wx?.miniProgram as any
-      console.log('📱 环境详情:', {
-        hasWindow: typeof window !== 'undefined',
-        hasWx: typeof window !== 'undefined' && !!window.wx,
-        hasMiniProgram: typeof window !== 'undefined' && !!miniProgram,
-        hasNavigateTo: typeof window !== 'undefined' && typeof miniProgram?.navigateTo === 'function',
-        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'
-      })
 
       // 检查是否在小程序环境中
       if (!webViewBridge.isInMiniProgram || !miniProgram?.navigateTo) {
-        console.error('❌ 不在小程序环境或 navigateTo 不可用')
         closeToast()
         showToast('请在微信小程序中打开')
         return
@@ -567,16 +484,12 @@
       // 传递 promotionId，让小程序从后端获取促销活动详情（价格、分账模式等）
       const paymentUrl = `/pages/payment/payment?promotionId=${encodeURIComponent(promotionId)}`
       
-      console.log('📤 [PromotionDetail] 跳转到小程序支付页面:', paymentUrl)
-      
       miniProgram.navigateTo({
         url: paymentUrl,
         success: () => {
-          console.log('✅ [PromotionDetail] 跳转成功')
-          closeToast()
+          // 跳转成功，保持loading直到页面切换
         },
         fail: (error: any) => {
-          console.error('❌ [PromotionDetail] 跳转失败:', error)
           closeToast()
           showToast(error.errMsg || '跳转失败，请稍后重试')
         }
@@ -587,7 +500,6 @@
       // 如果支付成功，支付页面会自动处理跳转
     } catch (error: any) {
       closeToast()
-      console.error('跳转到支付页面失败:', error)
       showToast(error.message || '跳转到支付页面失败，请稍后重试')
     }
   }
@@ -676,9 +588,61 @@
     }, 1000)
   }
 
+  // 处理支付结果消息
+  const handlePaymentResult = (result: any) => {
+    console.log('收到支付结果消息:', result)
+    if (result && result.success) {
+      // 支付成功，刷新促销详情数据
+      console.log('支付成功，刷新促销详情数据')
+      loadPromotionDetail()
+      showToast('支付成功！')
+    }
+  }
+
+  // 页面激活时刷新数据（从收银台返回时）
+  let lastRefreshTime = 0
+  const REFRESH_INTERVAL = 2000 // 2秒内不重复刷新
+  const handlePageActivated = () => {
+    const now = Date.now()
+    // 避免过于频繁的刷新
+    if (now - lastRefreshTime < REFRESH_INTERVAL) {
+      console.log('页面激活刷新被节流，跳过')
+      return
+    }
+    lastRefreshTime = now
+    console.log('页面激活，刷新促销详情数据')
+    loadPromotionDetail()
+  }
+
+  // 页面激活事件处理器
+  let handleVisibilityChange: (() => void) | null = null
+  let handlePageShow: ((event: PageTransitionEvent) => void) | null = null
+
   // 初始化
   onMounted(() => {
     loadPromotionDetail()
+    
+    // 监听支付结果消息
+    webViewBridge.on('paymentResult', handlePaymentResult)
+    
+    // 监听页面激活事件（从其他页面返回时）
+    // 使用 visibilitychange 事件检测页面是否可见
+    handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // 页面变为可见时，刷新数据
+        handlePageActivated()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    // 使用 pageshow 事件检测页面显示（包括从缓存恢复）
+    handlePageShow = (event: PageTransitionEvent) => {
+      // 如果是从缓存恢复的页面，刷新数据
+      if (event.persisted) {
+        handlePageActivated()
+      }
+    }
+    window.addEventListener('pageshow', handlePageShow)
     
     // 等待DOM渲染完成后添加滚动监听
     setTimeout(() => {
@@ -695,6 +659,17 @@
 
   // 清理
   onUnmounted(() => {
+    // 移除支付结果监听
+    webViewBridge.off('paymentResult', handlePaymentResult)
+    
+    // 移除页面激活监听
+    if (handleVisibilityChange) {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+    if (handlePageShow) {
+      window.removeEventListener('pageshow', handlePageShow)
+    }
+    
     // 移除滚动监听
     const appMain = document.querySelector('.app-main') as HTMLElement
     if (appMain) {

@@ -25,13 +25,9 @@
           <span>订单已支付</span>
           <div class="step-time">{{ order.paidAt }}</div>
         </van-step>
-        <van-step v-if="order.shippedAt">
-          <span>订单已发货</span>
-          <div class="step-time">{{ order.shippedAt }}</div>
-        </van-step>
-        <van-step v-if="order.deliveredAt">
-          <span>订单已送达</span>
-          <div class="step-time">{{ order.deliveredAt }}</div>
+        <van-step v-if="order.verifiedAt">
+          <span>订单已核销</span>
+          <div class="step-time">{{ order.verifiedAt }}</div>
         </van-step>
       </van-steps>
     </div>
@@ -100,10 +96,7 @@
         <van-button type="primary" block @click="goToPayment">立即支付</van-button>
         <van-button type="default" block @click="cancelOrder">取消订单</van-button>
       </template>
-      <template v-else-if="order.status === 'shipped'">
-        <van-button type="primary" block @click="confirmReceive">确认���货</van-button>
-      </template>
-      <template v-else-if="order.status === 'delivered'">
+      <template v-else-if="order.status === 'verified'">
         <van-button type="primary" block @click="reviewProduct">评价商品</van-button>
         <van-button type="default" block @click="buyAgain">再次购买</van-button>
       </template>
@@ -129,12 +122,11 @@
     quantity: 1,
     price: 8999,
     totalAmount: 8999,
-    status: 'delivered' as OrderStatus,
+    status: 'verified' as OrderStatus,
     paymentMethod: 'wechat' as const,
     createdAt: '2024-10-15 14:30:00',
     paidAt: '2024-10-15 14:35:00',
-    shippedAt: '2024-10-16 09:20:00',
-    deliveredAt: '2024-10-17 16:45:00',
+    verifiedAt: '2024-10-17 16:45:00',
     shippingAddress: {
       name: '张三',
       phone: '138****8888',
@@ -151,10 +143,10 @@
   // 订单状态配置
   const orderStatusMap = {
     pending: { label: '待支付', color: '#ff976a' },
-    paid: { label: '待发货', color: '#1989fa' },
-    shipped: { label: '待收货', color: '#ff976a' },
-    delivered: { label: '已完成', color: '#07c160' },
-    cancelled: { label: '已取消', color: '#969799' }
+    paid: { label: '已支付（待使用）', color: '#1989fa' },
+    verified: { label: '已核销（已使用）', color: '#07c160' },
+    cancelled: { label: '已取消', color: '#969799' },
+    refunded: { label: '已退款', color: '#969799' }
   }
 
   // 支付方式配置
@@ -172,10 +164,8 @@
         return 0
       case 'paid':
         return 1
-      case 'shipped':
+      case 'verified':
         return 2
-      case 'delivered':
-        return 3
       case 'cancelled':
         return 0
       default:
@@ -312,12 +302,7 @@
           color: #1989fa;
         }
 
-        &.shipped {
-          background: rgba(255, 151, 106, 0.1);
-          color: #ff976a;
-        }
-
-        &.delivered {
+        &.verified {
           background: rgba(7, 193, 96, 0.1);
           color: #07c160;
         }

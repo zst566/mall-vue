@@ -43,7 +43,7 @@ export const createApiInstance = (): AxiosInstance => {
       config.headers['X-Request-ID'] = generateRequestId()
 
       console.log(`[${config.method?.toUpperCase()}] ${config.url}`, {
-        params: config.params,
+        params: JSON.stringify(config.params, null, 2),
         data: config.data,
         headers: config.headers
       })
@@ -214,6 +214,20 @@ export class BaseApiService {
 
   // GET请求
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    // 确保 params 中的值不会被过滤（包括 false 和空字符串）
+    if (config?.params) {
+      // 使用 paramsSerializer 确保所有参数都被正确序列化
+      // axios 的 paramsSerializer 可以是函数或对象
+      config.paramsSerializer = (params: any) => {
+        const searchParams = new URLSearchParams()
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            searchParams.append(key, String(value))
+          }
+        })
+        return searchParams.toString()
+      }
+    }
     const response = await retryRequest(() =>
       this.client.get<ApiResponse<T>>(url, config)
     )

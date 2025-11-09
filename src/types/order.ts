@@ -4,7 +4,7 @@ import type { Order, OrderQueryParams, MerchantOrderQueryParams, Address, Paymen
 import type { OrderSettlementResult, SettlementMode } from './payment'
 
 // 订单状态类型
-export type OrderStatus = 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
+export type OrderStatus = 'pending' | 'paid' | 'verified' | 'cancelled' | 'refunded'
 
 // 订单状态配置
 export const OrderStatusConfig = {
@@ -15,20 +15,14 @@ export const OrderStatusConfig = {
     nextStates: ['paid', 'cancelled']
   },
   paid: {
-    label: '已支付',
+    label: '已支付（待使用）',
     color: '#07c160',
-    action: 'shipping',
-    nextStates: ['shipped', 'refunded']
+    action: 'verify',
+    nextStates: ['verified', 'refunded']
   },
-  shipped: {
-    label: '已发货',
+  verified: {
+    label: '已核销（已使用）',
     color: '#1989fa',
-    action: 'delivery',
-    nextStates: ['delivered', 'returned']
-  },
-  delivered: {
-    label: '已送达',
-    color: '#07c160',
     action: 'complete',
     nextStates: []
   },

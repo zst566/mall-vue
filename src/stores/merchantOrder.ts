@@ -118,7 +118,7 @@ export const useMerchantOrderStore = defineStore('merchantOrder', () => {
           customerName: '王五',
           customerPhone: '13700137000',
           customerAvatar: '/avatars/customer3.jpg',
-          status: 'shipped',
+          status: 'verified',
           paymentMethod: 'wechat',
           paymentStatus: 'paid',
           totalAmount: 1599.00,
@@ -126,7 +126,7 @@ export const useMerchantOrderStore = defineStore('merchantOrder', () => {
           updatedAt: '2024-10-16T16:00:00Z',
           paidAt: '2024-10-16T09:30:00Z',
           confirmedAt: '2024-10-16T10:00:00Z',
-          shippedAt: '2024-10-16T16:00:00Z',
+          verifiedAt: '2024-10-16T16:00:00Z',
           receiverName: '王五',
           receiverPhone: '13700137000',
           shippingAddress: {
@@ -345,9 +345,9 @@ export const useMerchantOrderStore = defineStore('merchantOrder', () => {
       if (index !== -1) {
         orderList.value[index] = {
           ...orderList.value[index],
-          status: 'shipped',
+          status: 'verified',
           updatedAt: new Date().toISOString(),
-          shippedAt: new Date().toISOString()
+          verifiedAt: new Date().toISOString()
         }
 
         if (currentOrder.value?.id === id) {

@@ -14,10 +14,9 @@
       <div class="filter-tabs">
         <van-tabs v-model="activeTab" @change="onTabChange">
           <van-tab title="全部" name="all" />
+          <van-tab title="待使用" name="unused" />
           <van-tab title="待支付" name="pending" />
-          <van-tab title="待发货" name="paid" />
-          <van-tab title="待收货" name="shipped" />
-          <van-tab title="已完成" name="delivered" />
+          <van-tab title="已使用" name="used" />
           <van-tab title="已取消" name="cancelled" />
         </van-tabs>
       </div>
@@ -42,11 +41,11 @@
         >
           <div class="order-header">
             <div class="order-info">
-              <span class="order-no">订单号：{{ order.orderNo }}</span>
-              <span class="order-time">{{ formatDate(order.createdAt) }}</span>
+              <div class="order-no">订单号：{{ order.orderNo }}</div>
+              <div class="order-time">{{ formatDateTime(order.createdAt) }}</div>
             </div>
-            <div class="order-status" :class="order.status">
-              {{ getStatusLabel(order.status) }}
+            <div class="order-status" :class="getOrderDisplayStatus(order)">
+              {{ getStatusLabel(order) }}
             </div>
           </div>
 
@@ -70,19 +69,10 @@
                 size="small"
                 type="primary"
                 plain
-                v-if="order.status === 'pending'"
+                v-if="getOrderDisplayStatus(order) === 'pending'"
                 @click.stop="goToPayment(order)"
               >
                 去支付
-              </van-button>
-              <van-button
-                size="small"
-                type="primary"
-                plain
-                v-if="order.status === 'shipped'"
-                @click.stop="confirmReceive(order)"
-              >
-                确认收货
               </van-button>
               <van-button size="small" type="default" plain @click.stop="viewOrderDetail(order)">
                 查看详情
@@ -101,13 +91,16 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted, computed } from 'vue'
+  import { ref, onMounted, onUnmounted } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
   import { showToast, showLoadingToast, closeToast } from 'vant'
   import type { Order } from '@/types'
+  import { orderService } from '@/services/orders'
+  import { useAuthStore } from '@/stores/auth'
 
   const router = useRouter()
   const route = useRoute()
+  const authStore = useAuthStore()
 
   // 搜索相关
   const searchQuery = ref('')
@@ -119,6 +112,9 @@
   // 标签页相关
   const activeTab = ref('all')
   const onTabChange = (name: string) => {
+    console.log('🔄 Tab 切换:', name, '当前 activeTab:', activeTab.value)
+    activeTab.value = name
+    console.log('✅ activeTab 已更新为:', activeTab.value)
     loadOrders(true)
   }
 
@@ -129,183 +125,117 @@
   const page = ref(1)
   const pageSize = ref(10)
 
-  // 模拟订单数据
-  const mockOrders: Order[] = [
-    {
-      id: '1',
-      orderNo: 'ORD20241018001',
-      userId: 'user1',
-      status: 'delivered',
-      totalAmount: 8999,
-      paymentMethod: 'wechat',
-      paymentStatus: 'paid',
-      shippingAddress: {
-        id: 'addr1',
-        name: '张三',
-        phone: '13800138000',
-        province: '广东省',
-        city: '广州市',
-        district: '天河区',
-        detail: '天河路123号',
-        isDefault: true,
-        createdAt: '2024-10-01T00:00:00Z',
-        updatedAt: '2024-10-01T00:00:00Z'
-      },
-      contactName: '张三',
-      contactPhone: '13800138000',
-      isVerified: true,
-      items: [
-        {
-          id: 'item1',
-          productId: 'product1',
-          productName: 'iPhone 15 Pro 256GB',
-          productImage: '/images/product1.jpg',
-          quantity: 1,
-          price: 8999,
-          totalPrice: 8999,
-          specification: '256GB 深空黑色'
-        }
-      ],
-      createdAt: '2024-10-15T14:30:00Z',
-      updatedAt: '2024-10-15T14:30:00Z'
-    },
-    {
-      id: '2',
-      orderNo: 'ORD20241018002',
-      userId: 'user1',
-      status: 'shipped',
-      totalAmount: 6999,
-      paymentMethod: 'alipay',
-      paymentStatus: 'paid',
-      shippingAddress: {
-        id: 'addr2',
-        name: '李四',
-        phone: '13900139000',
-        province: '广东省',
-        city: '深圳市',
-        district: '南山区',
-        detail: '科技园123号',
-        isDefault: false,
-        createdAt: '2024-10-01T00:00:00Z',
-        updatedAt: '2024-10-01T00:00:00Z'
-      },
-      contactName: '李四',
-      contactPhone: '13900139000',
-      isVerified: false,
-      items: [
-        {
-          id: 'item2',
-          productId: 'product2',
-          productName: '华为 Mate 60 Pro',
-          productImage: '/images/product2.jpg',
-          quantity: 1,
-          price: 6999,
-          totalPrice: 6999,
-          specification: '512GB 雅川青'
-        }
-      ],
-      createdAt: '2024-10-16T10:15:00Z',
-      updatedAt: '2024-10-16T10:15:00Z'
-    },
-    {
-      id: '3',
-      orderNo: 'ORD20241018003',
-      userId: 'user1',
-      status: 'paid',
-      totalAmount: 11998,
-      paymentMethod: 'wechat',
-      paymentStatus: 'paid',
-      shippingAddress: {
-        id: 'addr3',
-        name: '王五',
-        phone: '13700137000',
-        province: '广东省',
-        city: '佛山市',
-        district: '禅城区',
-        detail: '祖庙路123号',
-        isDefault: false,
-        createdAt: '2024-10-01T00:00:00Z',
-        updatedAt: '2024-10-01T00:00:00Z'
-      },
-      contactName: '王五',
-      contactPhone: '13700137000',
-      isVerified: false,
-      items: [
-        {
-          id: 'item3',
-          productId: 'product3',
-          productName: '小米14 Ultra',
-          productImage: '/images/product3.jpg',
-          quantity: 2,
-          price: 5999,
-          totalPrice: 11998,
-          specification: '1TB 钛金属'
-        }
-      ],
-      createdAt: '2024-10-17T09:45:00Z',
-      updatedAt: '2024-10-17T09:45:00Z'
-    },
-    {
-      id: '4',
-      orderNo: 'ORD20241018004',
-      userId: 'user1',
-      status: 'pending',
-      totalAmount: 3999,
-      paymentMethod: 'wechat',
-      paymentStatus: 'unpaid',
-      shippingAddress: {
-        id: 'addr4',
-        name: '赵六',
-        phone: '13600136000',
-        province: '广东省',
-        city: '东莞市',
-        district: '南城区',
-        detail: '鸿福路123号',
-        isDefault: false,
-        createdAt: '2024-10-01T00:00:00Z',
-        updatedAt: '2024-10-01T00:00:00Z'
-      },
-      contactName: '赵六',
-      contactPhone: '13600136000',
-      isVerified: false,
-      items: [
-        {
-          id: 'item4',
-          productId: 'product4',
-          productName: 'OPPO Find X6',
-          productImage: '/images/product4.jpg',
-          quantity: 1,
-          price: 3999,
-          totalPrice: 3999,
-          specification: '256GB 雪山金'
-        }
-      ],
-      createdAt: '2024-10-18T16:20:00Z',
-      updatedAt: '2024-10-18T16:20:00Z'
+  // 订单状态映射（后端大写转前端小写）
+  const mapOrderStatus = (status: string): string => {
+    const statusMap: Record<string, string> = {
+      'PENDING': 'pending',
+      'PAID': 'paid',
+      'VERIFIED': 'verified',
+      'CANCELLED': 'cancelled',
+      'REFUNDED': 'refunded'
     }
-  ]
+    return statusMap[status] || status.toLowerCase()
+  }
+
+  // 转换后端订单数据为前端格式
+  const transformOrder = (order: any): Order => {
+    return {
+      ...order,
+      status: mapOrderStatus(order.status),
+      totalAmount: Number(order.finalAmount || order.totalAmount || 0),
+      items: (order.items || []).map((item: any) => ({
+        id: item.id,
+        orderId: item.orderId,
+        productId: item.productId,
+        productName: item.productName || '',
+        productImage: item.productImage || '',
+        quantity: item.quantity || 1,
+        price: Number(item.price || 0),
+        totalPrice: Number(item.subtotal || item.price || 0),
+        specification: item.specification || '',
+        isVerified: item.isVerified || false,
+        verifiedAt: item.verifiedAt,
+        verifiedBy: item.verifiedBy,
+        notes: item.notes
+      })),
+      paymentStatus: order.status === 'PAID' ? 'paid' : order.status === 'PENDING' ? 'unpaid' : 'paid',
+      contactName: order.shippingAddress?.name || '',
+      contactPhone: order.shippingAddress?.phone || '',
+      isVerified: order.isVerified || false
+    }
+  }
+
+  // 订单状态配置（根据status和isVerified组合判断）
+  const getOrderDisplayStatus = (order: Order): string => {
+    if (order.status === 'cancelled') {
+      return 'cancelled'
+    }
+    if (order.status === 'refunded') {
+      return 'refunded'
+    }
+    if (order.status === 'verified') {
+      return 'used'
+    }
+    if (order.status === 'pending') {
+      return 'pending'
+    }
+    if (order.status === 'paid') {
+      return 'unused'
+    }
+    // 兼容处理：如果订单已核销但状态不是 verified，则显示已使用
+    return order.isVerified ? 'used' : 'unused'
+  }
 
   // 订单状态配置
   const orderStatusMap = {
     pending: { label: '待支付', color: '#ff976a' },
-    paid: { label: '待发货', color: '#1989fa' },
-    shipped: { label: '待收货', color: '#ff976a' },
-    delivered: { label: '已完成', color: '#07c160' },
+    unused: { label: '待使用', color: '#1989fa' },
+    used: { label: '已使用', color: '#07c160' },
     cancelled: { label: '已取消', color: '#969799' }
   }
 
   // 获取状态标签
-  const getStatusLabel = (status: string) => {
-    return orderStatusMap[status as keyof typeof orderStatusMap]?.label || status
+  const getStatusLabel = (order: Order) => {
+    const displayStatus = getOrderDisplayStatus(order)
+    return orderStatusMap[displayStatus as keyof typeof orderStatusMap]?.label || displayStatus
   }
 
-  // 格式化日期
-  const formatDate = (dateStr: string) => {
-    return dateStr.split(' ')[0]
+  // 格式化日期时间（后端返回的是北京时间，直接格式化显示，不进行时区转换）
+  const formatDateTime = (dateStr: string | Date) => {
+    if (!dateStr) return ''
+    
+    // 如果是字符串，直接解析（假设后端返回的是 ISO 8601 格式或标准格式）
+    let date: Date
+    if (typeof dateStr === 'string') {
+      date = new Date(dateStr)
+    } else {
+      date = dateStr
+    }
+    
+    // 检查日期是否有效
+    if (isNaN(date.getTime())) {
+      return String(dateStr)
+    }
+    
+    // 格式化：YYYY-MM-DD HH:mm
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}`
   }
 
   // 加载订单
-  const loadOrders = (reset = false) => {
+  const loadOrders = async (reset = false) => {
+    // 检查用户是否登录
+    if (!authStore.isAuthenticated || !authStore.user) {
+      showToast('请先登录')
+      router.push({ name: 'Login' })
+      return
+    }
+
     if (reset) {
       page.value = 1
       orders.value = []
@@ -321,40 +251,99 @@
       duration: 0
     })
 
-    // 模拟API请求延迟
-    setTimeout(() => {
-      let filteredOrders = [...mockOrders]
+    try {
+      // 构建查询参数（使用当前页码）
+      const currentPage = reset ? 1 : page.value
+      const params: any = {
+        page: currentPage,
+        limit: pageSize.value
+      }
 
-      // 搜索过滤
+      // 状态过滤（将前端状态转换为后端查询参数）
+      if (activeTab.value !== 'all') {
+        if (activeTab.value === 'pending') {
+          // 待支付：status = PENDING
+          params.status = 'PENDING'
+        } else if (activeTab.value === 'unused') {
+          // 待使用：status = PAID && isVerified = false
+          params.status = 'PAID'
+          params.isVerified = 'false' // 使用字符串，因为URL参数是字符串
+        } else if (activeTab.value === 'used') {
+          // 已使用：isVerified = true（不限制status，因为已核销的订单可能处于不同状态）
+          params.isVerified = 'true' // 使用字符串，因为URL参数是字符串
+        } else if (activeTab.value === 'cancelled') {
+          // 已取消：status = CANCELLED
+          params.status = 'CANCELLED'
+        }
+      }
+
+      // 调用 API 获取订单列表
+      console.log('📋 订单查询参数:', JSON.stringify(params, null, 2))
+      const response = await orderService.getOrders(params)
+      
+      // 处理响应数据
+      let newOrders: Order[] = []
+      if (response.data && Array.isArray(response.data)) {
+        // 如果返回的是 { data: [], pagination: {} } 格式
+        newOrders = response.data.map(transformOrder)
+        // 更新分页信息
+        if (response.pagination) {
+          hasMore.value = page.value < response.pagination.totalPages
+        }
+      } else if (Array.isArray(response)) {
+        // 如果直接返回数组（兼容旧格式）
+        newOrders = response.map(transformOrder)
+      }
+
+      // 前端搜索过滤（如果后端不支持搜索）
       if (searchQuery.value.trim()) {
         const query = searchQuery.value.toLowerCase()
-        filteredOrders = filteredOrders.filter(
+        newOrders = newOrders.filter(
           order =>
             order.items.some(item => item.productName.toLowerCase().includes(query)) ||
             order.orderNo.toLowerCase().includes(query)
         )
       }
 
-      // 状态过滤
-      if (activeTab.value !== 'all') {
-        filteredOrders = filteredOrders.filter(order => order.status === activeTab.value)
+      if (reset) {
+        orders.value = newOrders
+        page.value = 1
+      } else {
+        orders.value.push(...newOrders)
       }
 
-      // 分页
-      const startIndex = (page.value - 1) * pageSize.value
-      const endIndex = startIndex + pageSize.value
-      const newOrders = filteredOrders.slice(startIndex, endIndex)
-
-      orders.value.push(...newOrders)
-      hasMore.value = endIndex < filteredOrders.length
+      // 更新分页信息
+      if (response.pagination) {
+        // 更新页码（下次加载下一页）
+        page.value = response.pagination.page + 1
+        hasMore.value = page.value <= response.pagination.totalPages
+      } else {
+        // 如果没有返回数据，说明没有更多了
+        if (newOrders.length < pageSize.value) {
+          hasMore.value = false
+        } else {
+          // 如果有数据，假设还有更多，下次加载下一页
+          page.value += 1
+        }
+      }
 
       loading.value = false
       closeToast()
 
-      if (reset) {
+      if (reset && newOrders.length > 0) {
         showToast('刷新成功')
       }
-    }, 1000)
+    } catch (error: any) {
+      console.error('加载订单失败:', error)
+      loading.value = false
+      closeToast()
+      showToast(error.message || '加载订单失败，请稍后重试')
+      
+      // 如果是未授权错误，跳转到登录页
+      if (error.message?.includes('登录') || error.message?.includes('未授权')) {
+        router.push({ name: 'Login' })
+      }
+    }
   }
 
   // 导航到订单详情
@@ -382,9 +371,31 @@
     goToOrderDetail(order.id)
   }
 
+  // 滚动加载更多
+  const handleScroll = () => {
+    if (loading.value || !hasMore.value) return
+    
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+    const windowHeight = window.innerHeight
+    const documentHeight = document.documentElement.scrollHeight
+    
+    // 距离底部 100px 时加载更多
+    if (scrollTop + windowHeight >= documentHeight - 100) {
+      loadOrders(false)
+    }
+  }
+
   // 初始化
   onMounted(() => {
     loadOrders()
+    
+    // 监听滚动事件，实现滚动加载更多
+    window.addEventListener('scroll', handleScroll, { passive: true })
+  })
+
+  // 清理
+  onUnmounted(() => {
+    window.removeEventListener('scroll', handleScroll)
   })
 </script>
 
@@ -448,10 +459,14 @@
         border-bottom: 1px solid var(--van-border-color);
 
         .order-info {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          
           .order-no {
             font-size: 14px;
             color: var(--van-text-color);
-            margin-bottom: 4px;
+            font-weight: 500;
           }
 
           .order-time {
@@ -468,15 +483,11 @@
             color: #ff976a;
           }
 
-          &.paid {
+          &.unused {
             color: #1989fa;
           }
 
-          &.shipped {
-            color: #ff976a;
-          }
-
-          &.delivered {
+          &.used {
             color: #07c160;
           }
 
