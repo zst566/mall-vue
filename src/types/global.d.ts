@@ -8,6 +8,7 @@ declare global {
       miniProgram?: {
         postMessage?: (data: any) => void
         getEnv?: (callback: (res: { miniprogram: boolean }) => void) => void
+        navigateTo?: (options: { url: string; success?: () => void; fail?: (error: any) => void }) => void
       }
     }
   }

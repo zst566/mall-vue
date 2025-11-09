@@ -399,10 +399,45 @@
     }, 1500)
   }
 
+  // 等待 wx 对象注入（微信小程序 webview 会在页面加载后异步注入）
+  const waitForWxObject = (maxAttempts = 10, interval = 200): Promise<boolean> => {
+    return new Promise((resolve) => {
+      let attempts = 0
+      const checkWx = () => {
+        attempts++
+        const hasWx = typeof window !== 'undefined' && !!window.wx?.miniProgram
+        console.log(`🔍 [PromotionDetail] 等待 wx 对象注入 (尝试 ${attempts}/${maxAttempts})...`, {
+          hasWx,
+          hasWindow: typeof window !== 'undefined',
+          windowWx: window.wx
+        })
+        
+        if (hasWx) {
+          console.log('✅ [PromotionDetail] wx 对象已注入')
+          resolve(true)
+          return
+        }
+        
+        if (attempts >= maxAttempts) {
+          console.warn('⚠️ [PromotionDetail] wx 对象等待超时')
+          resolve(false)
+          return
+        }
+        
+        setTimeout(checkWx, interval)
+      }
+      checkWx()
+    })
+  }
+
   // 商场补贴/普通分账模式购买（需要微信支付）
   const handlePaymentPurchase = async (userId: string) => {
     console.log('========== [PromotionDetail] 开始支付购买流程 ==========')
     console.log('🛒 促销活动 ID:', promotionId)
+    
+    // 先等待 wx 对象注入（微信小程序 webview 会在页面加载后异步注入）
+    console.log('⏳ [PromotionDetail] 等待 wx 对象注入...')
+    const wxReady = await waitForWxObject(15, 200) // 最多等待 3 秒（15 * 200ms）
     
     // 检查是否在小程序环境中
     // 优先检查 navigateTo 是否存在，因为这是最直接的判断方式
@@ -415,7 +450,8 @@
     // 如果只有 postMessage 或 getEnv，也可以认为在小程序环境中
     const isInMiniProgramEnv = hasNavigateTo || hasPostMessage || hasGetEnv || webViewBridge.isInMiniProgram
     
-    console.log('📱 小程序环境检测:', {
+    console.log('📱 [PromotionDetail] 小程序环境检测:', {
+      wxReady,
       webViewBridgeIsInMiniProgram: webViewBridge.isInMiniProgram,
       hasWx: typeof window !== 'undefined' && !!window.wx,
       hasMiniProgram: !!miniProgram,
@@ -424,7 +460,8 @@
       hasGetEnv,
       isInMiniProgramEnv,
       windowWx: window.wx,
-      miniProgramObject: miniProgram
+      miniProgramObject: miniProgram,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'
     })
     
     // 直接跳转到小程序原生支付页面，传递 promotionId
@@ -461,8 +498,18 @@
         return
       }
       
-      // 方式3: 都不存在，提示用户
-      console.error('❌ 不在小程序环境或跳转方法不可用')
+      // 方式3: 都不存在，提示用户（提供更详细的错误信息）
+      console.error('❌ [PromotionDetail] 不在小程序环境或跳转方法不可用')
+      console.error('❌ [PromotionDetail] 详细环境信息:', {
+        wxReady,
+        hasWx: typeof window !== 'undefined' && !!window.wx,
+        hasMiniProgram: !!miniProgram,
+        hasNavigateTo,
+        hasPostMessage,
+        hasGetEnv,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
+        locationHref: typeof window !== 'undefined' ? window.location.href : 'N/A'
+      })
       showToast('请在微信小程序中打开')
     } catch (error: any) {
       console.error('❌ [PromotionDetail] 跳转异常:', error)

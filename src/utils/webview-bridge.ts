@@ -35,12 +35,47 @@ class WebViewBridge {
    */
   private init() {
     console.log('🔧 [WebView Bridge] 开始初始化...')
+    this.detectEnvironment()
+    
+    // 监听来自小程序的消息
+    if (typeof window !== 'undefined') {
+      window.addEventListener('message', this.handleMiniProgramMessage.bind(this))
+      console.log('🔧 [WebView Bridge] 已设置 message 事件监听器')
+    }
+    
+    // 在页面加载完成后重新检测环境（wx 对象可能在页面加载后才注入）
+    if (typeof window !== 'undefined') {
+      if (document.readyState === 'complete') {
+        // 页面已经加载完成，延迟一点再检测
+        setTimeout(() => this.detectEnvironment(), 500)
+      } else {
+        // 等待页面加载完成
+        window.addEventListener('load', () => {
+          setTimeout(() => this.detectEnvironment(), 500)
+        })
+      }
+      
+      // 也监听 DOMContentLoaded 事件
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          setTimeout(() => this.detectEnvironment(), 500)
+        })
+      }
+    }
+  }
+
+  /**
+   * 检测小程序环境
+   */
+  private detectEnvironment() {
+    console.log('🔧 [WebView Bridge] 检测小程序环境...')
     console.log('🔧 [WebView Bridge] 环境检测:', {
       hasWindow: typeof window !== 'undefined',
       hasWx: typeof window !== 'undefined' && !!window.wx,
       hasMiniProgram: typeof window !== 'undefined' && !!window.wx?.miniProgram,
       hasGetEnv: typeof window !== 'undefined' && typeof window.wx?.miniProgram?.getEnv === 'function',
-      hasPostMessage: typeof window !== 'undefined' && typeof window.wx?.miniProgram?.postMessage === 'function'
+      hasPostMessage: typeof window !== 'undefined' && typeof window.wx?.miniProgram?.postMessage === 'function',
+      hasNavigateTo: typeof window !== 'undefined' && typeof window.wx?.miniProgram?.navigateTo === 'function'
     })
     
     // 检查是否在微信小程序环境中
@@ -58,21 +93,16 @@ class WebViewBridge {
           }
         })
       } else {
-        // 如果没有 getEnv，但有 postMessage，也认为是在小程序环境中
-        if (typeof window.wx.miniProgram.postMessage === 'function') {
+        // 如果没有 getEnv，但有 postMessage 或 navigateTo，也认为是在小程序环境中
+        if (typeof window.wx.miniProgram.postMessage === 'function' || 
+            typeof window.wx.miniProgram.navigateTo === 'function') {
           this.isInMiniProgram = true
-          console.log('✅ [WebView Bridge] 检测到 postMessage，假设在小程序环境中')
+          console.log('✅ [WebView Bridge] 检测到 postMessage 或 navigateTo，假设在小程序环境中')
           this.setupMessageListener()
         }
       }
     } else {
-      console.log('⚠️ [WebView Bridge] 未检测到微信小程序环境')
-    }
-
-    // 监听来自小程序的消息
-    if (typeof window !== 'undefined') {
-      window.addEventListener('message', this.handleMiniProgramMessage.bind(this))
-      console.log('🔧 [WebView Bridge] 已设置 message 事件监听器')
+      console.log('⚠️ [WebView Bridge] 未检测到微信小程序环境（wx 对象可能尚未注入）')
     }
   }
 
