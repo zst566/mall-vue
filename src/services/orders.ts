@@ -54,8 +54,18 @@ export class OrderService extends BaseApiService {
   // 获取订单详情
   async getOrderDetail(orderId: string): Promise<Order> {
     try {
-      const response = await this.client<Order>(`/orders/${orderId}`)
-      return response.data
+      const orderData = await this.get<Order>(`/orders/${orderId}`)
+      return orderData
+    } catch (error) {
+      throw new Error(this.handleApiError(error))
+    }
+  }
+
+  // 获取订单二维码
+  async getOrderQRCode(orderId: string): Promise<{ qrCodeData: string; orderId: string; orderNo: string }> {
+    try {
+      const result = await this.get<{ qrCodeData: string; orderId: string; orderNo: string }>(`/orders/${orderId}/qr-code`)
+      return result
     } catch (error) {
       throw new Error(this.handleApiError(error))
     }
@@ -80,26 +90,51 @@ export class OrderService extends BaseApiService {
   }
 
   // 申请退款
-  async requestRefund(orderId: string, reason: string, refundAmount?: number, images?: File[]): Promise<void> {
+  async requestRefund(
+    orderId: string,
+    refundReasonId: string,
+    requestedAmount?: number,
+    description?: string,
+    images?: string[],
+    contactPhone?: string
+  ): Promise<void> {
     try {
-      const formData = new FormData()
-      formData.append('reason', reason)
-
-      if (refundAmount !== undefined) {
-        formData.append('refundAmount', refundAmount.toString())
-      }
-
-      if (images) {
-        images.forEach((image, index) => {
-          formData.append(`images[${index}]`, image)
-        })
-      }
-
-      await this.client.post(`/orders/${orderId}/refund`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+      await this.client.post(`/orders/${orderId}/refund-request`, {
+        refundReasonId,
+        requestedAmount,
+        description,
+        images,
+        contactPhone
       })
+    } catch (error) {
+      throw new Error(this.handleApiError(error))
+    }
+  }
+
+  // 撤销退款申请
+  async cancelRefundRequest(orderId: string): Promise<void> {
+    try {
+      await this.client.post(`/orders/${orderId}/refund-request/cancel`)
+    } catch (error) {
+      throw new Error(this.handleApiError(error))
+    }
+  }
+
+  // 获取退款申请详情
+  async getRefundRequestDetail(orderId: string): Promise<any> {
+    try {
+      const response = await this.client.get(`/orders/${orderId}/refund-request`)
+      return response.data
+    } catch (error) {
+      throw new Error(this.handleApiError(error))
+    }
+  }
+
+  // 获取退款原因列表
+  async getRefundReasons(): Promise<any[]> {
+    try {
+      const response = await this.client.get<{ success: boolean; data: any[] }>('/refund-reasons')
+      return response.data?.data || []
     } catch (error) {
       throw new Error(this.handleApiError(error))
     }

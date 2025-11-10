@@ -95,6 +95,19 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
+    path: '/order/:id/refund-request',
+    name: 'RefundRequest',
+    component: () => import('@/views/customer/RefundRequest.vue'),
+    meta: {
+      title: '申请退款',
+      permission: 'customer' as Permission,
+      requiresAuth: true,
+      hideHeader: false,
+      hideFooter: false,
+      hideVersionSwitcher: false
+    }
+  },
+  {
     path: '/address',
     name: 'Address',
     component: () => import('@/views/customer/Address.vue'),
