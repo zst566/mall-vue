@@ -56,10 +56,10 @@
           <h4 class="product-name">{{ order.productName }}</h4>
           <div class="product-specs">
             <span>数量：{{ order.quantity }}</span>
-            <span>单价：¥{{ order.price }}</span>
+            <span>单价：¥{{ formatMoney(order.price) }}</span>
           </div>
         </div>
-        <div class="product-price">¥{{ order.totalAmount }}</div>
+        <div class="product-price">¥{{ formatMoney(order.totalAmount) }}</div>
       </div>
     </div>
 
@@ -69,7 +69,7 @@
       <div class="payment-details">
         <div class="payment-row">
           <span>商品金额</span>
-          <span>¥{{ order.price * order.quantity }}</span>
+          <span>¥{{ formatMoney(order.price * order.quantity) }}</span>
         </div>
         <div class="payment-row">
           <span>运费</span>
@@ -77,7 +77,7 @@
         </div>
         <div class="payment-row total">
           <span>实付金额</span>
-          <span class="total-amount">¥{{ order.totalAmount }}</span>
+          <span class="total-amount">¥{{ formatMoney(order.totalAmount) }}</span>
         </div>
         <div class="payment-row">
           <span>支付方式</span>
@@ -110,6 +110,7 @@
   import { useRouter } from 'vue-router'
   import { showToast, showLoadingToast, closeToast, showDialog } from 'vant'
   import type { OrderStatus } from '@/types'
+  import { formatMoney } from '@/utils/format'
 
   const router = useRouter()
 

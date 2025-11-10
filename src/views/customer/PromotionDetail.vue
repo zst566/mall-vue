@@ -124,6 +124,7 @@
   import { PointsService } from '@/services/points'
   import { useAuthStore } from '@/stores/auth'
   import webViewBridge from '@/utils/webview-bridge'
+  import { formatMoney } from '@/utils/format'
 
   const router = useRouter()
   const route = useRoute()
@@ -242,12 +243,8 @@
     return ''
   }
 
-  // 格式化价格（从分转换为元，统一使用与首页相同的处理标准）
-  const formatPrice = (price: number): string => {
-    if (!price && price !== 0) return '0.00'
-    // 统一金额存储规则：后端直接返回元值，无需转换
-    return Number(price).toFixed(2)
-  }
+  // 格式化价格（统一使用 formatMoney，包含千分位分隔符）
+  const formatPrice = formatMoney
 
   // 格式化日期范围
   const formatDateRange = (start: string, end: string): string => {

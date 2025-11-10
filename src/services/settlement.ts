@@ -1,3 +1,4 @@
+import { formatMoney } from '@/utils/format'
 import type { 
   PaymentMethodConfig, 
   OrderSettlementParams, 
@@ -28,8 +29,8 @@ export class OrderSettlementService {
         code: 'wechat',
         feeRate: 0.6, // 0.6%
         enabled: true,
-        minFee: 1, // 1分
-        maxFee: 10000, // 100元
+        minFee: 0.01, // 0.01元
+        maxFee: 100, // 100元
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       },
@@ -39,8 +40,8 @@ export class OrderSettlementService {
         code: 'alipay',
         feeRate: 0.6, // 0.6%
         enabled: true,
-        minFee: 1,
-        maxFee: 10000,
+        minFee: 0.01,
+        maxFee: 100,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       },
@@ -135,17 +136,17 @@ export class OrderSettlementService {
 
   /**
    * 计算支付手续费
-   * @param amount 订单金额（分）
+   * @param amount 订单金额（元）
    * @param config 支付方式配置
-   * @returns 手续费（分）
+   * @returns 手续费（元）
    */
   private calculatePaymentFee(amount: number, config: PaymentMethodConfig): number {
     if (config.feeRate === 0) {
       return 0
     }
 
-    // 计算手续费
-    let fee = Math.round(amount * config.feeRate / 100)
+    // 计算手续费：feeRate 是百分比（如 0.6 表示 0.6%），需要除以 100
+    let fee = amount * config.feeRate / 100
 
     // 应用最小手续费限制
     if (config.minFee && fee < config.minFee) {
@@ -276,12 +277,12 @@ export class OrderSettlementService {
   }
 
   /**
-   * 格式化金额显示（统一金额存储规则：直接格式化元值）
+   * 格式化金额显示（统一金额存储规则：使用 formatMoney，包含千分位分隔符）
    * @param amount 金额（元）
    * @returns 格式化后的金额字符串
    */
   formatAmount(amount: number): string {
-    return Number(amount).toFixed(2)
+    return formatMoney(amount)
   }
 
   /**

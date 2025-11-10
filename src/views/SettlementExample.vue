@@ -129,12 +129,12 @@
 
   const form = reactive<OrderSettlementParams>({
     orderId: '',
-    totalAmount: 10000, // 100元
+    totalAmount: 100, // 100元
     paymentMethod: 'wechat',
     settlementMode: 'normal_split',
     splitRatio: 0.8,
-    subsidyAmount: 300, // 3元
-    settlementPrice: 6000, // 60元
+    subsidyAmount: 3, // 3元
+    settlementPrice: 60, // 60元
     quantity: 1
   })
 

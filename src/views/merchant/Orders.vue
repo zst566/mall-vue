@@ -197,6 +197,7 @@
   import { merchantService } from '@/services/merchant'
   import { useRouter } from 'vue-router'
   import type { MerchantOrder, MerchantOrderStatus } from '@/types'
+  import { formatMoney } from '@/utils/format'
 
   // 订单列表
   const orderList = ref<MerchantOrder[]>([])
@@ -264,9 +265,8 @@
     })
   }
 
-  const formatAmount = (amount: number): string => {
-    return amount.toFixed(2)
-  }
+  // 格式化金额（统一使用 formatMoney，包含千分位分隔符）
+  const formatAmount = formatMoney
 
   // 加载订单列表
   const loadOrders = async () => {

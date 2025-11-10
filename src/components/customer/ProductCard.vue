@@ -44,7 +44,7 @@
       <div class="price-section">
         <div class="current-price">
           <span class="currency">¥</span>
-          <span class="price">{{ product.price }}</span>
+          <span class="price">{{ formatMoney(product.price) }}</span>
           <span v-if="product.originalPrice && product.originalPrice > product.price" class="unit">
             起
           </span>
@@ -55,7 +55,7 @@
           class="original-price"
         >
           <span class="currency-strike">¥</span>
-          <span class="price-strike">{{ product.originalPrice }}</span>
+          <span class="price-strike">{{ formatMoney(product.originalPrice) }}</span>
         </div>
       </div>
 
@@ -115,6 +115,7 @@
   import { useRouter } from 'vue-router'
   import { showToast, showLoadingToast, closeToast } from 'vant'
   import type { Product } from '@/types'
+  import { formatMoney } from '@/utils/format'
 
   interface Props {
     product: Product

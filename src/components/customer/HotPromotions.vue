@@ -21,8 +21,8 @@
           <div class="promo-title">{{ item.title }}</div>
           <div class="promo-sub">剩余 {{ item.left }} 件</div>
           <div class="promo-price-wrap">
-            <span class="promo-price">¥{{ item.price }}</span>
-            <span class="promo-origin" v-if="item.origin && item.origin > item.price">¥{{ item.origin }}</span>
+            <span class="promo-price">¥{{ formatMoney(item.price) }}</span>
+            <span class="promo-origin" v-if="item.origin && item.origin > item.price">¥{{ formatMoney(item.origin) }}</span>
           </div>
         </div>
       </div>
@@ -34,6 +34,7 @@
   import PlaceholderImage from '@/components/common/PlaceholderImage.vue'
   import { onMounted, ref, computed } from 'vue'
   import { api } from '@/services/api'
+  import { formatMoney } from '@/utils/format'
 
   interface PromotionItem {
     id: number
@@ -83,7 +84,7 @@
   }
 
   // 统一金额存储规则：API 直接返回元值，无需转换
-  const fromCents = (yuan?: number | null): number => {
+  const formatYuan = (yuan?: number | null): number => {
     if (!yuan && yuan !== 0) return 0
     return Number(yuan)
   }
@@ -104,8 +105,8 @@
       )
       const list = (result?.data ?? []).map((p) => {
         const left = Math.max(0, (p.promotionQuantity || 0) - (p.soldQuantity || 0))
-        const price = fromCents(p.salePrice)
-        const origin = p.originalPrice ? fromCents(p.originalPrice) : 0
+        const price = formatYuan(p.salePrice)
+        const origin = p.originalPrice ? formatYuan(p.originalPrice) : 0
         return {
           id: Number.isNaN(Number(p.id)) ? (p.id as unknown as number) : Number(p.id),
           title: p.name,

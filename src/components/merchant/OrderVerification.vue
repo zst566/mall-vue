@@ -105,6 +105,7 @@
   import { showToast, showLoadingToast } from 'vant'
   import { merchantService } from '@/services/merchant'
   import { useAuthStore } from '@/stores/auth'
+  import { formatMoney } from '@/utils/format'
 
   // 核销状态
   const scanning = ref(false)
@@ -360,10 +361,8 @@
     // 例如：merchantService.logVerification(log)
   }
 
-  // 格式化金额
-  const formatAmount = (amount: number): string => {
-    return amount.toFixed(2)
-  }
+  // 格式化金额（统一使用 formatMoney，包含千分位分隔符）
+  const formatAmount = formatMoney
 
   // 格式化时间
   const formatTime = (time: string): string => {
