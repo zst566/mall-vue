@@ -82,9 +82,10 @@
     return undefined
   }
 
-  const fromCents = (cents?: number | null): number => {
-    if (!cents && cents !== 0) return 0
-    return Math.round(cents) / 100
+  // 统一金额存储规则：API 直接返回元值，无需转换
+  const fromCents = (yuan?: number | null): number => {
+    if (!yuan && yuan !== 0) return 0
+    return Number(yuan)
   }
 
   onMounted(async () => {

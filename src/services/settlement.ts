@@ -219,7 +219,7 @@ export class OrderSettlementService {
           type: 'mall',
           amount: mallSubsidyAmount,
           ratio: -1,
-          description: `商场补贴：-${subsidyAmount * quantity / 100}元`
+          description: `商场补贴：-${(subsidyAmount * quantity).toFixed(2)}元`
         })
         break
 
@@ -232,14 +232,14 @@ export class OrderSettlementService {
           type: 'merchant',
           amount: merchantSettlementAmount,
           ratio: 1,
-          description: `商铺分账：结算价 ${settlementPrice / 100}元/件`
+          description: `商铺分账：结算价 ${settlementPrice.toFixed(2)}元/件`
         })
         
         details.push({
           type: 'mall',
           amount: mallCostAmount,
           ratio: -1,
-          description: `商场成本：-${settlementPrice * quantity / 100}元`
+          description: `商场成本：-${(settlementPrice * quantity).toFixed(2)}元`
         })
         break
 
@@ -276,12 +276,12 @@ export class OrderSettlementService {
   }
 
   /**
-   * 格式化金额显示
-   * @param amount 金额（分）
+   * 格式化金额显示（统一金额存储规则：直接格式化元值）
+   * @param amount 金额（元）
    * @returns 格式化后的金额字符串
    */
   formatAmount(amount: number): string {
-    return (amount / 100).toFixed(2)
+    return Number(amount).toFixed(2)
   }
 
   /**

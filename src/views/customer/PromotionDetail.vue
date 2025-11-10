@@ -245,9 +245,8 @@
   // 格式化价格（从分转换为元，统一使用与首页相同的处理标准）
   const formatPrice = (price: number): string => {
     if (!price && price !== 0) return '0.00'
-    // 后端返回的价格始终以分为单位，需要除以100转换为元
-    const priceInYuan = Math.round(price) / 100
-    return priceInYuan.toFixed(2)
+    // 统一金额存储规则：后端直接返回元值，无需转换
+    return Number(price).toFixed(2)
   }
 
   // 格式化日期范围
