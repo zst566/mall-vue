@@ -10,7 +10,9 @@
     @click-right="onRightClick"
   >
     <template #left v-if="showBack">
-      <van-icon name="arrow-left" color="#666" />
+      <div class="back-button-wrapper">
+        <van-icon name="arrow-left" class="back-icon" />
+      </div>
     </template>
 
     <template #right v-if="showRight">
@@ -91,6 +93,32 @@
 
     .van-nav-bar__arrow {
       color: #666;
+    }
+
+    // 返回按钮样式
+    .back-button-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+      cursor: pointer;
+
+      &:active {
+        background: rgba(255, 255, 255, 0.9);
+        transform: scale(0.95);
+      }
+
+      .back-icon {
+        font-size: 20px;
+        color: #323233;
+      }
     }
 
     .van-nav-bar__content {

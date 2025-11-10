@@ -123,7 +123,7 @@ export interface Order {
   id: string
   orderNo: string
   userId: string
-  status: 'pending' | 'paid' | 'verified' | 'cancelled' | 'refunded'
+  status: 'pending' | 'paid' | 'verified' | 'cancelled' | 'refunded' | 'refund_requested'
   paymentMethod: 'wechat' | 'alipay' | 'cash' | 'other'
   paymentStatus: 'pending' | 'success' | 'failed' | 'cancelled' | 'unpaid' | 'paid' | 'refunded'
   shippingAddress: Address
@@ -144,6 +144,7 @@ export interface Order {
   refundedAmount?: number
   items: OrderItem[]
   totalAmount: number
+  finalAmount?: number // 实付金额
   
   // 结算相关字段
   settlementMode?: 'normal_split' | 'mall_subsidy' | 'points_exchange'
@@ -186,7 +187,7 @@ export interface MerchantOrder {
 }
 
 // 订单状态类型
-export type OrderStatus = 'pending' | 'paid' | 'verified' | 'cancelled' | 'refunded'
+export type OrderStatus = 'pending' | 'paid' | 'verified' | 'cancelled' | 'refunded' | 'refund_requested'
 
 // 商户订单状态类型
 export type MerchantOrderStatus = 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'pending_verification' | 'verified' | 'completed'
@@ -203,7 +204,8 @@ export const OrderStatusMap = {
   paid: { label: '已支付（待使用）', color: '#07c160' },
   verified: { label: '已核销（已使用）', color: '#1989fa' },
   cancelled: { label: '已取消', color: '#ee0a24' },
-  refunded: { label: '已退款', color: '#969799' }
+  refunded: { label: '已退款', color: '#969799' },
+  refund_requested: { label: '申请退款中', color: '#ff976a' }
 } as const
 
 // 订单查询参数

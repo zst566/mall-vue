@@ -1,6 +1,6 @@
 <template>
   <div class="refund-request-page">
-    <AppHeader title="申请退款" :showBack="true" />
+    <AppHeader :showBack="true" />
 
     <div class="refund-form-content">
       <van-form @submit="handleSubmit">
@@ -109,6 +109,7 @@
             :accept="'image/jpeg,image/jpg,image/png,image/gif'"
             :preview-full-image="true"
             :preview-options="{ closeable: true }"
+            multiple
             class="uploader-wrapper"
           >
             <template #preview-cover="{ file }">
@@ -303,28 +304,57 @@ const loadRefundReasons = async () => {
   }
 }
 
-// 图片上传后处理
+// 图片上传后处理（支持单个文件或文件数组）
 const afterRead = async (file: any) => {
-  try {
-    // 验证图片格式
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
-    if (!allowedTypes.includes(file.file.type)) {
-      showToast('只支持 JPG、PNG、GIF 格式的图片')
-      imageList.value = imageList.value.filter(img => img !== file)
-      return
+  // 判断是单个文件还是文件数组
+  const files = Array.isArray(file) ? file : [file]
+  
+  // 检查总数是否超过限制（Vant 已经将文件添加到 imageList 中）
+  if (imageList.value.length > 5) {
+    showToast('最多只能上传5张图片')
+    // 移除超出部分的文件（保留前5个）
+    const excessCount = imageList.value.length - 5
+    // 移除最后添加的文件
+    for (let i = 0; i < excessCount; i++) {
+      imageList.value.pop()
     }
+    return
+  }
 
-    // 验证图片大小
-    if (file.file.size > 5 * 1024 * 1024) {
-      showToast('图片大小不能超过 5MB')
-      imageList.value = imageList.value.filter(img => img !== file)
-      return
-    }
-
-    // 上传图片到OSS
-    showLoadingToast('上传中...')
+  // 批量处理文件
+  const uploadPromises = files.map(async (item: any) => {
     try {
-      const uploadResult = await api.upload<{ url: string; key: string; path?: string }>('/upload', file.file, {
+      // 验证图片格式
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+      if (!item.file || !allowedTypes.includes(item.file.type)) {
+        showToast('只支持 JPG、PNG、GIF 格式的图片')
+        item.status = 'failed'
+        item.message = '格式不支持'
+        // 延迟移除，让用户看到错误状态
+        setTimeout(() => {
+          imageList.value = imageList.value.filter(img => img !== item)
+        }, 2000)
+        return
+      }
+
+      // 验证图片大小
+      if (item.file.size > 5 * 1024 * 1024) {
+        showToast('图片大小不能超过 5MB')
+        item.status = 'failed'
+        item.message = '文件过大'
+        // 延迟移除，让用户看到错误状态
+        setTimeout(() => {
+          imageList.value = imageList.value.filter(img => img !== item)
+        }, 2000)
+        return
+      }
+
+      // 设置上传中状态
+      item.status = 'uploading'
+      item.message = '上传中...'
+
+      // 上传图片到OSS
+      const uploadResult = await api.upload<{ url: string; key: string; path?: string }>('/upload', item.file, {
         module: 'refund'
       })
       
@@ -332,21 +362,36 @@ const afterRead = async (file: any) => {
       const imageUrl = uploadResult.url || uploadResult.path || ''
       if (imageUrl) {
         uploadedImages.value.push(imageUrl)
-        file.url = imageUrl
-        file.status = 'done'
-        closeToast()
+        item.url = imageUrl
+        item.status = 'done'
+        item.message = ''
       } else {
         throw new Error('上传失败：未返回图片URL')
       }
-    } catch (uploadError: any) {
-      closeToast()
-      throw uploadError
+    } catch (error: any) {
+      console.error('图片上传失败:', error)
+      item.status = 'failed'
+      item.message = error.message || '上传失败'
+      // 不立即移除，让用户看到失败状态并可以手动删除
+      showToast(error.message || '图片上传失败')
     }
-  } catch (error: any) {
-    console.error('图片上传失败:', error)
-    showToast(error.message || '图片上传失败')
-    imageList.value = imageList.value.filter(img => img !== file)
-    closeToast()
+  })
+
+  // 显示上传提示
+  if (files.length > 1) {
+    showLoadingToast(`正在上传 ${files.length} 张图片...`)
+  } else {
+    showLoadingToast('上传中...')
+  }
+
+  // 等待所有文件上传完成
+  await Promise.all(uploadPromises)
+  closeToast()
+  
+  // 检查是否有上传成功的文件
+  const successCount = files.filter((item: any) => item.status === 'done').length
+  if (successCount > 0 && files.length > 1) {
+    showToast(`成功上传 ${successCount} 张图片`)
   }
 }
 
@@ -505,7 +550,7 @@ onMounted(async () => {
 
 .refund-form-content {
   padding: 12px;
-  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--tabbar-height) + 80px + env(safe-area-inset-bottom));
   box-sizing: border-box;
 
   // 订单信息卡片
@@ -707,14 +752,14 @@ onMounted(async () => {
   // 提交按钮区域
   .submit-section {
     position: fixed;
-    bottom: 0;
+    bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom));
     left: 0;
     right: 0;
     padding: 12px 16px;
     padding-bottom: calc(12px + env(safe-area-inset-bottom));
     background: #fff;
     box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
-    z-index: 100;
+    z-index: 1040;
 
     .submit-button {
       height: 48px;
