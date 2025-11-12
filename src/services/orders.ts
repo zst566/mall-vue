@@ -278,7 +278,7 @@ export class OrderService extends BaseApiService {
   }
 
   // 创建促销活动订单
-  async createPromotionOrder(promotionId: string, quantity: number, remark?: string): Promise<{
+  async createPromotionOrder(promotionId: string, quantity: number, variantId?: string, remark?: string): Promise<{
     order: Order
     message: string
     requiresPayment?: boolean
@@ -293,6 +293,7 @@ export class OrderService extends BaseApiService {
       }>('/orders/promotion', {
         promotionId,
         quantity,
+        variantId, // 规格ID（可选）
         remark
       })
       return response.data

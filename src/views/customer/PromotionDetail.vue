@@ -30,17 +30,37 @@
       <div class="price-section">
         <div class="current-price">
           <span class="price-symbol">¥</span>
-          <span class="price-value">{{ formatPrice(promotion.salePrice) }}</span>
+          <span class="price-value">{{ formatPrice(selectedVariant?.salePrice || promotion.salePrice) }}</span>
         </div>
-        <div class="original-price" v-if="promotion.originalPrice && promotion.originalPrice > promotion.salePrice">
+        <div class="original-price" v-if="selectedVariant?.originalPrice && selectedVariant.originalPrice > selectedVariant.salePrice">
           <span class="original-symbol">¥</span>
-          <span class="original-value">{{ formatPrice(promotion.originalPrice) }}</span>
-          <span class="discount-text">省¥{{ formatPrice(promotion.originalPrice - promotion.salePrice) }}</span>
+          <span class="original-value">{{ formatPrice(selectedVariant.originalPrice) }}</span>
+          <span class="discount-text">省¥{{ formatPrice(selectedVariant.originalPrice - selectedVariant.salePrice) }}</span>
         </div>
       </div>
 
       <h2 class="promotion-name">{{ promotion.name }}</h2>
       <p class="promotion-desc" v-if="promotion.description">{{ promotion.description }}</p>
+
+      <!-- 规格选择（多规格时显示） -->
+      <div class="variant-selector" v-if="variants.length > 1">
+        <div class="selector-label">选择规格：</div>
+        <div class="variant-options">
+          <div
+            v-for="variant in variants"
+            :key="variant.id"
+            class="variant-option"
+            :class="{ active: selectedVariantId === variant.id }"
+            @click="selectVariant(variant.id)"
+          >
+            <div class="variant-name">{{ variant.name }}</div>
+            <div class="variant-price">¥{{ formatPrice(variant.salePrice) }}</div>
+            <div class="variant-stock" v-if="getVariantLeftQuantity(variant) <= 0">
+              <span class="stock-out">已售罄</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div class="promotion-meta">
         <div class="meta-item">
@@ -49,7 +69,7 @@
         </div>
         <div class="meta-item">
           <span class="meta-label">已售数量</span>
-          <span class="meta-value">{{ promotion.soldQuantity || 0 }} 件</span>
+          <span class="meta-value">{{ selectedVariant?.soldQuantity || promotion.soldQuantity || 0 }} 件</span>
         </div>
         <div class="meta-item">
           <span class="meta-label">活动时间</span>
@@ -156,7 +176,29 @@
     promotionMode: '' as 'mall_subsidy' | 'normal_split' | 'points_exchange' | '', // 分账模式
     settlementPrice: 0, // 结算价（积分兑换模式）
     pointsValue: 0, // 积分价值（积分兑换模式）
+    variants: [] as any[], // 规格列表
   })
+
+  // 规格选择
+  const variants = computed(() => promotion.variants || [])
+  const selectedVariantId = ref<string | null>(null)
+  const selectedVariant = computed(() => {
+    if (selectedVariantId.value) {
+      return variants.value.find(v => v.id === selectedVariantId.value)
+    }
+    // 如果没有选择，使用默认规格或第一个规格
+    return variants.value.find(v => v.isDefault) || variants.value[0]
+  })
+
+  // 选择规格
+  const selectVariant = (variantId: string) => {
+    selectedVariantId.value = variantId
+  }
+
+  // 获取规格剩余数量
+  const getVariantLeftQuantity = (variant: any) => {
+    return Math.max(0, (variant.promotionQuantity || 0) - (variant.soldQuantity || 0))
+  }
 
   // 主图列表（用于顶部banner）- 只显示主图，如无主图标记则显示第1张图
   const mainImages = computed(() => {
@@ -227,8 +269,11 @@
     })
   })
 
-  // 剩余数量
+  // 剩余数量（使用选中规格的库存）
   const leftQuantity = computed(() => {
+    if (selectedVariant.value) {
+      return getVariantLeftQuantity(selectedVariant.value)
+    }
     return Math.max(0, (promotion.promotionQuantity || 0) - (promotion.soldQuantity || 0))
   })
 
@@ -302,7 +347,9 @@
     }
 
     const userId = authStore.user.id
-    const promotionMode = promotion.promotionMode
+    // 使用选中规格的分账模式
+    const promotionMode = selectedVariant.value?.promotionMode || promotion.promotionMode
+    const variantId = selectedVariant.value?.id
 
     try {
       showLoadingToast({
@@ -327,8 +374,9 @@
 
   // 积分兑换模式购买
   const handlePointsExchangePurchase = async (userId: string) => {
-    const settlementPrice = promotion.settlementPrice || 0
-    const pointsValue = promotion.pointsValue || 20
+    // 使用选中规格的结算价和积分价值
+    const settlementPrice = selectedVariant.value?.settlementPrice || promotion.settlementPrice || 0
+    const pointsValue = selectedVariant.value?.pointsValue || promotion.pointsValue || 20
     const requiredPoints = Math.round(settlementPrice * pointsValue)
 
     // 先验证积分
@@ -355,7 +403,8 @@
     }
 
     // 创建订单（后端会扣减积分）
-    const result = await orderService.createPromotionOrder(promotionId, 1)
+    const variantId = selectedVariant.value?.id
+    const result = await orderService.createPromotionOrder(promotionId, 1, variantId)
     
     closeToast()
     showToast('兑换成功！')
@@ -524,6 +573,7 @@
         promotionMode?: 'mall_subsidy' | 'normal_split' | 'points_exchange'
         settlementPrice?: number
         pointsValue?: number
+        variants?: any[] // 规格列表
       }>(`/promotions/${promotionId}`)
       
       Object.assign(promotion, {
@@ -532,6 +582,18 @@
         description: data.description || '',
         salePrice: data.salePrice || 0,
         originalPrice: data.originalPrice || 0,
+        variants: data.variants || [], // 规格列表
+      })
+
+      // 初始化规格选择（如果有规格，选择默认规格或第一个规格）
+      if (promotion.variants && promotion.variants.length > 0) {
+        const defaultVariant = promotion.variants.find((v: any) => v.isDefault) || promotion.variants[0]
+        if (defaultVariant) {
+          selectedVariantId.value = defaultVariant.id
+        }
+      }
+
+      Object.assign(promotion, {
         promotionQuantity: data.promotionQuantity || 0,
         soldQuantity: data.soldQuantity || 0,
         startTime: data.startTime || '',
