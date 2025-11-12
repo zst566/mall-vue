@@ -40,27 +40,39 @@
       </div>
 
       <h2 class="promotion-name">{{ promotion.name }}</h2>
+      
+      <!-- 服务特色标签（标题下方、价格上方） -->
+      <div class="service-tags" v-if="tags && tags.length > 0">
+        <van-popover
+          v-for="tag in tags"
+          :key="tag.id"
+          v-model:show="tagPopoverVisible[tag.id]"
+          :actions="[]"
+          placement="top"
+          theme="dark"
+        >
+          <template #reference>
+            <span class="service-tag" @click.stop="showTagDescription(tag.id)">
+              {{ tag.name }}
+            </span>
+          </template>
+          <div class="tag-popover-content">
+            <div class="tag-name">{{ tag.name }}</div>
+            <div class="tag-description" v-if="tag.description">{{ tag.description }}</div>
+            <div class="tag-description" v-else>暂无说明</div>
+          </div>
+        </van-popover>
+      </div>
+
       <p class="promotion-desc" v-if="promotion.description">{{ promotion.description }}</p>
 
       <!-- 规格选择（多规格时显示） -->
-      <div class="variant-selector" v-if="variants.length > 1">
-        <div class="selector-label">选择规格：</div>
-        <div class="variant-options">
-          <div
-            v-for="variant in variants"
-            :key="variant.id"
-            class="variant-option"
-            :class="{ active: selectedVariantId === variant.id }"
-            @click="selectVariant(variant.id)"
-          >
-            <div class="variant-name">{{ variant.name }}</div>
-            <div class="variant-price">¥{{ formatPrice(variant.salePrice) }}</div>
-            <div class="variant-stock" v-if="getVariantLeftQuantity(variant) <= 0">
-              <span class="stock-out">已售罄</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <VariantSelector
+        v-if="variants.length > 1"
+        :variants="variants"
+        v-model="selectedVariant"
+        :disabled="!isActivityActive"
+      />
 
       <div class="promotion-meta">
         <div class="meta-item">
@@ -119,15 +131,15 @@
         </div>
       </div>
       <div class="right-buttons">
-        <van-button 
-          type="danger" 
-          size="large" 
+        <van-button
+          type="danger"
+          size="large"
           @click.stop="handlePurchase"
           @touchstart.stop
-          :disabled="leftQuantity <= 0"
+          :disabled="!canPurchase"
           style="position: relative; z-index: 102; pointer-events: auto;"
         >
-          {{ leftQuantity > 0 ? '立即购买' : '已售罄' }}
+          {{ purchaseButtonText }}
         </van-button>
       </div>
     </div>
@@ -139,6 +151,7 @@
   import { useRouter, useRoute } from 'vue-router'
   import { showToast, showLoadingToast, closeToast, showConfirmDialog, showDialog } from 'vant'
   import PlaceholderImage from '@/components/common/PlaceholderImage.vue'
+  import VariantSelector from '@/components/customer/VariantSelector.vue'
   import { api } from '@/services/api'
   import { orderService } from '@/services/orders'
   import { PointsService } from '@/services/points'
@@ -158,6 +171,10 @@
   const isBottomBarVisible = ref(true)
   const lastScrollTop = ref(0)
   const scrollTimer = ref<number | null>(null)
+
+  // 服务特色标签
+  const tags = ref<Array<{ id: string; name: string; description?: string | null }>>([])
+  const tagPopoverVisible = ref<Record<string, boolean>>({})
 
   // 促销活动信息
   const promotionId = route.params.id as string
@@ -181,23 +198,11 @@
 
   // 规格选择
   const variants = computed(() => promotion.variants || [])
-  const selectedVariantId = ref<string | null>(null)
-  const selectedVariant = computed(() => {
-    if (selectedVariantId.value) {
-      return variants.value.find(v => v.id === selectedVariantId.value)
-    }
-    // 如果没有选择，使用默认规格或第一个规格
-    return variants.value.find(v => v.isDefault) || variants.value[0]
-  })
+  const selectedVariant = ref<any>(null)
 
-  // 选择规格
-  const selectVariant = (variantId: string) => {
-    selectedVariantId.value = variantId
-  }
-
-  // 获取规格剩余数量
-  const getVariantLeftQuantity = (variant: any) => {
-    return Math.max(0, (variant.promotionQuantity || 0) - (variant.soldQuantity || 0))
+  // 显示标签说明
+  const showTagDescription = (tagId: string) => {
+    tagPopoverVisible.value[tagId] = !tagPopoverVisible.value[tagId]
   }
 
   // 主图列表（用于顶部banner）- 只显示主图，如无主图标记则显示第1张图
@@ -272,9 +277,39 @@
   // 剩余数量（使用选中规格的库存）
   const leftQuantity = computed(() => {
     if (selectedVariant.value) {
-      return getVariantLeftQuantity(selectedVariant.value)
+      return Math.max(0, (selectedVariant.value.promotionQuantity || 0) - (selectedVariant.value.soldQuantity || 0))
     }
     return Math.max(0, (promotion.promotionQuantity || 0) - (promotion.soldQuantity || 0))
+  })
+
+  // 判断活动是否处于有效期内
+  const isActivityActive = computed(() => {
+    if (!promotion.startTime || !promotion.endTime) return true
+    const now = new Date().getTime()
+    const startTime = new Date(promotion.startTime).getTime()
+    const endTime = new Date(promotion.endTime).getTime()
+    return now >= startTime && now <= endTime
+  })
+
+  // 判断是否可以购买
+  const canPurchase = computed(() => {
+    // 多规格时，必须选择规格
+    if (variants.value.length > 1 && !selectedVariant.value) {
+      return false
+    }
+    // 检查库存
+    return leftQuantity.value > 0
+  })
+
+  // 购买按钮文字
+  const purchaseButtonText = computed(() => {
+    if (variants.value.length > 1 && !selectedVariant.value) {
+      return '请选择规格'
+    }
+    if (leftQuantity.value <= 0) {
+      return '已售罄'
+    }
+    return '立即购买'
   })
 
   // 获取图片URL
@@ -333,7 +368,24 @@
       event.preventDefault()
       event.stopPropagation()
     }
-    
+
+    // 多规格验证：确保用户已选择规格
+    if (variants.value.length > 1 && !selectedVariant.value) {
+      showToast('请选择规格')
+      return
+    }
+
+    // 验证选中规格的库存
+    if (selectedVariant.value) {
+      const variantLeftQuantity = Math.max(0,
+        (selectedVariant.value.promotionQuantity || 0) - (selectedVariant.value.soldQuantity || 0)
+      )
+      if (variantLeftQuantity <= 0) {
+        showToast('该规格已售罄')
+        return
+      }
+    }
+
     if (leftQuantity.value <= 0) {
       showToast('该促销活动已售罄')
       return
@@ -574,6 +626,7 @@
         settlementPrice?: number
         pointsValue?: number
         variants?: any[] // 规格列表
+        tags?: Array<{ id: string; name: string; description?: string | null }> // 服务特色标签
       }>(`/promotions/${promotionId}`)
       
       Object.assign(promotion, {
@@ -585,11 +638,15 @@
         variants: data.variants || [], // 规格列表
       })
 
-      // 初始化规格选择（如果有规格，选择默认规格或第一个规格）
+      // 设置服务特色标签
+      tags.value = data.tags || []
+
+      // 初始化规格选择（VariantSelector 组件会自动选择默认规格）
+      // 这里只需要确保 variants 数据已加载
       if (promotion.variants && promotion.variants.length > 0) {
         const defaultVariant = promotion.variants.find((v: any) => v.isDefault) || promotion.variants[0]
         if (defaultVariant) {
-          selectedVariantId.value = defaultVariant.id
+          selectedVariant.value = defaultVariant
         }
       }
 
@@ -830,7 +887,50 @@
       }
     }
 
-    .promotion-name {
+    .service-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.service-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  background-color: #f0f0f0;
+  border-radius: 12px;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.service-tag:hover {
+  background-color: #e0e0e0;
+}
+
+.service-tag:active {
+  background-color: #d0d0d0;
+}
+
+.tag-popover-content {
+  padding: 8px;
+  min-width: 120px;
+}
+
+.tag-name {
+  font-weight: bold;
+  margin-bottom: 4px;
+  color: #fff;
+}
+
+.tag-description {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.4;
+}
+
+.promotion-name {
       font-size: 20px;
       font-weight: 700;
       color: var(--van-text-color);
