@@ -28,11 +28,11 @@ $gray-base: #969799;
 $gray-dark: #323233;
 $gray-darker: #73767a;
 
-// 文本颜色变量
-$text-color-primary: $dark;
-$text-color-secondary: $gray-dark;
-$text-color-tertiary: $gray-base;
-$text-color-disabled: $gray-light;
+// 文本颜色变量（符合UI规范）
+$text-color-primary: $dark; // #323233 - 主要文本、标题
+$text-color-secondary: #646566; // 次要文本、描述（使用更精确的色值）
+$text-color-tertiary: $gray-base; // #969799 - 辅助文本、占位符
+$text-color-disabled: #c8c9cc; // 禁用状态文本（使用更精确的色值）
 
 // 背景颜色变量
 $bg-color-base: $light;
@@ -43,6 +43,12 @@ $bg-color-tertiary: $gray-lighter;
 $link-color: $primary;
 $link-hover-color: $primary-dark;
 $link-active-color: $primary-light;
+
+// 渐变色变量（符合UI规范）
+$gradient-primary: linear-gradient(135deg, #1989fa 0%, #0a86ff 100%);
+$gradient-success: linear-gradient(135deg, #07c160 0%, #06ae56 100%);
+$gradient-warning: linear-gradient(135deg, #ff976a 0%, #ff7f00 100%);
+$gradient-background: linear-gradient(180deg, #f7f8fa 0%, #ffffff 100%);
 
 // 滚动条颜色变量
 $scrollbar-track-color: $gray-lighter;
