@@ -9,6 +9,8 @@ declare module 'vue' {
   export interface GlobalComponents {
     AppFooter: typeof import('./components/common/AppFooter.vue')['default']
     AppHeader: typeof import('./components/common/AppHeader.vue')['default']
+    CategoryNavigation: typeof import('./components/customer/CategoryNavigation.vue')['default']
+    CategoryPromotions: typeof import('./components/customer/CategoryPromotions.vue')['default']
     ErrorMessage: typeof import('./components/common/ErrorMessage.vue')['default']
     HotPromotions: typeof import('./components/customer/HotPromotions.vue')['default']
     LoadingSpinner: typeof import('./components/common/LoadingSpinner.vue')['default']
@@ -19,6 +21,7 @@ declare module 'vue' {
     PlaceholderImage: typeof import('./components/common/PlaceholderImage.vue')['default']
     ProductCard: typeof import('./components/customer/ProductCard.vue')['default']
     ProductList: typeof import('./components/customer/ProductList.vue')['default']
+    PromotionBanner: typeof import('./components/customer/PromotionBanner.vue')['default']
     QRScanner: typeof import('./components/merchant/QRScanner.vue')['default']
     QuickNav: typeof import('./components/customer/QuickNav.vue')['default']
     RefundRequestDialog: typeof import('./components/customer/RefundRequestDialog.vue')['default']
