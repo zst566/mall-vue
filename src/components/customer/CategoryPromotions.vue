@@ -57,28 +57,28 @@ const props = defineProps<Props>()
 const router = useRouter()
 
 // 获取促销图片
-const getPromotionImage = (promotion: any): string | null => {
-  if (!promotion.images) return null
+const getPromotionImage = (promotion: any): string | undefined => {
+  if (!promotion.images) return undefined
 
   if (Array.isArray(promotion.images) && promotion.images.length > 0) {
     const first = promotion.images[0]
     if (typeof first === 'string') return first
-    if (first && typeof first === 'object' && 'url' in first) return first.url
+    if (first && typeof first === 'object' && 'url' in first) return first.url as string
   }
 
   if (typeof promotion.images === 'object' && promotion.images !== null) {
-    if ('url' in promotion.images) return promotion.images.url
+    if ('url' in promotion.images) return promotion.images.url as string
   }
 
-  return null
+  return undefined
 }
 
 // 获取商户位置信息
-const getMerchantLocation = (promotion: any): string | null => {
+const getMerchantLocation = (promotion: any): string | undefined => {
   if (promotion.merchant?.location) return promotion.merchant.location
   if (promotion.merchant?.address) return promotion.merchant.address
   if (promotion.merchantName) return promotion.merchantName
-  return null
+  return undefined
 }
 
 // 格式化价格
