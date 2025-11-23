@@ -622,17 +622,22 @@
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
   .order-detail-page {
     min-height: 100vh;
-    background-color: var(--van-background);
+    background: $glass-bg-gradient;
+    background-attachment: fixed;
+    background-size: cover;
     padding-bottom: 100px;
   }
 
   .order-header {
-    background: #fff;
+    @include glassmorphism-card(base);
     padding: 24px 20px;
+    margin: 16px;
     margin-bottom: 12px;
-    border-radius: 0;
 
     .order-status {
       display: flex;
@@ -739,8 +744,9 @@
   }
 
   .order-timeline {
-    background: #fff;
+    @include glassmorphism-card(base);
     padding: 20px;
+    margin: 16px;
     margin-bottom: 12px;
     border-radius: 0;
 
@@ -752,8 +758,9 @@
   }
 
   .order-qrcode-section {
-    background: #fff;
+    @include glassmorphism-card(base);
     padding: 24px 20px;
+    margin: 16px;
     margin-bottom: 12px;
     border-radius: 0;
   }
@@ -762,8 +769,9 @@
   .product-info,
   .payment-info,
   .refund-request-info {
-    background: #fff;
+    @include glassmorphism-card(base);
     padding: 20px;
+    margin: 16px;
     margin-bottom: 12px;
     border-radius: 0;
 

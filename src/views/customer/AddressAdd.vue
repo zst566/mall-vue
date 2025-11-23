@@ -240,9 +240,14 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
 .address-add-page {
   min-height: 100vh;
-  background-color: var(--van-background);
+  background: $glass-bg-gradient;
+  background-attachment: fixed;
+  background-size: cover;
   display: flex;
   flex-direction: column;
 }
@@ -265,7 +270,9 @@ onMounted(() => {
 // 暗色模式支持
 @media (prefers-color-scheme: dark) {
   .address-add-page {
-    background-color: #1a1a1a;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    background-attachment: fixed;
+    background-size: cover;
   }
 }
 

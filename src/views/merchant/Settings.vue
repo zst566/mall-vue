@@ -458,9 +458,14 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
 .merchant-settings {
   padding-top: 120px;
-  background-color: #f5f5f5;
+  background: $glass-bg-gradient;
+  background-attachment: fixed;
+  background-size: cover;
   min-height: 100vh;
 }
 
@@ -469,10 +474,8 @@ onMounted(() => {
 }
 
 .settings-section {
-  background: white;
-  border-radius: 8px;
-  margin-bottom: 15px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  @include glassmorphism-card(base);
+  margin: 0 15px 15px;
   overflow: hidden;
 }
 

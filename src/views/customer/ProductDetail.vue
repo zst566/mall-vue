@@ -543,9 +543,14 @@
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
   .product-detail-page {
     min-height: 100vh;
-    background-color: var(--van-background);
+    background: $glass-bg-gradient;
+    background-attachment: fixed;
+    background-size: cover;
     padding-bottom: 70px; /* 调整底部安全空间：60px(底部操作栏) + 10px(安全边距) */
   }
 
@@ -566,7 +571,8 @@
 
   .product-info {
     padding: 16px;
-    background-color: var(--van-background-2);
+    @include glassmorphism-card(base);
+    margin: 16px;
 
     .price-section {
       display: flex;

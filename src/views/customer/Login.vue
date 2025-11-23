@@ -146,9 +146,14 @@
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
   .login-page {
     min-height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: $glass-bg-gradient;
+    background-attachment: fixed;
+    background-size: cover;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -158,10 +163,8 @@
   .login-container {
     width: 100%;
     max-width: 400px;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: var(--van-radius-lg);
+    @include glassmorphism-card(strong);
     padding: 40px 30px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
 
     .login-header {
       text-align: center;
@@ -219,7 +222,7 @@
 
           span {
             position: relative;
-            background: rgba(255, 255, 255, 0.95);
+            @include glassmorphism($glass-opacity-light, $glass-blur-light, false);
             padding: 0 16px;
             font-size: 14px;
             color: var(--van-text-color-3);
@@ -266,11 +269,13 @@
   // 暗色模式支持
   @media (prefers-color-scheme: dark) {
     .login-page {
-      background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      background-attachment: fixed;
+      background-size: cover;
     }
 
     .login-container {
-      background: rgba(45, 55, 72, 0.95);
+      @include glassmorphism-card(strong);
 
       .login-header h1 {
         color: #fff;

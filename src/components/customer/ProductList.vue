@@ -262,10 +262,8 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    background: white;
-    border-radius: 20px;
+    @include glassmorphism-card(base);
     padding: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     z-index: 100;
   }
 

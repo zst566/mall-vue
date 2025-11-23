@@ -293,9 +293,14 @@
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
   .products-page {
     min-height: 100vh;
-    background-color: var(--van-background);
+    background: $glass-bg-gradient;
+    background-attachment: fixed;
+    background-size: cover;
     padding-bottom: 80px;
   }
 
@@ -336,8 +341,8 @@
     gap: 12px;
   }
 
-  .product-card {
-    background: var(--van-background-2);
+    .product-card {
+      @include glassmorphism-card(base);
     border-radius: var(--van-radius-lg);
     overflow: hidden;
     cursor: pointer;

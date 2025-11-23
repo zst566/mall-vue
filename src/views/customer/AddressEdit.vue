@@ -337,9 +337,14 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
 .address-edit-page {
   min-height: 100vh;
-  background-color: var(--van-background);
+  background: $glass-bg-gradient;
+  background-attachment: fixed;
+  background-size: cover;
   display: flex;
   flex-direction: column;
 }
@@ -366,6 +371,11 @@ onMounted(() => {
 
 // 暗色模式支持
 @media (prefers-color-scheme: dark) {
+  .address-edit-page {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    background-attachment: fixed;
+    background-size: cover;
+  }
   .address-edit-page {
     background-color: #1a1a1a;
   }

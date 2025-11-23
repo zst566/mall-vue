@@ -91,28 +91,30 @@
 </script>
 
 <style scoped lang="scss">
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
   .server-error {
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
     background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+    background-attachment: fixed;
+    background-size: cover;
     padding: 20px;
   }
 
   .server-error-container {
     text-align: center;
-    background: white;
+    @include glassmorphism-card(strong);
     padding: 40px 30px;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     max-width: 500px;
     width: 100%;
     transition: all 0.3s ease;
 
     &:hover {
       transform: translateY(-5px);
-      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
     }
   }
 
@@ -146,9 +148,7 @@
     text-align: left;
 
     .error-message {
-      background: #f8f9fa;
-      border: 1px solid #e9ecef;
-      border-radius: 8px;
+      @include glassmorphism-card(light);
       padding: 12px;
       font-size: 12px;
       color: #495057;
@@ -186,8 +186,7 @@
   }
 
   .server-error-tips {
-    background: #f8f9fa;
-    border-radius: 12px;
+    @include glassmorphism-card(light);
     padding: 20px;
     text-align: left;
 
@@ -254,11 +253,12 @@
   @media (prefers-color-scheme: dark) {
     .server-error {
       background: linear-gradient(135deg, #2d1b1e 0%, #4a1f27 50%, #4a1f27 100%);
+      background-attachment: fixed;
+      background-size: cover;
     }
 
     .server-error-container {
-      background: #2a2a2a;
-      border: 1px solid #404040;
+      @include glassmorphism-card(strong);
     }
 
     .server-error-title {

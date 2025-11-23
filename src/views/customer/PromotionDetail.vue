@@ -809,16 +809,21 @@
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
   .promotion-detail-page {
     min-height: 100vh;
     padding-bottom: 80px; // 为底部操作栏留出空间
-    background-color: #f5f5f5;
+    background: $glass-bg-gradient;
+    background-attachment: fixed;
+    background-size: cover;
   }
 
   // 顶部Banner主图区域
   .banner-section {
     width: 100%;
-    background-color: #fff;
+    @include glassmorphism-card(light);
 
     .banner-swipe {
       width: 100%;
@@ -842,8 +847,9 @@
 
   // 促销活动基本信息
   .promotion-info {
-    background-color: #fff;
+    @include glassmorphism-card(base);
     padding: 16px;
+    margin: 16px;
     margin-bottom: 12px;
 
     .price-section {
@@ -980,7 +986,8 @@
 
   // 详情区域
   .detail-section {
-    background-color: #fff;
+    @include glassmorphism-card(base);
+    margin: 16px;
     margin-bottom: 12px;
 
     .section-header {
@@ -1043,9 +1050,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 16px;
-    background-color: #fff;
-    border-top: 1px solid var(--van-border-color);
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    @include glassmorphism-tabbar;
     z-index: 100;
     gap: 12px;
     transition: transform 0.3s ease-in-out;

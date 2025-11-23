@@ -358,17 +358,28 @@
 </script>
 
 <style scoped lang="scss">
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
   .merchant-home {
     padding-bottom: 80px;
-    background-color: #f5f5f5;
+    background: $glass-bg-gradient;
+    background-attachment: fixed;
+    background-size: cover;
     min-height: 100vh;
   }
 
   .merchant-info-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    @include glassmorphism-card(strong);
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%);
     padding: 20px;
+    margin: 16px;
     margin-bottom: 20px;
     color: white;
+    @supports (backdrop-filter: blur(15px)) {
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+    }
   }
 
   .merchant-avatar {
@@ -410,11 +421,10 @@
   }
 
   .quick-actions {
-    background: white;
+    @include glassmorphism-card(base);
     padding: 20px;
+    margin: 16px;
     margin-bottom: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
   .action-section h3 {
@@ -429,11 +439,10 @@
   }
 
   .today-stats {
-    background: white;
+    @include glassmorphism-card(base);
     padding: 20px;
+    margin: 16px;
     margin-bottom: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
   .today-stats h3 {
@@ -474,10 +483,9 @@
   }
 
   .recent-orders {
-    background: white;
+    @include glassmorphism-card(base);
     padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin: 16px;
   }
 
   .section-header {

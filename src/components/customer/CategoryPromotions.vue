@@ -460,6 +460,7 @@ const handleViewAll = () => {
 
 <style lang="scss" scoped>
 @use '@/styles/variables.scss' as *;
+@use '@/styles/mixins.scss' as *;
 
 .category-promotions {
   margin: 24px 12px;
@@ -737,12 +738,10 @@ const handleViewAll = () => {
 }
 
 .promotion-card {
-  background: #fff;
-  border-radius: 12px;
+  @include glassmorphism-card(base);
   overflow: hidden;
-  box-shadow: $shadow-sm;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease;
   display: flex;
   flex-direction: column;
 

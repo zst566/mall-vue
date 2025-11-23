@@ -148,11 +148,16 @@
 </script>
 
 <style lang="scss">
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
   #app {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    background-color: #f7f8fa;
+    background: $glass-bg-gradient;
+    background-attachment: fixed;
+    background-size: cover;
     color: #323233;
     font-family:
       -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans',
@@ -200,9 +205,11 @@
     }
   }
 
-  // 商户模式样式
+  // 商户模式样式 - 保持玻璃拟态背景
   .merchant-mode {
-    background-color: #f0f2f5;
+    background: $glass-bg-gradient;
+    background-attachment: fixed;
+    background-size: cover;
   }
 
   // 禁用双击缩放
@@ -224,11 +231,15 @@
   // 暗色模式支持
   @media (prefers-color-scheme: dark) {
     #app {
-      background-color: #1a1a1a;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      background-attachment: fixed;
+      background-size: cover;
       color: #fff;
 
       &.merchant-mode {
-        background-color: #2a2a2a;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        background-attachment: fixed;
+        background-size: cover;
       }
     }
   }

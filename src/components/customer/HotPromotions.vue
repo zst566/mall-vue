@@ -171,12 +171,12 @@
     }
   }
 
+  @use '@/styles/mixins.scss' as *;
+
   .promotion-section {
-    background: $bg-white;
-    border-radius: 12px;
+    @include glassmorphism-card(base);
     margin: 8px 12px;
     padding: 8px 8px 2px;
-    box-shadow: $shadow-sm;
 
     .promotion-list {
       display: flex;
@@ -189,11 +189,8 @@
       display: flex;
       gap: 12px;
       align-items: center;
-      background: #fff;
-      border: 1px solid #f0f0f0;
-      border-radius: 12px;
+      @include glassmorphism-card(light);
       padding: 12px;
-      box-shadow: $shadow-sm;
       transition: transform .15s ease, box-shadow .15s ease;
 
       &:active { transform: scale(0.99); }

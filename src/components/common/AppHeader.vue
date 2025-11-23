@@ -82,70 +82,70 @@
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
   .van-nav-bar {
     background: transparent;
     box-shadow: none;
 
     .van-nav-bar__title {
-      color: #333;
+      color: $text-color-primary;
       font-weight: 500;
     }
 
     .van-nav-bar__arrow {
-      color: #666;
+      color: $text-color-secondary;
     }
 
-    // 返回按钮样式
+    // 返回按钮样式 - 玻璃拟态效果
     .back-button-wrapper {
       display: flex;
       align-items: center;
       justify-content: center;
       width: 44px;
       height: 44px;
-      background: rgba(255, 255, 255, 0.8);
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      border-radius: 12px;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      transition: all 0.3s ease;
+      @include glassmorphism($glass-opacity-light, $glass-blur-light, true);
+      @include border-radius($border-radius-lg);
+      @include transition(all, $transition-base);
       cursor: pointer;
 
       &:active {
-        background: rgba(255, 255, 255, 0.9);
         transform: scale(0.95);
+        opacity: 0.9;
       }
 
       .back-icon {
         font-size: 20px;
-        color: #323233;
+        color: $text-color-primary;
       }
     }
 
     .van-nav-bar__content {
-      background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.9));
+      @include glassmorphism-navbar;
     }
   }
 
-  // 商户模式样式
+  // 商户模式样式 - 保持玻璃拟态效果
   .merchant-mode {
     .van-nav-bar {
       background: transparent;
 
       .van-nav-bar__content {
-        background: linear-gradient(to bottom, rgba(240, 242, 245, 0.95), rgba(240, 242, 245, 0.9));
+        @include glassmorphism-navbar;
       }
     }
   }
 
-  // 暗色模式支持
+  // 暗色模式支持 - 保持玻璃拟态效果
   @media (prefers-color-scheme: dark) {
     .van-nav-bar {
       .van-nav-bar__content {
-        background: linear-gradient(to bottom, rgba(30, 30, 30, 0.95), rgba(30, 30, 30, 0.9));
+        @include glassmorphism-navbar;
       }
 
       .van-nav-bar__title {
-        color: #fff;
+        color: $white;
       }
     }
   }

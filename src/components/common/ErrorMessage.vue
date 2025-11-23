@@ -107,15 +107,16 @@ const onClose = () => {
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
 .error-message {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: white;
+  @include glassmorphism-card(strong);
   padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   max-width: 300px;
   width: 90%;
   text-align: center;
@@ -170,8 +171,8 @@ const onClose = () => {
 // 不同主题色的样式
 .error-message {
   &.error {
-    border: 1px solid #fde2e2;
-    background: #fff8f8;
+    border: 1px solid rgba(238, 10, 36, 0.3);
+    @include glassmorphism-card(strong);
 
     .error-title {
       color: #ee0a24;
@@ -183,8 +184,8 @@ const onClose = () => {
   }
 
   &.warning {
-    border: 1px solid #fff1e8;
-    background: #fffbf0;
+    border: 1px solid rgba(255, 151, 106, 0.3);
+    @include glassmorphism-card(strong);
 
     .error-title {
       color: #ff976a;
@@ -241,8 +242,7 @@ const onClose = () => {
 // 暗色模式
 @media (prefers-color-scheme: dark) {
   .error-message {
-    background: #1a1a1a;
-    border-color: #333;
+    @include glassmorphism-card(strong);
 
     .error-title {
       color: #ccc;

@@ -384,3 +384,170 @@
     @content;
   }
 }
+
+// ============================================
+// 玻璃拟态 (Glassmorphism) Mixins
+// ============================================
+
+// 基础玻璃拟态效果
+// @param $opacity: 背景透明度 (0-1)
+// @param $blur: 模糊度 (px)
+// @param $border: 是否显示边框 (true/false)
+@mixin glassmorphism($opacity: $glass-opacity-base, $blur: $glass-blur-base, $border: true) {
+  // 降级方案：纯色背景（不支持 backdrop-filter 时）
+  background: rgba(255, 255, 255, $glass-opacity-fallback);
+  border: $glass-border-width $glass-border-style rgba(0, 0, 0, 0.1);
+  box-shadow: $shadow-base;
+
+  // 玻璃拟态效果（仅支持时使用）
+  @supports (backdrop-filter: blur($blur)) {
+    background: rgba(255, 255, 255, $opacity);
+    backdrop-filter: blur($blur);
+    -webkit-backdrop-filter: blur($blur);
+    
+    @if $border {
+      border: $glass-border-width $glass-border-style $glass-border-color;
+    } @else {
+      border: none;
+    }
+    
+    box-shadow: $glass-shadow-base;
+  }
+
+  // 启用硬件加速
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+// 玻璃拟态卡片
+@mixin glassmorphism-card($level: base) {
+  @include border-radius($border-radius-lg);
+  
+  @if $level == light {
+    @include glassmorphism($glass-opacity-light, $glass-blur-light, true);
+    box-shadow: $glass-shadow-light;
+  } @else if $level == strong {
+    @include glassmorphism($glass-opacity-strong, $glass-blur-strong, true);
+    box-shadow: $glass-shadow-strong;
+  } @else {
+    @include glassmorphism($glass-opacity-base, $glass-blur-base, true);
+    box-shadow: $glass-shadow-base;
+  }
+
+  @include transition(all, $transition-base);
+  
+  &:hover {
+    @if $level == light {
+      box-shadow: $glass-shadow-base;
+    } @else if $level == strong {
+      box-shadow: 0 16px 64px 0 rgba(31, 38, 135, 0.6);
+    } @else {
+      box-shadow: $glass-shadow-strong;
+    }
+  }
+}
+
+// 玻璃拟态按钮
+@mixin glassmorphism-button($variant: primary) {
+  @include glassmorphism($glass-opacity-base, $glass-blur-base, true);
+  @include border-radius($border-radius-base);
+  @include transition(all, $transition-base);
+  
+  @if $variant == primary {
+    background: rgba(25, 137, 250, 0.3);
+    color: $white;
+    border-color: rgba(255, 255, 255, 0.3);
+    
+    @supports (backdrop-filter: blur(10px)) {
+      background: rgba(25, 137, 250, 0.25);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+  } @else if $variant == success {
+    background: rgba(7, 193, 96, 0.3);
+    color: $white;
+    border-color: rgba(255, 255, 255, 0.3);
+    
+    @supports (backdrop-filter: blur(10px)) {
+      background: rgba(7, 193, 96, 0.25);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+  } @else {
+    background: rgba(255, 255, 255, 0.3);
+    color: $text-color-primary;
+    border-color: $glass-border-color;
+    
+    @supports (backdrop-filter: blur(10px)) {
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+  }
+
+  &:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: $glass-shadow-strong;
+  }
+
+  &:active {
+    transform: translateY(0) scale(0.98);
+  }
+}
+
+// 玻璃拟态输入框
+@mixin glassmorphism-input {
+  @include glassmorphism($glass-opacity-light, $glass-blur-light, true);
+  @include border-radius($border-radius-base);
+  @include transition(all, $transition-base);
+  padding: $spacing-3 $spacing-4;
+  color: $text-color-primary;
+  
+  &::placeholder {
+    color: $text-color-tertiary;
+  }
+
+  &:focus {
+    outline: none;
+    @include glassmorphism($glass-opacity-base, $glass-blur-base, true);
+    border-color: rgba(25, 137, 250, 0.5);
+    box-shadow: 0 0 0 3px rgba(25, 137, 250, 0.1), $glass-shadow-base;
+  }
+}
+
+// 玻璃拟态弹窗/模态框
+@mixin glassmorphism-modal {
+  @include glassmorphism($glass-opacity-strong, $glass-blur-strong, true);
+  @include border-radius($border-radius-xl);
+  box-shadow: $glass-shadow-strong;
+  padding: $spacing-6;
+  
+  // 弹窗背景遮罩
+  &::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    z-index: -1;
+  }
+}
+
+// 玻璃拟态导航栏
+@mixin glassmorphism-navbar {
+  @include glassmorphism($glass-opacity-base, $glass-blur-base, false);
+  border-bottom: $glass-border-width $glass-border-style $glass-border-color;
+  box-shadow: $glass-shadow-light;
+}
+
+// 玻璃拟态底部栏
+@mixin glassmorphism-tabbar {
+  @include glassmorphism($glass-opacity-base, $glass-blur-base, false);
+  border-top: $glass-border-width $glass-border-style $glass-border-color;
+  box-shadow: 0 -4px 16px 0 rgba(31, 38, 135, 0.2);
+}

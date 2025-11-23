@@ -10,6 +10,9 @@
 // 导入组件样式
 @use './components.scss';
 
+// 导入 Vant 玻璃拟态主题覆盖
+@use './vant-glassmorphism.scss';
+
 // 全局重置样式
 * {
   margin: 0;
@@ -38,7 +41,10 @@ body {
   font-size: $font-size-base;
   line-height: $line-height-base;
   color: $text-color-primary;
-  background-color: $bg-color-base;
+  // 玻璃拟态背景：使用渐变背景支撑玻璃效果
+  background: $glass-bg-gradient;
+  background-attachment: fixed;
+  background-size: cover;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /* 启用GPU加速 */

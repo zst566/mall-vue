@@ -433,18 +433,21 @@
 </script>
 
 <style scoped lang="scss">
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
   .merchant-orders {
     padding-top: 120px;
-    background-color: #f5f5f5;
+    background: $glass-bg-gradient;
+    background-attachment: fixed;
+    background-size: cover;
     min-height: 100vh;
   }
 
   .order-stats {
-    background: white;
+    @include glassmorphism-card(base);
     padding: 15px;
     margin: 0 15px 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
   .stats-container {
@@ -494,16 +497,9 @@
   }
 
   .order-card {
-    background: white;
-    border-radius: 8px;
+    @include glassmorphism-card(base);
     margin-bottom: 15px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     cursor: pointer;
-    transition: box-shadow 0.2s;
-  }
-
-  .order-card:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   }
 
   .order-header {

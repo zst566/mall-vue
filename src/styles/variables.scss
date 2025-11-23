@@ -129,6 +129,41 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
 // 阴影颜色
 $shadow-color: rgba(0, 0, 0, 0.1);
 
+// 玻璃拟态变量
+// 背景透明度（三个层级）
+$glass-opacity-light: 0.15;    // Level 1: 轻微效果
+$glass-opacity-base: 0.25;      // Level 2: 标准效果
+$glass-opacity-strong: 0.35;   // Level 3: 强调效果
+
+// 降级方案透明度（不支持 backdrop-filter 时使用）
+$glass-opacity-fallback: 0.9;
+
+// 模糊度
+$glass-blur-light: 5px;         // Level 1: 轻微模糊
+$glass-blur-base: 10px;         // Level 2: 标准模糊
+$glass-blur-strong: 15px;       // Level 3: 强调模糊
+
+// 边框颜色和透明度
+$glass-border-color: rgba(255, 255, 255, 0.18);
+$glass-border-width: 1px;
+$glass-border-style: solid;
+
+// 玻璃拟态阴影
+$glass-shadow-light: 0 4px 16px 0 rgba(31, 38, 135, 0.2);
+$glass-shadow-base: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+$glass-shadow-strong: 0 12px 48px 0 rgba(31, 38, 135, 0.5);
+
+// 背景颜色（用于玻璃拟态元素）
+$glass-bg-light: rgba(255, 255, 255, $glass-opacity-light);
+$glass-bg-base: rgba(255, 255, 255, $glass-opacity-base);
+$glass-bg-strong: rgba(255, 255, 255, $glass-opacity-strong);
+$glass-bg-fallback: rgba(255, 255, 255, $glass-opacity-fallback);
+
+// 页面背景渐变（用于玻璃拟态效果支撑）
+$glass-bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+$glass-bg-gradient-alt: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+$glass-bg-gradient-blue: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+
 // 边框变量
 $border-width: 1px;
 $border-style: solid;

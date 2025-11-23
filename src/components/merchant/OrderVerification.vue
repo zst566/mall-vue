@@ -444,14 +444,15 @@
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   }
 
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
   .verification-info {
-    background: white;
-    border-radius: 12px;
+    @include glassmorphism-card(strong);
     padding: 30px;
     text-align: center;
     max-width: 400px;
     width: 100%;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     margin-bottom: 20px;
   }
 
@@ -506,8 +507,7 @@
   }
 
   .scanning-state {
-    background: white;
-    border-radius: 12px;
+    @include glassmorphism-card(strong);
     padding: 30px;
     text-align: center;
     max-width: 400px;
@@ -571,8 +571,7 @@
   }
 
   .waiting-state {
-    background: white;
-    border-radius: 12px;
+    @include glassmorphism-card(strong);
     padding: 30px;
     text-align: center;
     max-width: 400px;

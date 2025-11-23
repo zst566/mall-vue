@@ -68,10 +68,14 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 @use '@/styles/variables.scss' as *;
+@use '@/styles/mixins.scss' as *;
 
 .home-page {
   padding-bottom: 24px;
-  background: linear-gradient(180deg, #f8f9fb 0%, #ffffff 100%);
+  // 使用玻璃拟态背景渐变
+  background: $glass-bg-gradient;
+  background-attachment: fixed;
+  background-size: cover;
   min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
 }
@@ -84,7 +88,10 @@ onMounted(() => {
 
 @media (prefers-color-scheme: dark) {
   .home-page {
-    background: linear-gradient(180deg, #1a1a1a 0%, #121212 100%);
+    // 暗色模式使用深色渐变背景
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    background-attachment: fixed;
+    background-size: cover;
   }
 }
 </style>

@@ -38,13 +38,18 @@ const sizeClasses = computed(() => {
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
 .loading-spinner {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -52,9 +57,8 @@ const sizeClasses = computed(() => {
 }
 
 .loading-content {
-  background: white;
+  @include glassmorphism-card(strong);
   padding: 20px;
-  border-radius: 8px;
   text-align: center;
 }
 
@@ -124,7 +128,7 @@ const sizeClasses = computed(() => {
 // 暗色模式
 @media (prefers-color-scheme: dark) {
   .loading-content {
-    background: #1a1a1a;
+    @include glassmorphism-card(strong);
   }
 
   .loading-text {

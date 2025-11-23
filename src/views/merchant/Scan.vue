@@ -492,9 +492,14 @@
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
   .scan-page {
     min-height: 100vh;
-    background-color: var(--van-background);
+    background: $glass-bg-gradient;
+    background-attachment: fixed;
+    background-size: cover;
     padding-bottom: 20px;
   }
 
@@ -502,8 +507,7 @@
     margin: 16px;
     border-radius: var(--van-radius-lg);
     overflow: hidden;
-    background: white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    @include glassmorphism-card(base);
   }
 
   .scan-area {
@@ -699,8 +703,7 @@
         align-items: center;
         gap: 12px;
         padding: 16px;
-        background: white;
-        border-radius: var(--van-radius-md);
+        @include glassmorphism-card(light);
         margin-bottom: 12px;
         cursor: pointer;
         transition: all var(--van-transition-duration);

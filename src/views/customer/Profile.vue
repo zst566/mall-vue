@@ -496,9 +496,14 @@
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
   .profile-page {
     min-height: 100vh;
-    background: linear-gradient(180deg, #f7f9fc 0%, #ffffff 100%);
+    background: $glass-bg-gradient;
+    background-attachment: fixed;
+    background-size: cover;
     padding-bottom: 80px;
   }
 
@@ -610,11 +615,8 @@
   .user-stats {
     display: flex;
     justify-content: space-around;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 16px;
+    @include glassmorphism-card(base);
     padding: 20px 16px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
     position: relative;
     z-index: 1;
 
@@ -646,10 +648,8 @@
     margin: 16px 12px;
 
     .van-cell-group {
-      background: #ffffff;
-      border-radius: 12px;
+      @include glassmorphism-card(base);
       overflow: hidden;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 
       .van-cell {
         padding: 16px 18px;
@@ -700,7 +700,7 @@
       align-items: center;
       padding: 20px 18px;
       border-bottom: 1px solid #ebedf0;
-      background: #fff;
+      @include glassmorphism-card(light);
 
       h3 {
         margin: 0;

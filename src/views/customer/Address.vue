@@ -212,9 +212,14 @@
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
   .address-page {
     min-height: 100vh;
-    background-color: var(--van-background);
+    background: $glass-bg-gradient;
+    background-attachment: fixed;
+    background-size: cover;
     display: flex;
     flex-direction: column;
   }
@@ -249,15 +254,16 @@
   }
 
   .address-card {
-    background: var(--van-background-2);
-    border-radius: var(--van-radius-lg);
+    @include glassmorphism-card(base);
     padding: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
 
     &.is-default {
-      border-color: #1989fa;
-      background: rgba(25, 137, 250, 0.05);
+      border-color: rgba(25, 137, 250, 0.5);
+      @supports (backdrop-filter: blur(10px)) {
+        background: rgba(25, 137, 250, 0.15);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
     }
 
     &:active {

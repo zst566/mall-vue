@@ -193,11 +193,13 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
 .order-qrcode {
   width: 100%;
   padding: 20px;
-  background: #fff;
-  border-radius: 8px;
+  @include glassmorphism-card(base);
   margin-bottom: 20px;
 }
 
@@ -265,7 +267,7 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.95);
+  @include glassmorphism-card(strong);
   z-index: 10;
 
   .checkmark {

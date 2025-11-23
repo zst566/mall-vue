@@ -3,15 +3,14 @@
 
 // 通用组件样式
 .common-components {
-  // 应用头部
+  // 应用头部 - 玻璃拟态效果
   .app-header {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     height: $header-height;
-    background: $white;
-    border-bottom: $border-width solid $border-color-light;
+    @include glassmorphism-navbar;
     z-index: $z-index-sticky;
     @include flex(center, space-between, center);
     padding: 0 $spacing-4;
@@ -29,15 +28,14 @@
     }
   }
 
-  // 应用底部
+  // 应用底部 - 玻璃拟态效果
   .app-footer {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     height: $footer-height;
-    background: $white;
-    border-top: $border-width solid $border-color-light;
+    @include glassmorphism-tabbar;
     z-index: $z-index-sticky;
     @include flex(center, space-around, center);
     @include safe-area-inset-bottom;
@@ -124,9 +122,8 @@
     z-index: $z-index-modal;
 
     .loading-content {
-      background: $white;
+      @include glassmorphism-card(strong);
       padding: $spacing-8;
-      @include border-radius($border-radius-lg);
       @include flex(column, center, center);
       gap: $spacing-4;
     }
@@ -137,16 +134,14 @@
     }
   }
 
-  // 错误提示组件
+  // 错误提示组件 - 玻璃拟态效果
   .error-message {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: $white;
+    @include glassmorphism-card(strong);
     padding: $spacing-6 $spacing-8;
-    @include border-radius($border-radius-lg);
-    box-shadow: $shadow-lg;
     z-index: $z-index-modal;
     max-width: 80%;
     @include text-truncate-lines(3);
@@ -177,23 +172,25 @@
     }
   }
 
-  // 商户模式特殊样式
+  // 商户模式特殊样式 - 保持玻璃拟态效果
   .merchant-mode {
     .app-header {
-      background: $gray-lighter;
-      border-bottom-color: $border-color;
-
-      .header-title {
-        color: $dark;
+      @include glassmorphism-navbar;
+      // 商户模式可以使用稍微不同的透明度
+      @supports (backdrop-filter: blur(10px)) {
+        background: rgba(255, 255, 255, $glass-opacity-base);
       }
     }
 
     .app-footer {
-      background: $gray-lighter;
-      border-top-color: $border-color;
+      @include glassmorphism-tabbar;
+      // 商户模式可以使用稍微不同的透明度
+      @supports (backdrop-filter: blur(10px)) {
+        background: rgba(255, 255, 255, $glass-opacity-base);
+      }
 
       .footer-item {
-        color: $gray-base;
+        color: $text-color-secondary;
 
         &.active {
           color: $primary;
@@ -239,15 +236,12 @@
 
 // 客户版组件样式
 .customer-components {
-  // 商品卡片
+  // 商品卡片 - 玻璃拟态效果
   .product-card {
-    background: $white;
-    @include border-radius($border-radius-base);
-    @include shadow('sm');
+    @include glassmorphism-card(base);
     margin-bottom: $spacing-4;
     @include transition(all, $transition-fast);
     cursor: pointer;
-    @include card();
 
     &:hover {
       @include shadow('base');
@@ -292,9 +286,8 @@
       }
 
       .purchase-button {
-        @include button-variant($primary, $white, $primary-dark);
+        @include glassmorphism-button(primary);
         padding: $spacing-2 $spacing-6;
-        @include border-radius($border-radius-base);
         font-size: $font-size-base;
         flex: 1;
         @include no-select;
@@ -481,16 +474,10 @@
       gap: $spacing-4;
     }
 
-    .order-item {
-      background: $white;
-      @include border-radius($border-radius-base);
-      @include shadow('sm');
+      .order-item {
+      @include glassmorphism-card(base);
       padding: $spacing-4;
       @include transition(all, $transition-fast);
-
-      &:hover {
-        @include shadow('base');
-      }
 
       .order-header {
         @include flex(row, space-between, center);
@@ -604,7 +591,7 @@
     }
 
     .form-input {
-      @include form-input;
+      @include glassmorphism-input;
     }
 
     .form-textarea {
@@ -644,8 +631,8 @@
 // 列表样式
 .list-styles {
   .list-item {
-    background: $white;
-    border-bottom: $border-width solid $border-color-light;
+    @include glassmorphism-card(light);
+    border-bottom: $glass-border-width $glass-border-style $glass-border-color;
     padding: $spacing-4;
     @include transition(all, $transition-fast);
 
@@ -654,7 +641,7 @@
     }
 
     &:active {
-      background: $gray-lighter;
+      opacity: 0.8;
     }
 
     .item-header {

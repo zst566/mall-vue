@@ -238,17 +238,16 @@
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
   .product-card {
-    background: var(--van-background-2);
-    border-radius: var(--van-radius-lg);
+    @include glassmorphism-card(base);
     overflow: hidden;
-    transition: all var(--van-transition-duration);
     cursor: pointer;
-    border: 1px solid var(--van-border-color);
 
     &:hover {
       transform: translateY(-2px);
-      box-shadow: var(--shadow-base);
     }
 
     &.loading {

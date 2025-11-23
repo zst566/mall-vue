@@ -262,9 +262,14 @@
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
   .register-page {
     min-height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: $glass-bg-gradient;
+    background-attachment: fixed;
+    background-size: cover;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -290,10 +295,8 @@
     .register-form {
       width: 100%;
       max-width: 400px;
-      background: white;
-      border-radius: 16px;
+      @include glassmorphism-card(strong);
       padding: 24px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 
       .van-field {
         margin-bottom: 16px;
@@ -344,14 +347,15 @@
   @media (prefers-color-scheme: dark) {
     .register-page {
       background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      background-attachment: fixed;
+      background-size: cover;
 
       .register-header {
         color: white;
       }
 
       .register-form {
-        background: #2a2a2a;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        @include glassmorphism-card(strong);
       }
     }
   }

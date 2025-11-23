@@ -118,9 +118,14 @@
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
   .parking-page {
     padding: 16px;
-    background-color: #f7f8fa;
+    background: $glass-bg-gradient;
+    background-attachment: fixed;
+    background-size: cover;
     min-height: 100vh;
   }
 

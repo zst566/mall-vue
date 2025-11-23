@@ -76,13 +76,12 @@ const handleCategoryClick = (category: NavigationCategoryConfig) => {
 
 <style lang="scss" scoped>
 @use '@/styles/variables.scss' as *;
+@use '@/styles/mixins.scss' as *;
 
 .category-navigation {
   margin: 16px 12px;
   padding: 16px 12px;
-  background: #f6f8fb;
-  border-radius: 16px;
-  box-shadow: $shadow-sm;
+  @include glassmorphism-card(base);
 }
 
 .nav-grid {
@@ -108,12 +107,11 @@ const handleCategoryClick = (category: NavigationCategoryConfig) => {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #fff;
+  @include glassmorphism-card(light);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: box-shadow 0.2s ease;
+  transition: all 0.2s ease;
 
   .nav-item:active & {
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);

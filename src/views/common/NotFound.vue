@@ -32,28 +32,30 @@
 </script>
 
 <style scoped lang="scss">
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
   .not-found {
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    background: $glass-bg-gradient;
+    background-attachment: fixed;
+    background-size: cover;
     padding: 20px;
   }
 
   .not-found-container {
     text-align: center;
-    background: white;
+    @include glassmorphism-card(strong);
     padding: 40px 30px;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     max-width: 400px;
     width: 100%;
     transition: all 0.3s ease;
 
     &:hover {
       transform: translateY(-5px);
-      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
     }
   }
 
@@ -134,12 +136,13 @@
   // 暗色模式支持
   @media (prefers-color-scheme: dark) {
     .not-found {
-      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      background-attachment: fixed;
+      background-size: cover;
     }
 
     .not-found-container {
-      background: #2a2a2a;
-      border: 1px solid #404040;
+      @include glassmorphism-card(strong);
     }
 
     .not-found-title {

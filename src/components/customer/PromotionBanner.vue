@@ -191,6 +191,7 @@ const handleBannerClick = (banner: HomepageBannerConfig) => {
 
 <style lang="scss" scoped>
 @use '@/styles/variables.scss' as *;
+@use '@/styles/mixins.scss' as *;
 
 .promotion-banner {
   margin: 12px 12px 0; // 底部margin设为0，避免留白
@@ -206,8 +207,7 @@ const handleBannerClick = (banner: HomepageBannerConfig) => {
   width: 100%;
   border-radius: 12px;
   overflow: hidden;
-  background: #fff;
-  box-shadow: $shadow-sm;
+  @include glassmorphism-card(base);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column; // 使用flex布局，确保内容区域紧贴图片
@@ -325,7 +325,7 @@ const handleBannerClick = (banner: HomepageBannerConfig) => {
 
 .banner-content {
   padding: 12px 16px;
-  background: #fff;
+  @include glassmorphism-card(light);
   flex-shrink: 0; // 防止内容区域被压缩
   // 如果没有内容，不显示
   &:empty {

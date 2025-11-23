@@ -57,9 +57,7 @@ $shadow-sm: $shadow-sm;
   max-width: 100vw; // 防止超过视口宽度
   overflow: hidden; // 隐藏潜在溢出
   box-sizing: border-box;
-  background: #f6f8fb;
-  border-radius: 16px;
-  box-shadow: $shadow-sm;
+  @include glassmorphism-card(base);
 
   :deep(.van-grid) {
     width: 100%;

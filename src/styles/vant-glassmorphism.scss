@@ -1,0 +1,187 @@
+// Vant UI 玻璃拟态主题覆盖
+@use './variables.scss' as *;
+@use './mixins.scss' as *;
+
+// Vant 按钮玻璃拟态样式
+.van-button {
+  // 主要按钮
+  &--primary {
+    @include glassmorphism-button(primary);
+  }
+
+  // 成功按钮
+  &--success {
+    @include glassmorphism-button(success);
+  }
+
+  // 默认按钮
+  &--default {
+    @include glassmorphism-button(default);
+  }
+}
+
+// Vant 输入框玻璃拟态样式
+.van-field {
+  .van-field__control {
+    @include glassmorphism-input;
+  }
+
+  // 聚焦状态
+  &--focus {
+    .van-field__control {
+      @include glassmorphism($glass-opacity-base, $glass-blur-base, true);
+      border-color: rgba(25, 137, 250, 0.5);
+      box-shadow: 0 0 0 3px rgba(25, 137, 250, 0.1), $glass-shadow-base;
+    }
+  }
+}
+
+// Vant 弹窗玻璃拟态样式
+.van-popup {
+  &--round {
+    @include glassmorphism-modal;
+  }
+
+  // 遮罩层
+  &__overlay {
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+  }
+}
+
+// Vant 导航栏玻璃拟态样式
+.van-nav-bar {
+  @include glassmorphism-navbar;
+
+  .van-nav-bar__content {
+    @include glassmorphism-navbar;
+  }
+}
+
+// Vant 标签栏玻璃拟态样式
+.van-tabbar {
+  @include glassmorphism-tabbar;
+
+  .van-tabbar-item {
+    &--active {
+      .van-tabbar-item__text {
+        color: $primary;
+      }
+    }
+  }
+}
+
+// Vant 卡片玻璃拟态样式
+.van-card {
+  @include glassmorphism-card(base);
+}
+
+// Vant 单元格玻璃拟态样式
+.van-cell {
+  @include glassmorphism-card(light);
+  border-bottom: $glass-border-width $glass-border-style $glass-border-color;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+// Vant 列表玻璃拟态样式
+.van-list {
+  .van-cell {
+    @include glassmorphism-card(light);
+  }
+}
+
+// Vant 下拉菜单玻璃拟态样式
+.van-dropdown-menu {
+  @include glassmorphism-card(base);
+
+  .van-dropdown-menu__bar {
+    @include glassmorphism-navbar;
+  }
+}
+
+// Vant 选择器玻璃拟态样式
+.van-picker {
+  @include glassmorphism-card(strong);
+
+  .van-picker__toolbar {
+    @include glassmorphism-navbar;
+  }
+}
+
+// Vant 动作面板玻璃拟态样式
+.van-action-sheet {
+  @include glassmorphism-card(strong);
+
+  .van-action-sheet__header {
+    @include glassmorphism-navbar;
+  }
+}
+
+// Vant 对话框玻璃拟态样式
+.van-dialog {
+  @include glassmorphism-modal;
+
+  .van-dialog__header {
+    @include glassmorphism-navbar;
+  }
+}
+
+// Vant 通知栏玻璃拟态样式
+.van-notice-bar {
+  @include glassmorphism-card(light);
+}
+
+// Vant 搜索框玻璃拟态样式
+.van-search {
+  @include glassmorphism-navbar;
+
+  .van-search__content {
+    @include glassmorphism-input;
+  }
+}
+
+// Vant 步骤条玻璃拟态样式
+.van-steps {
+  .van-step {
+    @include glassmorphism-card(light);
+  }
+}
+
+// Vant 标签玻璃拟态样式
+.van-tag {
+  @include glassmorphism($glass-opacity-light, $glass-blur-light, true);
+  @include border-radius($border-radius-full);
+}
+
+// Vant 徽标玻璃拟态样式
+.van-badge {
+  .van-badge__wrapper {
+    @include glassmorphism($glass-opacity-light, $glass-blur-light, true);
+  }
+}
+
+// 浏览器兼容性降级
+@supports not (backdrop-filter: blur(10px)) {
+  .van-button,
+  .van-field__control,
+  .van-popup,
+  .van-nav-bar,
+  .van-tabbar,
+  .van-card,
+  .van-cell,
+  .van-dialog {
+    // 降级到纯色背景
+    background: rgba(255, 255, 255, $glass-opacity-fallback) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+

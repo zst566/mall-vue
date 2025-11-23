@@ -543,9 +543,14 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+
 .refund-request-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #f5f7fa 0%, #f7f8fa 100%);
+  background: $glass-bg-gradient;
+  background-attachment: fixed;
+  background-size: cover;
 }
 
 .refund-form-content {
@@ -553,13 +558,16 @@ onMounted(async () => {
   padding-bottom: calc(var(--tabbar-height) + 80px + env(safe-area-inset-bottom));
   box-sizing: border-box;
 
-  // 订单信息卡片
+  // 订单信息卡片 - 使用玻璃拟态效果
   .order-info-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    @include glassmorphism-card(strong);
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%);
     padding: 20px;
     margin-bottom: 16px;
-    border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    @supports (backdrop-filter: blur(15px)) {
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+    }
 
     .card-header {
       display: flex;
@@ -610,16 +618,9 @@ onMounted(async () => {
 
   // 表单卡片
   .form-card {
-    background: #fff;
+    @include glassmorphism-card(base);
     padding: 16px;
     margin-bottom: 12px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    transition: all 0.3s ease;
-
-    &:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    }
 
     .form-header {
       display: flex;
@@ -757,8 +758,7 @@ onMounted(async () => {
     right: 0;
     padding: 12px 16px;
     padding-bottom: calc(12px + env(safe-area-inset-bottom));
-    background: #fff;
-    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+    @include glassmorphism-tabbar;
     z-index: 1040;
 
     .submit-button {
