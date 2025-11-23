@@ -1,6 +1,10 @@
 <template>
   <section class="category-navigation">
-    <div class="nav-grid" v-if="categories.length > 0">
+    <div 
+      class="nav-grid" 
+      v-if="categories.length > 0"
+      :style="{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }"
+    >
       <div
         v-for="category in categories"
         :key="category.id"
@@ -8,7 +12,7 @@
         @click="handleCategoryClick(category)"
       >
         <div class="nav-icon-wrapper">
-          <van-icon :name="category.icon" class="nav-icon" />
+          <van-icon :name="getValidIconName(category.icon)" class="nav-icon" />
         </div>
         <p class="nav-text">{{ category.displayName }}</p>
       </div>
@@ -17,6 +21,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import type { NavigationCategoryConfig } from '@/types/homepage'
 
@@ -26,6 +31,33 @@ interface Props {
 
 const props = defineProps<Props>()
 const router = useRouter()
+
+// 计算网格列数：默认显示5个，如果少于5个则使用实际数量
+const gridColumns = computed(() => {
+  const count = props.categories.length
+  return count < 5 ? count : 5
+})
+
+// 图标名称映射：将不存在的图标名称映射到存在的图标
+const iconNameMap: Record<string, string> = {
+  'restaurant': 'shop-o',      // 餐饮 -> 商店图标
+  'study': 'notes-o',          // 教育 -> 笔记图标
+  'beauty': 'fire-o',          // 美容 -> 火焰图标
+  'food': 'shop-o',            // 食物 -> 商店图标
+  'education': 'notes-o',      // 教育 -> 笔记图标
+  'school': 'notes-o',         // 学校 -> 笔记图标
+}
+
+// 获取有效的图标名称
+const getValidIconName = (iconName: string): string => {
+  if (!iconName) return 'shop-o' // 默认图标
+  // 如果图标名称在映射表中，使用映射后的名称
+  if (iconNameMap[iconName]) {
+    return iconNameMap[iconName]
+  }
+  // 否则直接使用原名称（如果存在的话）
+  return iconName
+}
 
 const handleCategoryClick = (category: NavigationCategoryConfig) => {
   if (category.linkType === 'category_list') {
@@ -55,8 +87,8 @@ const handleCategoryClick = (category: NavigationCategoryConfig) => {
 
 .nav-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
   gap: 16px 8px;
+  justify-items: center;
 }
 
 .nav-item {

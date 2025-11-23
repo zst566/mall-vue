@@ -55,6 +55,26 @@ export class HomepageService extends BaseApiService {
   }
 
   /**
+   * 获取轮播配置
+   */
+  async getCarouselConfig(): Promise<{ autoRotateInterval: number }> {
+    const cacheKey = 'carousel-config'
+    const cached = this.getCached<{ autoRotateInterval: number }>(cacheKey)
+    if (cached) {
+      return cached
+    }
+
+    try {
+      const data = await this.get<{ autoRotateInterval: number }>('/homepage/carousel-config')
+      this.setCache(cacheKey, data)
+      return data
+    } catch (error) {
+      console.error('获取轮播配置失败:', error)
+      return { autoRotateInterval: 3 } // 默认3秒
+    }
+  }
+
+  /**
    * 获取导航分类列表
    */
   async getNavigationCategories(): Promise<NavigationCategoryConfig[]> {
