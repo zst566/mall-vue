@@ -1,6 +1,10 @@
 <template>
   <section class="category-promotions" v-if="promotions.length > 0">
-    <div class="section-header" :style="getSectionHeaderStyle()">
+    <div 
+      class="section-header" 
+      :class="{ 'has-gradient': isGradientBackground }"
+      :style="getSectionHeaderStyle()"
+    >
       <div class="title-wrapper">
         <!-- 缩略图或图标 -->
         <div class="category-icon-wrapper" v-if="category.thumbnail || category.icon">
@@ -309,13 +313,72 @@ onBeforeUnmount(() => {
   stopAutoPlay()
 })
 
+// 检查是否是渐变背景色
+const isGradientBackground = computed(() => {
+  if (!props.category.titleColor) return false
+  const color = props.category.titleColor
+  return color.includes('linear-gradient') || color.includes('radial-gradient')
+})
+
 // 获取section-header背景样式
+// 支持纯色和渐变背景色，配合玻璃拟态效果
 const getSectionHeaderStyle = () => {
   if (!props.category.titleColor) {
     return {}
   }
+  
+  const color = props.category.titleColor
+  
+  // 检测是否是渐变背景色
+  if (isGradientBackground.value) {
+    // 渐变背景色：直接使用，玻璃拟态效果通过 ::after 伪元素叠加
+    return {
+      background: color,
+    }
+  }
+  
+  // 纯色背景：转换为半透明，支持玻璃拟态效果
+  // 如果是 rgba 格式，提取颜色值并设置透明度
+  if (color.startsWith('rgba')) {
+    // 提取 rgba 值
+    const rgbaMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/)
+    if (rgbaMatch) {
+      const r = rgbaMatch[1]
+      const g = rgbaMatch[2]
+      const b = rgbaMatch[3]
+      return {
+        background: `rgba(${r}, ${g}, ${b}, 0.7)`, // 设置为70%透明度
+      }
+    }
+  }
+  
+  // 如果是 hex 格式，转换为 rgba
+  if (color.startsWith('#')) {
+    const hex = color.replace('#', '')
+    const r = parseInt(hex.substring(0, 2), 16)
+    const g = parseInt(hex.substring(2, 4), 16)
+    const b = parseInt(hex.substring(4, 6), 16)
+    return {
+      background: `rgba(${r}, ${g}, ${b}, 0.7)`, // 设置为70%透明度
+    }
+  }
+  
+  // 如果是 rgb 格式，转换为 rgba
+  if (color.startsWith('rgb')) {
+    const rgbMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/)
+    if (rgbMatch) {
+      const r = rgbMatch[1]
+      const g = rgbMatch[2]
+      const b = rgbMatch[3]
+      return {
+        background: `rgba(${r}, ${g}, ${b}, 0.7)`, // 设置为70%透明度
+      }
+    }
+  }
+  
+  // 如果无法解析，使用默认半透明白色
   return {
-    background: props.category.titleColor,
+    background: 'rgba(255, 255, 255, 0.7)',
   }
 }
 
@@ -403,24 +466,70 @@ const handleViewAll = () => {
 }
 
 .section-header {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
-  border-radius: 8px;
-  margin-bottom: 12px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  
+  // 玻璃拟态效果
+  // 背景色由 getSectionHeaderStyle() 动态设置
+  // 纯色背景：已转换为半透明
+  // 渐变背景：保持原样，通过 ::after 叠加玻璃拟态层
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px); // Safari兼容
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  
+  // 渐变背景时，叠加半透明白色层实现玻璃拟态效果
+  &.has-gradient {
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.3); // 半透明白色层
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 12px;
+      z-index: 0;
+      pointer-events: none; // 不阻挡点击事件
+    }
+  }
+  
+  // 左侧装饰条
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 60%;
+    background: $primary;
+    border-radius: 0 2px 2px 0;
+    z-index: 1;
+  }
 
   .title-wrapper {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px; // 从10px调整为12px
     flex: 1;
-    min-height: 24px; // 确保有足够的高度来垂直居中
+    min-height: 28px; // 适配更大的图标
+    position: relative;
+    z-index: 2; // 确保在装饰条之上
   }
 
   .category-icon-wrapper {
-    width: 24px;
-    height: 24px;
+    width: 28px; // 从24px调整为28px
+    height: 28px; // 从24px调整为28px
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -429,15 +538,15 @@ const handleViewAll = () => {
   }
 
   .category-thumbnail {
-    width: 24px;
-    height: 24px;
+    width: 28px; // 从24px调整为28px
+    height: 28px; // 从24px调整为28px
     object-fit: cover;
     border-radius: 4px;
     display: block;
   }
 
   .category-icon {
-    font-size: 24px;
+    font-size: 28px; // 从24px调整为28px
     color: $primary;
     line-height: 1;
     display: flex;
@@ -446,13 +555,13 @@ const handleViewAll = () => {
   }
 
   h3 {
-    font-size: $font-size-xl;
+    font-size: $font-size-xxl; // 从 $font-size-xl (18px) 提升到 $font-size-xxl (20px)
     font-weight: 700;
     color: $text-color-primary;
     margin: 0;
     padding: 0;
-    letter-spacing: -0.5px;
-    line-height: 1.2;
+    letter-spacing: 0; // 从 -0.5px 调整为 0
+    line-height: 1.3; // 从 1.2 调整为 1.3
     display: flex;
     align-items: center;
     height: auto;
@@ -468,7 +577,9 @@ const handleViewAll = () => {
     align-items: center;
     gap: 4px;
     flex-shrink: 0;
-    margin-left: 12px;
+    margin-left: 16px; // 从12px调整为16px
+    position: relative;
+    z-index: 2; // 确保在装饰条之上
 
     .more-text {
       display: inline-block;
@@ -753,10 +864,37 @@ const handleViewAll = () => {
   }
 
   .section-header {
-    padding: 0 0 10px;
+    padding: 12px 16px; // 移动端适当缩小内边距
+    margin-bottom: 12px; // 移动端适当缩小底部间距
+    border-radius: 10px; // 移动端稍微缩小圆角
+
+    .title-wrapper {
+      gap: 10px; // 移动端适当缩小间距
+    }
+
+    .category-icon-wrapper {
+      width: 24px; // 移动端保持较小尺寸
+      height: 24px;
+    }
+
+    .category-thumbnail {
+      width: 24px;
+      height: 24px;
+    }
+
+    .category-icon {
+      font-size: 24px;
+    }
 
     h3 {
-      font-size: $font-size-lg;
+      font-size: $font-size-lg; // 移动端使用较小字号
+      letter-spacing: 0;
+      line-height: 1.3;
+    }
+
+    .more {
+      margin-left: 12px; // 移动端适当缩小间距
+      font-size: $font-size-xs; // 移动端使用较小字号
     }
   }
 
@@ -799,8 +937,23 @@ const handleViewAll = () => {
     background: #2a2a2a;
   }
 
-  .section-header h3 {
-    color: #e0e0e0;
+  .section-header {
+    // 深色模式下的玻璃拟态效果
+    background: rgba(30, 30, 30, 0.7); // 深色半透明背景
+    border: 1px solid rgba(255, 255, 255, 0.1); // 更浅的边框
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+    h3 {
+      color: #e0e0e0;
+    }
+
+    .more {
+      color: $primary-light; // 深色模式下使用较亮的主题色
+    }
+
+    .category-icon {
+      color: $primary-light;
+    }
   }
 
   .promotion-title {
