@@ -27,6 +27,7 @@ declare module 'vue' {
     RefundRequestDialog: typeof import('./components/customer/RefundRequestDialog.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    VanBackTop: typeof import('vant/es')['BackTop']
     VanBadge: typeof import('vant/es')['Badge']
     VanButton: typeof import('vant/es')['Button']
     VanCard: typeof import('vant/es')['Card']

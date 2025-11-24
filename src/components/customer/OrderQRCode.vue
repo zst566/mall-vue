@@ -1,8 +1,12 @@
 <template>
-  <div class="order-qrcode">
+  <div class="order-qrcode" :class="`size-${size}`">
     <!-- 二维码区域 -->
     <div class="qrcode-container">
-      <div class="qrcode-wrapper" :class="{ 'verified': isVerified }">
+      <div 
+        class="qrcode-wrapper" 
+        :class="{ 'verified': isVerified, 'clickable': qrCodeData && !loading && !error && !isVerified }"
+        @click="handleQRCodeClick"
+      >
         <!-- 加载状态 -->
         <div v-if="loading" class="qrcode-loading">
           <van-loading type="spinner" size="24px">加载中...</van-loading>
@@ -34,8 +38,27 @@
 
       <!-- 提示信息 -->
       <div class="qrcode-hint">
-        <p v-if="!isVerified" class="hint-text">请向商户出示此二维码进行核销</p>
+        <p v-if="!isVerified" class="hint-text">点击放大</p>
         <p v-else class="hint-text verified-hint">订单已核销，二维码已失效</p>
+      </div>
+    </div>
+
+    <!-- 全屏遮罩层 -->
+    <div v-if="showFullscreen" class="fullscreen-overlay" @click="closeFullscreen">
+      <div class="fullscreen-content" @click.stop>
+        <div class="fullscreen-qrcode-wrapper">
+          <img
+            v-if="qrCodeData"
+            :src="qrCodeData"
+            alt="订单二维码"
+            class="fullscreen-qrcode-image"
+          />
+        </div>
+        <div class="fullscreen-hint">
+          <p v-if="!isVerified" class="hint-text">请向商户出示此二维码进行核销</p>
+          <p v-else class="hint-text verified-hint">订单已核销，二维码已失效</p>
+        </div>
+        <div class="fullscreen-close-hint">点击任意位置关闭</div>
       </div>
     </div>
   </div>
@@ -50,14 +73,18 @@ import type { OrderStatus } from '@/types'
 interface Props {
   orderId: string
   orderStatus: OrderStatus
+  size?: 'small' | 'medium' | 'large'
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  size: 'medium'
+})
 
 const qrCodeData = ref<string>('')
 const loading = ref(false)
 const error = ref<string>('')
 const isVerified = ref(false)
+const showFullscreen = ref(false)
 let pollTimer: ReturnType<typeof setTimeout> | null = null
 let pollCount = 0
 const MAX_POLL_COUNT = 100 // 最大轮询次数，防止无限轮询
@@ -186,9 +213,32 @@ onMounted(() => {
   }
 })
 
-// 组件卸载时清理定时器
+// 处理二维码点击
+const handleQRCodeClick = () => {
+  if (qrCodeData.value && !loading.value && !error.value && !isVerified.value) {
+    openFullscreen()
+  }
+}
+
+// 打开全屏
+const openFullscreen = () => {
+  showFullscreen.value = true
+  // 锁定body滚动
+  document.body.style.overflow = 'hidden'
+}
+
+// 关闭全屏
+const closeFullscreen = () => {
+  showFullscreen.value = false
+  // 恢复body滚动
+  document.body.style.overflow = ''
+}
+
+// 组件卸载时清理定时器和恢复滚动
 onUnmounted(() => {
   stopPolling()
+  // 确保恢复body滚动
+  document.body.style.overflow = ''
 })
 </script>
 
@@ -211,8 +261,6 @@ onUnmounted(() => {
 
 .qrcode-wrapper {
   position: relative;
-  width: 300px;
-  height: 300px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -220,10 +268,35 @@ onUnmounted(() => {
   border-radius: 8px;
   border: 2px solid #ebedf0;
   overflow: hidden;
+  transition: all 0.2s;
 
   &.verified {
     border-color: #07c160;
   }
+
+  &.clickable {
+    cursor: pointer;
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+}
+
+// 根据size prop设置尺寸
+.order-qrcode.size-small .qrcode-wrapper {
+  width: 120px;
+  height: 120px;
+}
+
+.order-qrcode.size-medium .qrcode-wrapper {
+  width: 200px;
+  height: 200px;
+}
+
+.order-qrcode.size-large .qrcode-wrapper {
+  width: 300px;
+  height: 300px;
 }
 
 .qrcode-image {
@@ -319,9 +392,73 @@ onUnmounted(() => {
   }
 }
 
+// 全屏遮罩层
+.fullscreen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease-out;
+
+  .fullscreen-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    animation: scaleIn 0.3s ease-out;
+  }
+
+  .fullscreen-qrcode-wrapper {
+    width: 300px;
+    height: 300px;
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .fullscreen-qrcode-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .fullscreen-hint {
+    text-align: center;
+
+    .hint-text {
+      font-size: 16px;
+      color: #fff;
+      margin: 0;
+    }
+
+    .verified-hint {
+      color: #07c160;
+      font-weight: 500;
+    }
+  }
+
+  .fullscreen-close-hint {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 10px;
+  }
+}
+
 // 移动端适配
 @media (max-width: 768px) {
-  .qrcode-wrapper {
+  .order-qrcode.size-medium .qrcode-wrapper,
+  .order-qrcode.size-large .qrcode-wrapper {
     width: 250px;
     height: 250px;
   }
@@ -335,6 +472,18 @@ onUnmounted(() => {
 
     .verified-text {
       font-size: 16px;
+    }
+  }
+
+  .fullscreen-overlay {
+    .fullscreen-qrcode-wrapper {
+      width: 280px;
+      height: 280px;
+      padding: 15px;
+    }
+
+    .fullscreen-hint .hint-text {
+      font-size: 14px;
     }
   }
 }

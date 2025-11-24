@@ -56,6 +56,19 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
+    path: '/promotions',
+    name: 'Promotions',
+    component: () => import('@/views/customer/Promotions.vue'),
+    meta: {
+      title: '促销活动列表',
+      permission: 'public' as Permission,
+      requiresAuth: false,
+      hideHeader: false,
+      hideFooter: false,
+      hideVersionSwitcher: false
+    }
+  },
+  {
     path: '/profile',
     name: 'Profile',
     component: () => import('@/views/customer/Profile.vue'),

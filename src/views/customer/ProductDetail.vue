@@ -1,5 +1,16 @@
 <template>
   <div class="product-detail-page">
+    <!-- 导航栏 -->
+    <van-nav-bar
+      :title="product.name || '商品详情'"
+      left-arrow
+      @click-left="onClickLeft"
+      fixed
+      placeholder
+      z-index="100"
+      class="detail-nav-bar"
+    />
+
     <!-- 商品图片轮播（只显示主图） -->
     <div class="image-carousel" v-if="mainImages.length > 0">
       <van-swipe :autoplay="3000" indicator-color="white">
@@ -493,6 +504,11 @@
     router.push({ name: 'Home' })
   }
 
+  // 返回上一页
+  const onClickLeft = () => {
+    router.back()
+  }
+
   // 切换收藏
   const toggleFavorite = () => {
     isFavorite.value = !isFavorite.value
@@ -552,6 +568,28 @@
     background-attachment: fixed;
     background-size: cover;
     padding-bottom: 70px; /* 调整底部安全空间：60px(底部操作栏) + 10px(安全边距) */
+
+    // 导航栏样式 - 透明背景与图片轮播融合
+    :deep(.detail-nav-bar) {
+      background: transparent;
+      
+      .van-nav-bar__content {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+      
+      .van-nav-bar__title {
+        color: white;
+        font-weight: 600;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      }
+      
+      .van-nav-bar__arrow {
+        color: white;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      }
+    }
   }
 
   .image-carousel {

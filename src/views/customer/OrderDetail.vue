@@ -1,5 +1,15 @@
 <template>
   <div class="order-detail-page">
+    <!-- 导航栏 -->
+    <van-nav-bar
+      title="订单详情"
+      left-arrow
+      @click-left="onClickLeft"
+      fixed
+      placeholder
+      z-index="100"
+    />
+
     <!-- 加载状态 -->
     <van-loading v-if="loading" type="spinner" vertical style="padding: 50px 0;">加载中...</van-loading>
     
@@ -38,11 +48,6 @@
           <div class="step-time">{{ order.verifiedAt }}</div>
         </van-step>
       </van-steps>
-    </div>
-
-    <!-- 订单二维码（仅当订单状态为待使用或已核销时显示） -->
-    <div v-if="order.status === 'paid' || order.status === 'verified'" class="order-qrcode-section">
-      <OrderQRCode :orderId="order.id" :orderStatus="order.status" />
     </div>
 
     <!-- 收货信息 -->
@@ -87,8 +92,72 @@
       </div>
     </div>
 
-    <!-- 支付信息 -->
-    <div class="payment-info">
+    <!-- 二维码和支付信息（合并显示） -->
+    <div class="qrcode-payment-container" v-if="order.status === 'paid' || order.status === 'verified'">
+      <!-- 二维码区域（30%） -->
+      <div class="qrcode-area">
+        <div 
+          class="qrcode-wrapper" 
+          :class="{ 'verified': qrCodeVerified, 'clickable': qrCodeData && !qrCodeLoading && !qrCodeError && !qrCodeVerified }"
+          @click="handleQRCodeClick"
+        >
+          <!-- 加载状态 -->
+          <div v-if="qrCodeLoading" class="qrcode-loading">
+            <van-loading type="spinner" size="24px">加载中...</van-loading>
+          </div>
+          <!-- 二维码图片 -->
+          <img
+            v-else-if="qrCodeData"
+            :src="qrCodeData"
+            alt="订单二维码"
+            class="qrcode-image"
+          />
+          <!-- 错误状态 -->
+          <div v-else-if="qrCodeError" class="qrcode-error">
+            <van-icon name="warning-o" size="48" color="#ee0a24" />
+            <p class="error-message">{{ qrCodeError }}</p>
+            <van-button type="primary" size="small" @click="loadQRCode">重试</van-button>
+          </div>
+          <!-- 已核销状态 -->
+          <div v-if="qrCodeVerified" class="verified-overlay">
+            <van-icon name="success" size="80" color="#07c160" />
+            <div class="verified-text">已核销</div>
+          </div>
+        </div>
+        <!-- 提示信息 -->
+        <p class="qrcode-hint" v-if="!qrCodeVerified">点击放大</p>
+        <p class="qrcode-hint verified-hint" v-else>订单已核销，二维码已失效</p>
+      </div>
+      <!-- 支付信息区域（70%） -->
+      <div class="payment-info">
+        <h3>支付信息</h3>
+        <div class="payment-details">
+          <div class="payment-row">
+            <span>商品金额</span>
+            <span>¥{{ formatMoney(order.originalAmount || 0) }}</span>
+          </div>
+          <div class="payment-row" v-if="order.shippingFee && order.shippingFee > 0">
+            <span>运费</span>
+            <span>¥{{ formatMoney(order.shippingFee) }}</span>
+          </div>
+          <div class="payment-row total">
+            <span>实付金额</span>
+            <span class="total-amount">¥{{ formatMoney(order.totalAmount) }}</span>
+          </div>
+          <div class="payment-row">
+            <span>支付方式</span>
+            <span>{{ getPaymentMethodLabel(order.paymentMethod) }}</span>
+          </div>
+          <div class="payment-row" v-if="order.paidAt">
+            <span>支付时间</span>
+            <span>{{ order.paidAt }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 支付信息（当订单状态不是paid或verified时单独显示） -->
+    <div class="payment-info" v-if="order.status !== 'paid' && order.status !== 'verified'">
       <h3>支付信息</h3>
       <div class="payment-details">
         <div class="payment-row">
@@ -176,16 +245,30 @@
     </div>
 
     </template>
+
+    <!-- 全屏遮罩层（使用Teleport渲染到body，确保在最顶层） -->
+    <Teleport to="body">
+      <div v-if="showQRCodeFullscreen" class="fullscreen-overlay" @click="closeQRCodeFullscreen">
+        <div class="fullscreen-content" @click.stop>
+          <img
+            v-if="qrCodeData"
+            :src="qrCodeData"
+            alt="订单二维码"
+            class="fullscreen-qrcode-image"
+          />
+          <p class="fullscreen-hint">点击任意位置关闭</p>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, computed } from 'vue'
+  import { ref, onMounted, computed, onUnmounted, watch } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
   import { showToast, showLoadingToast, closeToast, showDialog, showImagePreview } from 'vant'
   import type { OrderStatus, Order } from '@/types'
   import { formatMoney } from '@/utils/format'
-  import OrderQRCode from '@/components/customer/OrderQRCode.vue'
   import { orderService } from '@/services/orders'
   import { api } from '@/services/api'
 
@@ -214,6 +297,13 @@
 
   const loading = ref(false)
   const refundRequestDetail = ref<any>(null)
+
+  // 二维码相关状态
+  const qrCodeData = ref<string>('')
+  const qrCodeLoading = ref(false)
+  const qrCodeError = ref<string>('')
+  const qrCodeVerified = ref(false)
+  const showQRCodeFullscreen = ref(false)
 
   // 订单状态配置
   const orderStatusMap = {
@@ -374,6 +464,11 @@
   // 继续购物
   const goToProducts = () => {
     router.push({ name: 'Products' })
+  }
+
+  // 返回上一页
+  const onClickLeft = () => {
+    router.back()
   }
 
   // 跳转到退款申请页面
@@ -613,11 +708,71 @@
     } finally {
       loading.value = false
     }
+
+    // 如果订单状态为paid，自动加载二维码
+    if (order.value.status === 'paid') {
+      loadQRCode()
+    } else if (order.value.status === 'verified') {
+      qrCodeVerified.value = true
+    }
   }
 
   // 初始化
+  // 加载二维码
+  const loadQRCode = async () => {
+    if (order.value.status !== 'paid') {
+      qrCodeError.value = '订单状态不正确，无法生成二维码'
+      return
+    }
+
+    qrCodeLoading.value = true
+    qrCodeError.value = ''
+
+    try {
+      const result = await orderService.getOrderQRCode(order.value.id)
+      qrCodeData.value = result.qrCodeData
+    } catch (err: any) {
+      qrCodeError.value = err.message || '获取二维码失败'
+      showToast({
+        message: qrCodeError.value,
+        type: 'fail'
+      })
+    } finally {
+      qrCodeLoading.value = false
+    }
+  }
+
+  // 处理二维码点击
+  const handleQRCodeClick = () => {
+    if (qrCodeData.value && !qrCodeLoading.value && !qrCodeError.value && !qrCodeVerified.value) {
+      showQRCodeFullscreen.value = true
+      document.body.style.overflow = 'hidden'
+    }
+  }
+
+  // 关闭全屏
+  const closeQRCodeFullscreen = () => {
+    showQRCodeFullscreen.value = false
+    document.body.style.overflow = ''
+  }
+
+  // 监听订单状态变化，更新二维码状态
+  watch(() => order.value.status, (newStatus) => {
+    if (newStatus === 'verified') {
+      qrCodeVerified.value = true
+    } else if (newStatus === 'paid') {
+      qrCodeVerified.value = false
+      loadQRCode()
+    }
+  })
+
   onMounted(() => {
     loadOrderDetail()
+  })
+
+  onUnmounted(() => {
+    // 确保恢复body滚动
+    document.body.style.overflow = ''
   })
 </script>
 
@@ -631,6 +786,22 @@
     background-attachment: fixed;
     background-size: cover;
     padding-bottom: 100px;
+
+    // 导航栏样式
+    :deep(.van-nav-bar) {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      
+      .van-nav-bar__title {
+        color: $text-color-primary;
+        font-weight: 600;
+      }
+      
+      .van-nav-bar__arrow {
+        color: $text-color-primary;
+      }
+    }
   }
 
   .order-header {
@@ -757,12 +928,168 @@
     }
   }
 
-  .order-qrcode-section {
+  .qrcode-payment-container {
     @include glassmorphism-card(base);
-    padding: 24px 20px;
+    padding: 20px;
     margin: 16px;
     margin-bottom: 12px;
     border-radius: 0;
+    display: flex;
+    gap: 20px;
+    align-items: stretch; // 改为stretch，让子元素填充高度
+    position: relative;
+
+    // 二维码区域（30%）
+    .qrcode-area {
+      width: 30%;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center; // 垂直居中整个区域
+      gap: 12px;
+      padding-left: 0;
+      position: relative;
+
+      .qrcode-wrapper {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f7f8fa;
+        border-radius: 8px;
+        border: 2px solid #ebedf0;
+        overflow: hidden;
+        transition: all 0.2s;
+        margin: 0;
+        box-sizing: border-box; // 确保border包含在宽度内
+
+        &.verified {
+          border-color: #07c160;
+        }
+
+        &.clickable {
+          cursor: pointer;
+
+          &:active {
+            transform: scale(0.98);
+          }
+        }
+      }
+
+      .qrcode-image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      .qrcode-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        color: #969799;
+      }
+
+      .qrcode-error {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 20px;
+        text-align: center;
+
+        .error-message {
+          font-size: 12px;
+          color: #ee0a24;
+          margin: 0;
+        }
+      }
+
+      .verified-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.95);
+        z-index: 10;
+
+        .verified-text {
+          font-size: 14px;
+          font-weight: bold;
+          color: #07c160;
+          margin-top: 8px;
+        }
+      }
+
+      .qrcode-hint {
+        font-size: 12px;
+        color: #646566;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+        width: 120px;
+        box-sizing: border-box;
+        display: block;
+        line-height: 1.4;
+
+        &.verified-hint {
+          color: #07c160;
+          font-weight: 500;
+        }
+      }
+    }
+
+    // 支付信息区域（70%）
+    .payment-info {
+      width: 70%;
+      flex: 1;
+      margin: 0;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      min-width: 0;
+
+      h3 {
+        font-size: 16px;
+        font-weight: 600;
+        color: #323233;
+        margin: 0 0 16px 0;
+      }
+    }
+
+    // 移动端也保持左右布局，但调整间距和尺寸
+    @media (max-width: 767px) {
+      gap: 12px;
+      padding: 16px;
+      align-items: center;
+
+      .qrcode-area {
+        width: 30%;
+        align-items: center;
+
+        .qrcode-wrapper {
+          width: 100px;
+          height: 100px;
+        }
+      }
+
+      .payment-info {
+        width: 70%;
+        padding: 12px;
+        border-radius: 8px;
+      }
+    }
   }
 
   .shipping-info,
@@ -1019,6 +1346,49 @@
 
       .total-amount {
         color: #ff6b6b;
+      }
+    }
+  }
+</style>
+
+<!-- 全屏遮罩层样式（全局样式，因为Teleport渲染到body） -->
+<style lang="scss">
+  .fullscreen-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(0, 0, 0, 0.85) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 99999 !important;
+    cursor: pointer !important;
+
+    .fullscreen-content {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      gap: 24px !important;
+      cursor: default !important;
+
+      .fullscreen-qrcode-image {
+        width: 300px !important;
+        height: 300px !important;
+        object-fit: contain !important;
+        background: #fff !important;
+        border-radius: 12px !important;
+        padding: 20px !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+      }
+
+      .fullscreen-hint {
+        color: #fff !important;
+        font-size: 14px !important;
+        margin: 0 !important;
+        text-align: center !important;
+        opacity: 0.9 !important;
       }
     }
   }

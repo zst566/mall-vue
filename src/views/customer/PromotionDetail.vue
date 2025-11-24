@@ -1,5 +1,16 @@
 <template>
   <div class="promotion-detail-page">
+    <!-- 导航栏 -->
+    <van-nav-bar
+      :title="promotion.name || '促销活动详情'"
+      left-arrow
+      @click-left="onClickLeft"
+      fixed
+      placeholder
+      z-index="100"
+      class="detail-nav-bar"
+    />
+
     <!-- 顶部Banner主图 -->
     <div class="banner-section">
       <van-swipe 
@@ -546,6 +557,11 @@
     router.push({ name: 'Home' })
   }
 
+  // 返回上一页
+  const onClickLeft = () => {
+    router.back()
+  }
+
   // 初始化收藏状态
   const initFavoriteStatus = async () => {
     if (!authStore.isAuthenticated) {
@@ -1072,6 +1088,28 @@
     background: var(--theme-bg-gradient, $glass-bg-gradient);
     background-attachment: fixed;
     background-size: cover;
+
+    // 导航栏样式 - 透明背景与 banner 融合
+    :deep(.detail-nav-bar) {
+      background: transparent;
+      
+      .van-nav-bar__content {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+      
+      .van-nav-bar__title {
+        color: white;
+        font-weight: 600;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      }
+      
+      .van-nav-bar__arrow {
+        color: white;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      }
+    }
   }
 
   // 顶部Banner主图区域
