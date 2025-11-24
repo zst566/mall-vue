@@ -94,7 +94,7 @@
 
     <!-- 二维码和支付信息（合并显示） -->
     <div class="qrcode-payment-container" v-if="order.status === 'paid' || order.status === 'verified'">
-      <!-- 二维码区域（30%） -->
+      <!-- 二维码区域（40%） -->
       <div class="qrcode-area">
         <div 
           class="qrcode-wrapper" 
@@ -124,11 +124,8 @@
             <div class="verified-text">已核销</div>
           </div>
         </div>
-        <!-- 提示信息 -->
-        <p class="qrcode-hint" v-if="!qrCodeVerified">点击放大</p>
-        <p class="qrcode-hint verified-hint" v-else>订单已核销，二维码已失效</p>
       </div>
-      <!-- 支付信息区域（70%） -->
+      <!-- 支付信息区域（60%） -->
       <div class="payment-info">
         <h3>支付信息</h3>
         <div class="payment-details">
@@ -939,22 +936,29 @@
     align-items: stretch; // 改为stretch，让子元素填充高度
     position: relative;
 
-    // 二维码区域（30%）
+    // 二维码区域（40%）
     .qrcode-area {
-      width: 30%;
+      width: 40%;
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center; // 垂直居中整个区域
-      gap: 12px;
-      padding-left: 0;
+      justify-content: center; // 垂直居中
+      padding: 0;
+      padding-top: 16px; // 向下偏移，与支付信息内容区域对齐（标题高度的一半）
       position: relative;
+      height: 100%; // 与支付信息区域高度一致
 
       .qrcode-wrapper {
         position: relative;
-        width: 120px;
-        height: 120px;
+        // 高度与支付信息区域一致（通过父容器height: 100%）
+        height: 100%; // 高度与支付信息区域一致
+        // 宽度自适应，保持正方形（取高度和宽度的较小值）
+        width: min(100%, 100%); // 宽度不超过容器，但保持正方形
+        aspect-ratio: 1; // 保持正方形
+        // 如果高度更小，则按高度调整宽度
+        max-width: 100%;
+        max-height: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -963,7 +967,7 @@
         border: 2px solid #ebedf0;
         overflow: hidden;
         transition: all 0.2s;
-        margin: 0;
+        margin: 0 auto; // 水平居中
         box-sizing: border-box; // 确保border包含在宽度内
 
         &.verified {
@@ -1031,27 +1035,11 @@
         }
       }
 
-      .qrcode-hint {
-        font-size: 12px;
-        color: #646566;
-        margin: 0;
-        padding: 0;
-        text-align: center;
-        width: 120px;
-        box-sizing: border-box;
-        display: block;
-        line-height: 1.4;
-
-        &.verified-hint {
-          color: #07c160;
-          font-weight: 500;
-        }
-      }
     }
 
-    // 支付信息区域（70%）
+    // 支付信息区域（60%）
     .payment-info {
-      width: 70%;
+      width: 60%;
       flex: 1;
       margin: 0;
       padding: 16px;
@@ -1072,20 +1060,20 @@
     @media (max-width: 767px) {
       gap: 12px;
       padding: 16px;
-      align-items: center;
+      align-items: stretch; // 让子元素填充高度
 
       .qrcode-area {
-        width: 30%;
+        width: 40%;
         align-items: center;
+        padding-top: 12px; // 移动端向下偏移，与支付信息内容对齐
 
         .qrcode-wrapper {
-          width: 100px;
-          height: 100px;
+          max-width: 180px; // 移动端适当增大
         }
       }
 
       .payment-info {
-        width: 70%;
+        width: 60%;
         padding: 12px;
         border-radius: 8px;
       }
