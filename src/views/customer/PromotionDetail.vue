@@ -9,12 +9,17 @@
         class="banner-swipe"
       >
         <van-swipe-item v-for="(image, index) in mainImages" :key="index">
-          <img 
-            :src="getImageUrl(image)" 
-            :alt="`促销活动主图 ${index + 1}`"
+          <div 
             class="banner-image"
-            @error="handleImageError"
-          />
+            :style="{
+              '--banner-image-url': `url(${getImageUrl(image)})`
+            }"
+          >
+            <!-- 模糊背景层 -->
+            <div class="banner-background-blur"></div>
+            <!-- 主图片层 -->
+            <div class="banner-image-main"></div>
+          </div>
         </van-swipe-item>
       </van-swipe>
       <PlaceholderImage 
@@ -48,15 +53,21 @@
           :key="tag.id"
           v-model:show="tagPopoverVisible[tag.id]"
           :actions="[]"
-          placement="top"
+          :placement="getPopoverPlacement(tag.id)"
           theme="dark"
+          :offset="getPopoverOffset(tag.id)"
+          :class="`tag-popover-${tag.id}`"
         >
           <template #reference>
-            <span class="service-tag" @click.stop="showTagDescription(tag.id)">
+            <span
+              class="service-tag"
+              :ref="el => setTagRef(tag.id, el)"
+              @click.stop="showTagDescription(tag.id)"
+            >
               {{ tag.name }}
             </span>
           </template>
-          <div class="tag-popover-content">
+          <div class="tag-popover-content" style="padding: 12px 16px;">
             <div class="tag-name">{{ tag.name }}</div>
             <div class="tag-description" v-if="tag.description">{{ tag.description }}</div>
             <div class="tag-description" v-else>暂无说明</div>
@@ -115,14 +126,14 @@
     </div>
 
     <!-- 底部操作栏 -->
-    <div class="bottom-bar" :class="{ 'hidden': !isBottomBarVisible }">
+    <div class="bottom-bar" :class="{ 'hidden': !isBottomBarVisible }" :style="bottomBarStyle">
       <div class="left-buttons">
         <div class="action-item" @click="goToHome">
           <van-icon name="home-o" />
           <span>首页</span>
         </div>
         <div class="action-item" @click="toggleFavorite">
-          <van-icon :name="isFavorite ? 'star' : 'star-o'" :class="{ active: isFavorite }" />
+          <van-icon :name="isFavorite ? 'star' : 'star-o'" class="favorite-icon" :class="{ active: isFavorite }" />
           <span>收藏</span>
         </div>
         <div class="action-item" @click="contactService">
@@ -132,7 +143,7 @@
       </div>
       <div class="right-buttons">
         <van-button
-          type="danger"
+          type="primary"
           size="large"
           @click.stop="handlePurchase"
           @touchstart.stop
@@ -147,7 +158,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+  import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
   import { showToast, showLoadingToast, closeToast, showConfirmDialog, showDialog } from 'vant'
   import PlaceholderImage from '@/components/common/PlaceholderImage.vue'
@@ -155,6 +166,7 @@
   import { api } from '@/services/api'
   import { orderService } from '@/services/orders'
   import { PointsService } from '@/services/points'
+  import { favoriteService } from '@/services/favorites'
   import { useAuthStore } from '@/stores/auth'
   import webViewBridge from '@/utils/webview-bridge'
   import { formatMoney } from '@/utils/format'
@@ -166,15 +178,78 @@
 
   // 收藏状态
   const isFavorite = ref(false)
+  const favoriteLoading = ref(false)
 
   // 底部导航显示/隐藏状态
   const isBottomBarVisible = ref(true)
   const lastScrollTop = ref(0)
   const scrollTimer = ref<number | null>(null)
+  
+  // 底部栏动态样式
+  const bottomBarStyle = ref<Record<string, string>>({})
+  
+  // 将十六进制颜色转换为 rgba
+  const hexToRgba = (hex: string, alpha: number): string => {
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`
+  }
+  
+  // 计算颜色的反色（用于创建强烈对比）
+  const invertColor = (hex: string): string => {
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    
+    // 计算主题色的相对亮度（用于判断是深色还是浅色）
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+    
+    // 由于底部栏背景是主题色15%不透明度，背景相对较浅
+    // 为了确保强烈对比，我们使用白色或接近白色的颜色
+    // 如果主题色本身很亮（luminance > 0.7），则使用深色
+    if (luminance > 0.7) {
+      // 主题色很亮，使用深色反色
+      const invertedR = Math.max(0, 255 - r - 50)
+      const invertedG = Math.max(0, 255 - g - 50)
+      const invertedB = Math.max(0, 255 - b - 50)
+      return `rgb(${invertedR}, ${invertedG}, ${invertedB})`
+    } else {
+      // 主题色较暗，使用白色确保强烈对比
+      return `rgb(255, 255, 255)`
+    }
+  }
+  
+  // 设置底部栏主题色渐变背景
+  const setBottomBarTheme = () => {
+    const root = document.documentElement
+    const primaryColor = getComputedStyle(root).getPropertyValue('--primary-color').trim() || '#1989fa'
+    
+    // 使用主题色15%，整体不透明度95%
+    // 计算最终颜色：主题色15%不透明度 × 整体95%不透明度 = 0.15 * 0.95 = 0.1425
+    const finalAlpha = 0.15 * 0.95
+    const themeColorWithOpacity = hexToRgba(primaryColor, finalAlpha)
+    
+    // 计算主题色反色，用于图标和文字
+    const invertedColor = invertColor(primaryColor)
+    
+    const borderColor = hexToRgba(primaryColor, 0.25)      // 边框：主题色 25% 不透明度
+    const shadowColor1 = hexToRgba(primaryColor, 0.15)    // 阴影1：主题色 15% 不透明度
+    const shadowColor2 = hexToRgba(primaryColor, 0.1)     // 阴影2：主题色 10% 不透明度
+    
+    bottomBarStyle.value = {
+      background: themeColorWithOpacity,  // 使用主题色15% × 整体95%不透明度
+      '--inverted-theme-color': invertedColor,  // CSS 变量：反色
+      borderTopColor: borderColor,
+      boxShadow: `0 -4px 24px 0 ${shadowColor1}, 0 -2px 8px 0 ${shadowColor2}`
+    }
+  }
 
   // 服务特色标签
   const tags = ref<Array<{ id: string; name: string; description?: string | null }>>([])
   const tagPopoverVisible = ref<Record<string, boolean>>({})
+  const tagRefs = ref<Record<string, HTMLElement | null>>({})
+  const tagOffsets = ref<Record<string, [number, number]>>({})
 
   // 促销活动信息
   const promotionId = route.params.id as string
@@ -200,9 +275,130 @@
   const variants = computed(() => promotion.variants || [])
   const selectedVariant = ref<any>(null)
 
+  // 设置标签引用
+  const setTagRef = (tagId: string, el: Element | ComponentPublicInstance | null) => {
+    if (el) {
+      // 如果是组件实例，获取其 $el 属性；否则直接使用元素
+      const htmlElement = (el as any).$el || el as HTMLElement
+      tagRefs.value[tagId] = htmlElement
+    }
+  }
+
+  // 存储每个标签的提示框位置
+  const tagPlacements = ref<Record<string, 'top' | 'bottom'>>({})
+
+  // 动态计算每个标签的偏移量，确保提示框在视口内
+  const getPopoverOffset = (tagId: string): [number, number] => {
+    const tagElement = tagRefs.value[tagId]
+    if (!tagElement) {
+      return [0, 8] // 默认偏移：水平0，垂直8px
+    }
+
+    const rect = tagElement.getBoundingClientRect()
+    const viewportWidth = window.innerWidth
+    const minLeftMargin = 10
+    const minRightMargin = 10
+
+    // 估算提示框宽度（与 CSS 中的 max-width 保持一致）
+    const estimatedPopoverWidth = Math.min(280, viewportWidth - 20)
+
+    let xOffset = 0
+
+    // 计算提示框默认居中显示时的左右边界
+    const popoverLeft = rect.left + rect.width / 2 - estimatedPopoverWidth / 2
+    const popoverRight = rect.left + rect.width / 2 + estimatedPopoverWidth / 2
+
+    // 检查左边界
+    if (popoverLeft < minLeftMargin) {
+      // 需要向右偏移
+      xOffset = minLeftMargin - popoverLeft
+    }
+    // 检查右边界
+    else if (popoverRight > viewportWidth - minRightMargin) {
+      // 需要向左偏移
+      xOffset = (viewportWidth - minRightMargin) - popoverRight
+    }
+
+    return [xOffset, 8]
+  }
+
+  // 根据标签在视口中的位置智能选择提示框位置
+  const getPopoverPlacement = (tagId: string): 'top' | 'bottom' => {
+    // 如果已经计算过位置，直接返回
+    if (tagPlacements.value[tagId]) {
+      return tagPlacements.value[tagId]
+    }
+
+    const tagElement = tagRefs.value[tagId]
+    if (!tagElement) {
+      // 默认下方，等待 DOM 更新后重新计算
+      return 'bottom'
+    }
+
+    const rect = tagElement.getBoundingClientRect()
+    const viewportHeight = window.innerHeight
+    const spaceTop = rect.top
+    const spaceBottom = viewportHeight - rect.bottom
+
+    // 估算提示框高度（包含内容、内边距和箭头），增加安全边距
+    const estimatedPopoverHeight = 140
+    const minTopMargin = 10
+    const minBottomMargin = 10
+
+    // 计算实际可用空间（减去安全边距）
+    const availableSpaceTop = spaceTop - minTopMargin
+    const availableSpaceBottom = spaceBottom - minBottomMargin
+
+    // 优先选择空间更大的方向
+    if (availableSpaceTop < estimatedPopoverHeight && availableSpaceBottom >= estimatedPopoverHeight) {
+      // 上方空间不足，但下方有足够空间
+      tagPlacements.value[tagId] = 'bottom'
+      return 'bottom'
+    } else if (availableSpaceBottom < estimatedPopoverHeight && availableSpaceTop >= estimatedPopoverHeight) {
+      // 下方空间不足，但上方有足够空间
+      tagPlacements.value[tagId] = 'top'
+      return 'top'
+    } else if (availableSpaceTop >= estimatedPopoverHeight && availableSpaceBottom >= estimatedPopoverHeight) {
+      // 上下都有足够空间，优先选择下方
+      tagPlacements.value[tagId] = 'bottom'
+      return 'bottom'
+    } else {
+      // 上下空间都不足，选择空间更大的方向
+      const placement: 'top' | 'bottom' = availableSpaceTop > availableSpaceBottom ? 'top' : 'bottom'
+      tagPlacements.value[tagId] = placement
+      return placement
+    }
+  }
+
   // 显示标签说明
   const showTagDescription = (tagId: string) => {
+    // 直接切换显示状态（位置已通过 offset 和 placement 动态计算）
     tagPopoverVisible.value[tagId] = !tagPopoverVisible.value[tagId]
+  }
+
+  // 处理页面点击事件，点击外部时关闭所有提示框
+  const handleDocumentClick = (event: MouseEvent) => {
+    // 检查是否有打开的提示框
+    const hasOpenPopover = Object.values(tagPopoverVisible.value).some(visible => visible)
+    if (!hasOpenPopover) {
+      return // 没有打开的提示框，不需要处理
+    }
+    
+    const target = event.target as HTMLElement
+    
+    // 检查点击的目标是否在提示框内部或标签上
+    const isClickInsidePopover = target.closest('.van-popover')
+    const isClickOnTag = target.closest('.service-tag')
+    
+    // 如果点击在提示框外部且不在标签上，关闭所有提示框
+    if (!isClickInsidePopover && !isClickOnTag) {
+      // 关闭所有打开的提示框
+      Object.keys(tagPopoverVisible.value).forEach(tagId => {
+        if (tagPopoverVisible.value[tagId]) {
+          tagPopoverVisible.value[tagId] = false
+        }
+      })
+    }
   }
 
   // 主图列表（用于顶部banner）- 只显示主图，如无主图标记则显示第1张图
@@ -350,10 +546,56 @@
     router.push({ name: 'Home' })
   }
 
+  // 初始化收藏状态
+  const initFavoriteStatus = async () => {
+    if (!authStore.isAuthenticated) {
+      isFavorite.value = false
+      return
+    }
+
+    try {
+      const result = await favoriteService.checkFavorite('PROMOTION', promotionId)
+      isFavorite.value = result.isFavorite
+    } catch (error) {
+      console.error('检查收藏状态失败:', error)
+      // 失败时默认为未收藏，不影响用户体验
+      isFavorite.value = false
+    }
+  }
+
   // 切换收藏
-  const toggleFavorite = () => {
-    isFavorite.value = !isFavorite.value
-    showToast(isFavorite.value ? '已添加到收藏' : '已取消收藏')
+  const toggleFavorite = async () => {
+    // 检查登录状态
+    if (!authStore.isAuthenticated || !authStore.user) {
+      showToast('请先登录')
+      router.push({ name: 'Login' })
+      return
+    }
+
+    // 防止重复点击
+    if (favoriteLoading.value) {
+      return
+    }
+
+    favoriteLoading.value = true
+    try {
+      if (isFavorite.value) {
+        // 取消收藏
+        await favoriteService.removeFavorite('PROMOTION', promotionId)
+        isFavorite.value = false
+        showToast('已取消收藏')
+      } else {
+        // 添加收藏
+        await favoriteService.addFavorite('PROMOTION', promotionId)
+        isFavorite.value = true
+        showToast('已添加到收藏')
+      }
+    } catch (error: any) {
+      console.error('收藏操作失败:', error)
+      showToast(error.message || '操作失败，请稍后重试')
+    } finally {
+      favoriteLoading.value = false
+    }
   }
 
   // 联系客服
@@ -668,6 +910,9 @@
         settlementPrice: data.settlementPrice || 0,
         pointsValue: data.pointsValue || 0,
       })
+
+      // 初始化收藏状态
+      await initFavoriteStatus()
     } catch (error: any) {
       console.error('加载促销活动详情失败:', error)
       showToast(error.message || '加载促销活动详情失败，请稍后重试')
@@ -743,10 +988,16 @@
 
   // 初始化
   onMounted(() => {
+    // 设置底部栏主题色样式
+    setBottomBarTheme()
+    
     loadPromotionDetail()
     
     // 监听支付结果消息
     webViewBridge.on('paymentResult', handlePaymentResult)
+    
+    // 监听页面点击事件，点击外部时关闭提示框
+    document.addEventListener('click', handleDocumentClick, true)
     
     // 监听页面激活事件（从其他页面返回时）
     // 使用 visibilitychange 事件检测页面是否可见
@@ -785,6 +1036,9 @@
     // 移除支付结果监听
     webViewBridge.off('paymentResult', handlePaymentResult)
     
+    // 移除页面点击监听
+    document.removeEventListener('click', handleDocumentClick, true)
+    
     // 移除页面激活监听
     if (handleVisibilityChange) {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
@@ -815,7 +1069,7 @@
   .promotion-detail-page {
     min-height: 100vh;
     padding-bottom: 80px; // 为底部操作栏留出空间
-    background: $glass-bg-gradient;
+    background: var(--theme-bg-gradient, $glass-bg-gradient);
     background-attachment: fixed;
     background-size: cover;
   }
@@ -831,12 +1085,50 @@
 
     .banner-image {
       width: 100%;
-      height: auto;
       min-height: 300px;
       max-height: 500px;
-      object-fit: contain; // 使用 contain 确保图片完整显示，不被裁剪
-      display: block;
-      background-color: #f5f5f5;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background-color: #f5f5f5; // 默认背景色
+      
+      // 模糊背景层 - 填充整个容器
+      .banner-background-blur {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: var(--banner-image-url);
+        background-size: cover; // 背景层使用cover填充整个容器
+        background-position: center;
+        background-repeat: no-repeat;
+        filter: blur(20px);
+        transform: scale(1.1) translateZ(0); // 稍微放大避免边缘模糊，启用GPU加速
+        z-index: 0;
+        will-change: transform, filter; // 提示浏览器优化transform和filter
+        backface-visibility: hidden; // 优化渲染性能
+        -webkit-backface-visibility: hidden; // Safari兼容
+      }
+      
+      // 主图片层 - 完整显示图片
+      .banner-image-main {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        min-height: 300px;
+        background-image: var(--banner-image-url);
+        background-size: contain; // 使用contain，完整显示图片
+        background-position: center;
+        background-repeat: no-repeat;
+        z-index: 1;
+        will-change: transform; // 提示浏览器优化动画
+        transform: translateZ(0); // 启用GPU加速
+        backface-visibility: hidden; // 优化渲染性能
+        -webkit-backface-visibility: hidden; // Safari兼容
+      }
     }
 
     .banner-placeholder {
@@ -865,13 +1157,14 @@
         .price-symbol {
           font-size: 18px;
           font-weight: 600;
-          color: var(--van-danger-color);
+          color: var(--primary-dark);
         }
 
         .price-value {
           font-size: 32px;
           font-weight: 800;
-          color: var(--van-danger-color);
+          color: var(--primary-dark);
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 0 4px rgba(0, 0, 0, 0.05);
         }
       }
 
@@ -893,10 +1186,14 @@
 
         .discount-text {
           font-size: 12px;
-          color: var(--van-success-color);
-          background-color: rgba(7, 193, 96, 0.1);
-          padding: 2px 6px;
+          font-weight: 600;
+          color: white;
+          background-color: var(--primary-color);
+          padding: 4px 8px;
           border-radius: 4px;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+          display: inline-block;
+          line-height: 1.2;
         }
       }
     }
@@ -927,21 +1224,48 @@
   background-color: #d0d0d0;
 }
 
+// 优化 Popover 在视口范围内的显示
+:deep(.van-popover[class*="tag-popover-"]) {
+  max-width: min(280px, calc(100vw - 20px)) !important; // 左右各留10px边距
+}
+
+// Popover 内容容器样式
+:deep(.van-popover__wrapper) {
+  .van-popover__content {
+    max-width: 100%;
+    word-wrap: break-word;
+    word-break: break-word;
+    padding: 0 !important; // 移除默认 padding，使用内容区域的 padding
+    box-sizing: border-box !important;
+  }
+}
+
+// 内容区域样式（padding 通过内联样式设置）
 .tag-popover-content {
-  padding: 8px;
   min-width: 120px;
+  max-width: 100%;
+  word-wrap: break-word;
+  word-break: break-word;
+  box-sizing: border-box;
 }
 
 .tag-name {
   font-weight: bold;
-  margin-bottom: 4px;
+  margin-bottom: 8px !important; // 增加标题和描述之间的间距
+  margin-top: 0 !important; // 确保顶部没有额外间距
   color: #fff;
+  font-size: 14px;
+  line-height: 1.4;
+  padding: 0;
 }
 
 .tag-description {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.9);
-  line-height: 1.4;
+  line-height: 1.6;
+  white-space: normal; // 允许换行
+  margin: 0 !important; // 确保没有额外间距
+  padding: 0;
 }
 
 .promotion-name {
@@ -1049,12 +1373,27 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 16px;
-    @include glassmorphism-tabbar;
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); // 安全区域适配
     z-index: 100;
     gap: 12px;
     transition: transform 0.3s ease-in-out;
     transform: translateY(0);
+    
+    // 使用主题色15%，整体不透明度95%
+    // 背景颜色通过 JavaScript 动态设置（bottomBarStyle）
+    // 默认降级方案：主题色15% × 整体95%不透明度 = 0.1425
+    background: rgba(25, 137, 250, 0.1425);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 2px solid transparent; // 边框颜色通过 JavaScript 动态设置
+    box-shadow: 0 -4px 24px 0 rgba(0, 0, 0, 0.08), 
+                0 -2px 8px 0 rgba(0, 0, 0, 0.05);
+
+    // 降级方案：不支持 backdrop-filter 时保持相同样式
+    @supports not (backdrop-filter: blur(20px)) {
+      background: rgba(25, 137, 250, 0.1425);
+    }
 
     &.hidden {
       transform: translateY(100%);
@@ -1072,26 +1411,92 @@
         align-items: center;
         justify-content: center;
         gap: 4px;
-        padding: 4px 8px;
+        padding: 6px 10px;
         cursor: pointer;
-        transition: opacity 0.2s;
+        border-radius: 8px;
+        transition: all 0.2s ease;
 
         &:active {
-          opacity: 0.6;
+          opacity: 0.7;
+          transform: scale(0.95);
+        }
+
+        &:hover {
+          background-color: rgba(0, 0, 0, 0.03);
         }
 
         .van-icon {
-          font-size: 20px;
-          color: var(--van-text-color-2);
+          font-size: 22px;
+          color: var(--inverted-theme-color, #ffffff);  // 使用反色，默认白色作为降级方案
+          transition: color 0.2s ease;
+          filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));  // 添加阴影增强对比度
+          -webkit-filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 
           &.active {
-            color: var(--van-warning-color);
+            // active 状态（非收藏按钮）使用主题色
+            color: var(--primary-color);
+            filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 6px var(--primary-color));  // active 状态使用主题色高光
+            -webkit-filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 6px var(--primary-color));
+          }
+
+          // 收藏按钮图标统一使用金色（使用特定class，确保优先级最高）
+          &.favorite-icon {
+            color: #ffd700 !important;  // 金色，使用 !important 确保优先级
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 4px rgba(255, 215, 0, 0.5)) !important;  // 金色高光
+            -webkit-filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 4px rgba(255, 215, 0, 0.5)) !important;
+            
+            // 覆盖 Vant 图标的内联样式和字体图标
+            &[style*="color"] {
+              color: #ffd700 !important;
+            }
+            
+            // 字体图标的 ::before 伪元素
+            &::before {
+              color: #ffd700 !important;
+            }
+            
+            // 确保 SVG 内部元素也使用金色（Vue 3 深度选择器语法）
+            :deep(.van-icon__image),
+            :deep(svg),
+            :deep(path),
+            :deep(.van-icon__font),
+            :deep(.van-icon__font::before) {
+              fill: #ffd700 !important;
+              color: #ffd700 !important;
+            }
+            
+            // active 状态也保持金色
+            &.active {
+              color: #ffd700 !important;  // 金色
+              filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 6px rgba(255, 215, 0, 0.6)) !important;  // 增强金色高光
+              -webkit-filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 6px rgba(255, 215, 0, 0.6)) !important;
+              
+              &[style*="color"] {
+                color: #ffd700 !important;
+              }
+              
+              &::before {
+                color: #ffd700 !important;
+              }
+              
+              :deep(.van-icon__image),
+              :deep(svg),
+              :deep(path),
+              :deep(.van-icon__font),
+              :deep(.van-icon__font::before) {
+                fill: #ffd700 !important;
+                color: #ffd700 !important;
+              }
+            }
           }
         }
 
         span {
           font-size: 12px;
-          color: var(--van-text-color-2);
+          font-weight: 600;  // 增加字重增强对比度
+          color: var(--inverted-theme-color, #ffffff);  // 使用反色，默认白色作为降级方案
+          transition: color 0.2s ease;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 0 1px rgba(0, 0, 0, 0.2);  // 添加文字阴影增强对比度
         }
       }
     }
@@ -1102,10 +1507,36 @@
       z-index: 101; // 确保按钮在最上层
 
       .van-button {
-        min-width: 120px;
+        min-width: 140px;
+        height: 44px;
         position: relative;
         z-index: 102; // 确保按钮在最上层
         pointer-events: auto; // 确保可以点击
+        border: none;
+        border-radius: 22px;
+        font-weight: 600;
+        font-size: 16px;
+        box-shadow: 0 4px 12px 0 rgba(25, 137, 250, 0.3), 0 2px 4px 0 rgba(25, 137, 250, 0.2);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        
+        // 使用主题色渐变背景
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+        
+        &:not(:disabled):hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px 0 rgba(25, 137, 250, 0.4), 0 4px 8px 0 rgba(25, 137, 250, 0.3);
+        }
+        
+        &:not(:disabled):active {
+          transform: translateY(0);
+          box-shadow: 0 2px 8px 0 rgba(25, 137, 250, 0.3), 0 1px 2px 0 rgba(25, 137, 250, 0.2);
+        }
+        
+        &:disabled {
+          background: linear-gradient(135deg, #c8c9cc 0%, #bfbfbf 100%);
+          box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+          opacity: 0.6;
+        }
       }
     }
   }

@@ -168,6 +168,99 @@
   }
 }
 
+// Vant Toast 玻璃拟态样式
+.van-toast {
+  @include glassmorphism-card(strong);
+  border-radius: $border-radius-lg !important;
+  padding: $spacing-4 $spacing-6 !important;
+  box-shadow: $glass-shadow-strong !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  min-width: 88px;
+  max-width: 70%;
+  
+  // Toast 文本样式
+  .van-toast__text {
+    color: $text-color-primary !important;
+    font-size: $font-size-base !important;
+    font-weight: $font-weight-medium !important;
+    line-height: 1.5 !important;
+  }
+  
+  // 成功类型
+  &--success {
+    background: rgba(76, 175, 80, 0.2) !important;
+    border: 1px solid rgba(76, 175, 80, 0.4) !important;
+    
+    .van-toast__icon {
+      color: #4caf50 !important;
+    }
+  }
+  
+  // 失败类型
+  &--fail {
+    background: rgba(244, 67, 54, 0.2) !important;
+    border: 1px solid rgba(244, 67, 54, 0.4) !important;
+    
+    .van-toast__icon {
+      color: #f44336 !important;
+    }
+  }
+  
+  // 加载类型
+  &--loading {
+    background: rgba(25, 137, 250, 0.2) !important;
+    border: 1px solid rgba(25, 137, 250, 0.4) !important;
+    padding: $spacing-6 $spacing-8 !important;
+    
+    .van-toast__loading {
+      color: $primary !important;
+    }
+    
+    .van-toast__text {
+      margin-top: $spacing-4 !important;
+    }
+  }
+  
+  // 默认类型（文本）
+  &--text {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  }
+}
+
+// Vant Loading 玻璃拟态样式
+.van-loading {
+  @include glassmorphism-card(strong);
+  border-radius: $border-radius-lg;
+  padding: $spacing-6 $spacing-8;
+  box-shadow: $glass-shadow-strong;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  
+  // Loading 文本样式
+  .van-loading__text {
+    color: $text-color-primary;
+    font-size: $font-size-base;
+    font-weight: $font-weight-medium;
+    margin-top: $spacing-4;
+  }
+  
+  // Loading 图标
+  .van-loading__spinner {
+    color: $primary;
+  }
+  
+  // Loading 遮罩层
+  &__overlay {
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+  }
+}
+
+
 // 浏览器兼容性降级
 @supports not (backdrop-filter: blur(10px)) {
   .van-button,
@@ -177,11 +270,14 @@
   .van-tabbar,
   .van-card,
   .van-cell,
-  .van-dialog {
+  .van-dialog,
+  .van-toast,
+  .van-loading {
     // 降级到纯色背景
     background: rgba(255, 255, 255, $glass-opacity-fallback) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
 }
+
 

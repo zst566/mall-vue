@@ -41,8 +41,8 @@ body {
   font-size: $font-size-base;
   line-height: $line-height-base;
   color: $text-color-primary;
-  // 玻璃拟态背景：使用渐变背景支撑玻璃效果
-  background: $glass-bg-gradient;
+  // 玻璃拟态背景：使用主题颜色渐变，跟随系统配置
+  background: var(--theme-bg-gradient, $glass-bg-gradient);
   background-attachment: fixed;
   background-size: cover;
   -webkit-font-smoothing: antialiased;

@@ -243,6 +243,12 @@ $tabbar-height: 60px;
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-inset-left: env(safe-area-inset-left, 0px);
 
+  // 主题颜色变量（会在 ThemeManager 中动态更新）
+  --primary-color: #{$primary};
+  --primary-light: #{$primary-light};
+  --primary-dark: #{$primary-dark};
+  --theme-bg-gradient: #{$glass-bg-gradient};
+
   // Vant主题变量
   --van-primary-color: #{$primary};
   --van-success-color: #{$success};

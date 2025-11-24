@@ -17,9 +17,9 @@
             }"
             :style="{
               '--banner-image-url': `url(${getImageUrl(currentBanner?.image || '')})`,
-              animationDuration: currentBanner?.animationType === 'breathing' && currentBanner?.breathingDuration
+              '--breathing-duration': currentBanner?.animationType === 'breathing' && currentBanner?.breathingDuration
                 ? `${currentBanner.breathingDuration}s`
-                : undefined
+                : '7s'
             }"
           >
             <!-- 模糊背景层 -->
@@ -276,6 +276,7 @@ const handleBannerClick = (banner: HomepageBannerConfig) => {
   &.animation-breathing {
     .banner-image-main {
       animation: breathing ease-in-out infinite;
+      animation-duration: var(--breathing-duration, 7s);
     }
   }
   

@@ -795,3 +795,21 @@ export type ReplaceDeep<T, K extends string, V> = K extends `${infer K1}.${infer
 export type PartialExcept<T, K extends keyof T> = Partial<T> & Pick<T, K>
 
 export type RequiredExcept<T, K extends keyof T> = Required<T> & Partial<Pick<T, K>>
+
+// 收藏相关类型
+export type FavoriteTargetType = 'PROMOTION' | 'PRODUCT'
+
+export interface UserFavorite {
+  id: string
+  userId: string
+  targetType: FavoriteTargetType
+  targetId: string
+  createdAt: string
+  updatedAt: string
+  // 关联数据（根据 targetType 可能是促销或商品）
+  target?: any
+}
+
+export interface CheckFavoriteResponse {
+  isFavorite: boolean
+}

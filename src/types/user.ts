@@ -140,17 +140,39 @@ export interface UserActivity {
 // 用户活动记录响应
 export interface UserActivitiesResponse extends ApiResponse<Array<UserActivity>> {}
 
+// 收藏类型
+export type FavoriteTargetType = 'PROMOTION' | 'PRODUCT'
+
 // 用户收藏夹
 export interface UserFavorite {
   id: string
   userId: string
-  productId: string
-  product: Product
+  targetType: FavoriteTargetType
+  targetId: string
+  product?: Product // 当 targetType 为 PRODUCT 时存在
+  promotion?: any // 当 targetType 为 PROMOTION 时存在（后续可以定义具体类型）
   createdAt: string
+  updatedAt: string
+}
+
+// 促销活动收藏（类型别名）
+export type PromotionFavorite = UserFavorite & {
+  targetType: 'PROMOTION'
+}
+
+// 产品收藏（类型别名）
+export type ProductFavorite = UserFavorite & {
+  targetType: 'PRODUCT'
+  product: Product
 }
 
 // 用户收藏夹响应
 export interface UserFavoritesResponse extends ApiResponse<Array<UserFavorite>> {}
+
+// 检查收藏状态响应
+export interface CheckFavoriteResponse extends ApiResponse<{
+  isFavorite: boolean
+}> {}
 
 // 用户浏览历史
 export interface UserHistory {

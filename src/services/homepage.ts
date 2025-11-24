@@ -7,7 +7,7 @@ import type { NavigationCategoryConfig, HomepageBannerConfig } from '@/types/hom
 
 export class HomepageService extends BaseApiService {
   private cache: Map<string, { data: any; timestamp: number }> = new Map()
-  private cacheExpiry = 60 * 1000 // 1分钟缓存
+  private cacheExpiry = 30 * 60 * 1000 // 30分钟缓存（优化后）
 
   constructor() {
     super()
@@ -124,6 +124,46 @@ export class HomepageService extends BaseApiService {
    */
   clearCache(): void {
     this.cache.clear()
+  }
+
+  /**
+   * 获取首页聚合数据（优化版，一次请求所有数据）
+   * 返回：横幅 + 导航分类（含促销数据） + 轮播配置
+   */
+  async getHomepageData(): Promise<{
+    banners: HomepageBannerConfig[]
+    carouselConfig: { autoRotateInterval: number }
+    navigationCategories: Array<NavigationCategoryConfig & { promotions: any[] }>
+  }> {
+    const cacheKey = 'homepage-data'
+    const cached = this.getCached<{
+      banners: HomepageBannerConfig[]
+      carouselConfig: { autoRotateInterval: number }
+      navigationCategories: Array<NavigationCategoryConfig & { promotions: any[] }>
+    }>(cacheKey)
+
+    if (cached) {
+      return cached
+    }
+
+    try {
+      const data = await this.get<{
+        banners: HomepageBannerConfig[]
+        carouselConfig: { autoRotateInterval: number }
+        navigationCategories: Array<NavigationCategoryConfig & { promotions: any[] }>
+      }>('/homepage/data')
+
+      this.setCache(cacheKey, data)
+      return data
+    } catch (error) {
+      console.error('获取首页聚合数据失败:', error)
+      // 返回空数据而不是抛出错误
+      return {
+        banners: [],
+        carouselConfig: { autoRotateInterval: 3 },
+        navigationCategories: [],
+      }
+    }
   }
 }
 

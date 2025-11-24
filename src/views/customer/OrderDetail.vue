@@ -627,7 +627,7 @@
 
   .order-detail-page {
     min-height: 100vh;
-    background: $glass-bg-gradient;
+    background: var(--theme-bg-gradient, $glass-bg-gradient);
     background-attachment: fixed;
     background-size: cover;
     padding-bottom: 100px;
@@ -659,28 +659,28 @@
         font-weight: 500;
 
         &.pending {
-          background: rgba(255, 151, 106, 0.1);
-          color: #ff976a;
+          background: var(--primary-color-alpha-10, rgba(25, 137, 250, 0.1));
+          color: var(--primary-color);
         }
 
         &.paid {
-          background: rgba(25, 137, 250, 0.1);
-          color: #1989fa;
+          background: var(--primary-color-alpha-10, rgba(25, 137, 250, 0.1));
+          color: var(--primary-color);
         }
 
         &.verified {
-          background: rgba(7, 193, 96, 0.1);
-          color: #07c160;
+          background: var(--primary-color-alpha-10, rgba(25, 137, 250, 0.1));
+          color: var(--primary-color);
         }
 
         &.cancelled {
           background: rgba(150, 151, 153, 0.1);
-          color: #969799;
+          color: var(--van-text-color-3);
         }
 
         &.refund_requested {
-          background: rgba(255, 151, 106, 0.1);
-          color: #ff976a;
+          background: var(--primary-color-alpha-10, rgba(25, 137, 250, 0.1));
+          color: var(--primary-color);
         }
       }
     }
@@ -720,8 +720,8 @@
           font-weight: 500;
 
           &.normal {
-            background: rgba(7, 193, 96, 0.1);
-            color: #07c160;
+            background: var(--primary-color-alpha-10, rgba(25, 137, 250, 0.1));
+            color: var(--primary-color);
           }
 
           &.warning {
@@ -908,7 +908,7 @@
 
           .merchant-icon {
             font-size: 14px;
-            color: #1989fa;
+            color: var(--primary-color);
           }
         }
 
@@ -929,8 +929,8 @@
           .floor-text {
             margin-left: 4px;
             padding: 1px 6px;
-            background: rgba(25, 137, 250, 0.1);
-            color: #1989fa;
+            background: var(--primary-color-alpha-10, rgba(25, 137, 250, 0.1));
+            color: var(--primary-color);
             border-radius: 8px;
             font-size: 11px;
           }

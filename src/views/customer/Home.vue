@@ -29,31 +29,20 @@ const banners = ref<HomepageBannerConfig[]>([])
 const navigationCategories = ref<NavigationCategoryConfig[]>([])
 const categoryPromotionsMap = ref<Record<string, any[]>>({})
 
-// 加载首页数据
+// 加载首页数据（优化版：使用聚合接口，一次请求所有数据）
 const loadHomepageData = async () => {
   try {
-    // 并行加载横幅和导航分类
-    const [bannersData, categoriesData] = await Promise.all([
-      homepageService.getBanners(),
-      homepageService.getNavigationCategories(),
-    ])
+    // 使用聚合接口，一次性获取所有首页数据
+    const data = await homepageService.getHomepageData()
 
-    banners.value = bannersData
-    navigationCategories.value = categoriesData
+    // 解构数据并赋值
+    banners.value = data.banners
+    navigationCategories.value = data.navigationCategories
 
-    // 为每个导航分类加载促销列表
-    const promotionPromises = categoriesData.map(async (category) => {
-      const promotions = await homepageService.getCategoryPromotions(
-        category.id,
-        category.displayCount || 3
-      )
-      return { categoryId: category.id, promotions }
-    })
-
-    const promotionResults = await Promise.all(promotionPromises)
+    // 构建促销映射表（前端不再需要单独请求促销数据）
     const map: Record<string, any[]> = {}
-    promotionResults.forEach(({ categoryId, promotions }) => {
-      map[categoryId] = promotions
+    data.navigationCategories.forEach((category) => {
+      map[category.id] = category.promotions || []
     })
     categoryPromotionsMap.value = map
   } catch (error) {
@@ -72,8 +61,8 @@ onMounted(() => {
 
 .home-page {
   padding-bottom: 24px;
-  // 使用玻璃拟态背景渐变
-  background: $glass-bg-gradient;
+  // 使用主题颜色背景渐变，跟随系统配置
+  background: var(--theme-bg-gradient, $glass-bg-gradient);
   background-attachment: fixed;
   background-size: cover;
   min-height: 100vh;

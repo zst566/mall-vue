@@ -501,14 +501,14 @@
 
   .profile-page {
     min-height: 100vh;
-    background: $glass-bg-gradient;
+    background: var(--theme-bg-gradient, $glass-bg-gradient);
     background-attachment: fixed;
     background-size: cover;
     padding-bottom: 80px;
   }
 
   .profile-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    background: var(--theme-bg-gradient, linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%));
     padding: 32px 20px 24px;
     color: #ffffff;
     box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
@@ -563,12 +563,12 @@
         position: absolute;
         bottom: 2px;
         right: 2px;
-        background: #07c160;
+        background: var(--primary-color);
         color: white;
         border-radius: 50%;
         padding: 3px;
         font-size: 16px;
-        box-shadow: 0 2px 8px rgba(7, 193, 96, 0.3);
+        box-shadow: 0 2px 8px rgba(25, 137, 250, 0.3);
       }
     }
 
@@ -628,11 +628,11 @@
         font-size: 24px;
         font-weight: 700;
         margin-bottom: 6px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: var(--theme-bg-gradient, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-        color: #667eea;
+        color: var(--primary-color);
       }
 
       .stat-label {
@@ -661,7 +661,7 @@
 
         .van-icon {
           margin-right: 12px;
-          color: #667eea;
+          color: var(--primary-color);
           font-size: 18px;
         }
       }
@@ -775,7 +775,7 @@
             content: '•';
             position: absolute;
             left: 0;
-            color: #667eea;
+            color: var(--primary-color);
             font-weight: 700;
             font-size: 16px;
           }

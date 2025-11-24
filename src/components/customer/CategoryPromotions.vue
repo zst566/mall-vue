@@ -439,8 +439,11 @@ const getMerchantLocation = (promotion: any): string | undefined => {
 }
 
 // 格式化价格
-const formatPrice = (price: number | undefined): string => {
-  if (!price && price !== 0) return '0'
+const formatPrice = (price: number | undefined | null): string => {
+  // 统一使用 formatMoney 格式化，确保所有价格都显示为两位小数
+  if (price === null || price === undefined || (typeof price !== 'number') || isNaN(price)) {
+    return formatMoney(0)
+  }
   return formatMoney(price)
 }
 

@@ -1,7 +1,8 @@
 <template>
   <div id="app" :class="{ 'merchant-mode': appStore.isMerchantMode }">
     <!-- 应用头部 -->
-    <AppHeader v-if="!appStore.isLoading && !route.meta.hideHeader" />
+    <!-- 暂时隐藏头部组件，避免遮挡页面内容 -->
+    <!-- <AppHeader v-if="!appStore.isLoading && !route.meta.hideHeader" /> -->
 
     <!-- 主要内容区域 -->
     <main class="app-main">
@@ -35,6 +36,7 @@
   import { useRouter, useRoute } from 'vue-router'
   import { useAuthStore } from '@/stores/auth'
   import { useAppStore } from '@/stores/app'
+  import { getThemeManager } from '@/utils/theme'
   import AppHeader from '@/components/common/AppHeader.vue'
   import AppFooter from '@/components/common/AppFooter.vue'
   import VersionSwitcher from '@/components/common/VersionSwitcher.vue'
@@ -115,6 +117,13 @@
       // 初始化认证状态
       authStore.initializeAuth()
 
+      // 从服务器加载主题颜色配置（不阻塞应用启动）
+      const themeManager = getThemeManager()
+      themeManager.loadThemeFromServer().catch((error) => {
+        console.error('加载主题颜色配置失败，使用默认主题:', error)
+        // 错误已在 loadThemeFromServer 中处理，这里只记录日志
+      })
+
       // 初始化应用
       const initResult = await appStore.initializeApp()
       if (!initResult.success) {
@@ -155,7 +164,7 @@
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    background: $glass-bg-gradient;
+    background: var(--theme-bg-gradient, $glass-bg-gradient);
     background-attachment: fixed;
     background-size: cover;
     color: #323233;
@@ -207,7 +216,7 @@
 
   // 商户模式样式 - 保持玻璃拟态背景
   .merchant-mode {
-    background: $glass-bg-gradient;
+    background: var(--theme-bg-gradient, $glass-bg-gradient);
     background-attachment: fixed;
     background-size: cover;
   }

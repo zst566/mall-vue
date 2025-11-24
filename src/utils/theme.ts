@@ -1,5 +1,6 @@
 import { ref, computed, onMounted } from 'vue'
 import type { AppVersion } from '@/types'
+import { configService } from '@/services/configService'
 
 // 主题类型
 export type Theme = 'customer' | 'merchant'
@@ -101,9 +102,30 @@ export class ThemeManager {
   // 应用主色调
   private applyPrimaryColor(color: string) {
     const root = document.documentElement
+    const lightColor = this.lightenColor(color, 20)
+    const darkColor = this.darkenColor(color, 20)
+    
     root.style.setProperty('--primary-color', color)
-    root.style.setProperty('--primary-light', this.lightenColor(color, 20))
-    root.style.setProperty('--primary-dark', this.darkenColor(color, 20))
+    root.style.setProperty('--primary-light', lightColor)
+    root.style.setProperty('--primary-dark', darkColor)
+    root.style.setProperty('--van-primary-color', color)
+    
+    // 生成基于主题颜色的背景渐变
+    // 使用主题色和它的浅色变体创建渐变
+    const bgGradient = `linear-gradient(135deg, ${color} 0%, ${lightColor} 100%)`
+    root.style.setProperty('--theme-bg-gradient', bgGradient)
+    
+    // 生成主题颜色的半透明背景色（用于标签、徽章等）
+    const rgbaColor = this.hexToRgba(color, 0.1)
+    root.style.setProperty('--primary-color-alpha-10', rgbaColor)
+  }
+  
+  // 将十六进制颜色转换为 rgba 格式
+  private hexToRgba(hex: string, alpha: number): string {
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`
   }
 
   // 应用字体大小
@@ -123,6 +145,64 @@ export class ThemeManager {
     this.setTheme(version === 'customer' ? 'customer' : 'merchant')
   }
 
+  // 从服务器加载主题颜色
+  async loadThemeFromServer(): Promise<void> {
+    try {
+      console.log('🔄 从服务器加载主题颜色配置...')
+      const serverColor = await configService.getThemeColor()
+      
+      if (serverColor) {
+        console.log('✅ 从服务器获取到主题颜色:', serverColor)
+        // 使用服务器配置的颜色
+        this.config.value.primaryColor = serverColor
+        this.applyPrimaryColor(serverColor)
+        // 更新 localStorage 以保持同步
+        this.saveTheme()
+      } else {
+        console.log('ℹ️ 服务器未配置主题颜色，使用本地配置或默认值')
+        // 服务器没有配置，使用本地配置或默认值
+        const saved = localStorage.getItem(THEME_STORAGE_KEY)
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved) as ThemeConfig
+            if (parsed.primaryColor) {
+              this.config.value.primaryColor = parsed.primaryColor
+              this.applyPrimaryColor(parsed.primaryColor)
+            } else {
+              // 使用默认颜色
+              this.applyPrimaryColor(defaultThemeConfig.primaryColor)
+            }
+          } catch (error) {
+            console.error('解析本地主题配置失败:', error)
+            this.applyPrimaryColor(defaultThemeConfig.primaryColor)
+          }
+        } else {
+          // 使用默认颜色
+          this.applyPrimaryColor(defaultThemeConfig.primaryColor)
+        }
+      }
+    } catch (error) {
+      console.error('❌ 从服务器加载主题颜色失败:', error)
+      // 加载失败，使用本地配置或默认值，不阻塞应用启动
+      const saved = localStorage.getItem(THEME_STORAGE_KEY)
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved) as ThemeConfig
+          if (parsed.primaryColor) {
+            this.config.value.primaryColor = parsed.primaryColor
+            this.applyPrimaryColor(parsed.primaryColor)
+          } else {
+            this.applyPrimaryColor(defaultThemeConfig.primaryColor)
+          }
+        } catch (e) {
+          this.applyPrimaryColor(defaultThemeConfig.primaryColor)
+        }
+      } else {
+        this.applyPrimaryColor(defaultThemeConfig.primaryColor)
+      }
+    }
+  }
+
   // 加载主题
   private loadTheme() {
     try {
@@ -138,9 +218,10 @@ export class ThemeManager {
         this.config.value.version = savedVersion as AppVersion
       }
 
-      // 应用加载的设置
+      // 应用加载的设置（主题颜色会在 loadThemeFromServer 中处理）
       this.applyTheme(this.config.value.theme)
       this.applyDarkMode(this.config.value.darkMode)
+      // 先使用本地配置的颜色，如果服务器有配置会在 loadThemeFromServer 中覆盖
       this.applyPrimaryColor(this.config.value.primaryColor)
       this.applyFontSize(this.config.value.fontSize)
       this.updateThemeClass()

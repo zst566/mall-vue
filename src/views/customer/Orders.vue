@@ -405,7 +405,7 @@
 
   .orders-page {
     min-height: 100vh;
-    background: $glass-bg-gradient;
+    background: var(--theme-bg-gradient, $glass-bg-gradient);
     background-attachment: fixed;
     background-size: cover;
     padding-bottom: 80px;
@@ -484,19 +484,19 @@
           font-weight: 500;
 
           &.pending {
-            color: #ff976a;
+            color: var(--primary-color);
           }
 
           &.unused {
-            color: #1989fa;
+            color: var(--primary-color);
           }
 
           &.used {
-            color: #07c160;
+            color: var(--primary-color);
           }
 
           &.cancelled {
-            color: #969799;
+            color: var(--van-text-color-3);
           }
         }
       }
@@ -547,7 +547,7 @@
 
           .price {
             font-size: 16px;
-            color: var(--van-danger-color);
+            color: var(--primary-color);
             font-weight: 600;
           }
         }
