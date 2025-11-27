@@ -1,26 +1,43 @@
 <template>
   <div class="scan-page">
     <!-- 顶部导航 -->
-    <div class="page-header">
-      <van-nav-bar title="订单核销" left-arrow @click-left="onClickLeft">
-        <template #right>
-          <van-icon name="setting-o" @click="goToSettings" />
-        </template>
-      </van-nav-bar>
-    </div>
+    <van-nav-bar title="订单核销" left-arrow @click-left="onClickLeft" fixed z-index="100">
+      <template #right>
+        <van-icon name="setting-o" @click="goToSettings" />
+      </template>
+    </van-nav-bar>
 
     <!-- 扫描区域 -->
     <div class="scan-container">
       <div class="scan-area">
         <!-- 摄像头预览 -->
-        <div class="camera-preview" v-if="isCameraReady">
-          <video ref="videoRef" :class="{ 'facing-front': isFrontCamera }" autoplay playsinline />
+        <div class="camera-preview">
+          <video 
+            ref="videoRef" 
+            :class="{ 'facing-front': isFrontCamera }" 
+            autoplay 
+            playsinline 
+            v-show="isCameraReady"
+            style="width: 100%; height: 100%; object-fit: cover;"
+          />
           <canvas ref="canvasRef" class="scan-canvas" />
         </div>
 
         <!-- 加载状态 -->
         <div v-if="loading && !isCameraReady" class="loading-container">
           <van-loading type="spinner" size="24px">正在启动摄像头...</van-loading>
+          <p style="margin-top: 16px; color: rgba(255,255,255,0.8); font-size: 12px;">
+            如果长时间无响应，请检查摄像头权限
+          </p>
+        </div>
+
+        <!-- 初始化失败状态 -->
+        <div v-if="!loading && !isCameraReady && initError" class="error-container">
+          <van-icon name="warning-o" size="48px" color="#ff6b6b" />
+          <p class="error-message">{{ initError }}</p>
+          <van-button type="primary" size="small" @click="retryInit" style="margin-top: 16px;">
+            重试
+          </van-button>
         </div>
 
         <!-- 扫描框 -->
@@ -49,7 +66,6 @@
           size="large"
           round
           @click="startScan"
-          :disabled="!isCameraReady"
           class="scan-button"
         >
           开始扫描
@@ -70,6 +86,36 @@
           <van-icon :name="isFrontCamera ? 'camera-o' : 'camera-reverse'" />
           切换摄像头
         </van-button>
+      </div>
+    </div>
+
+    <!-- 手动输入订单号区域 -->
+    <div class="manual-input-container">
+      <div class="input-section">
+        <van-field
+          v-model="manualOrderNo"
+          placeholder="请输入订单号或扫描二维码"
+          clearable
+          :disabled="isQuerying"
+          class="order-input"
+        >
+          <template #left-icon>
+            <van-icon name="orders-o" />
+          </template>
+        </van-field>
+        <div class="input-actions">
+          <van-button
+            type="primary"
+            size="large"
+            round
+            @click="queryOrderByNo"
+            :loading="isQuerying"
+            :disabled="!manualOrderNo || !manualOrderNo.trim()"
+            class="query-button"
+          >
+            查询订单
+          </van-button>
+        </div>
       </div>
     </div>
 
@@ -125,7 +171,7 @@
             </div>
             <div class="result-actions">
               <van-button
-                v-if="scanResult.data.status === 'pending'"
+                v-if="scanResult.data.status === 'pending' || scanResult.data.status === 'paid' || scanResult.data.status === 'PAID'"
                 type="primary"
                 block
                 round
@@ -154,21 +200,41 @@
     <!-- 权限提示 -->
     <van-dialog
       v-model:show="showPermissionDialog"
-      title="权限申请"
-      message="需要访问摄像头权限，请允许以使用扫描功能"
-      show-cancel-button
-      confirmButtonText="去设置"
+      title=""
+      :show-cancel-button="true"
+      :confirm-button-text="'去设置'"
+      :cancel-button-text="'取消'"
       @confirm="goToSettings"
-    />
+      @cancel="showPermissionDialog = false"
+      :close-on-click-overlay="false"
+      class="standard-confirm-dialog"
+      :width="320"
+    >
+      <div class="dialog-content">
+        <div class="dialog-icon">
+          <van-icon name="warning-o" size="48" />
+        </div>
+        <h3 class="dialog-title">权限申请</h3>
+        <p class="dialog-message">
+          需要访问摄像头权限，<br />
+          请允许以使用扫描功能
+        </p>
+      </div>
+    </van-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, onUnmounted } from 'vue'
+  import { ref, onMounted, onUnmounted, nextTick } from 'vue'
   import { useRouter } from 'vue-router'
-  import { showToast } from 'vant'
+  import { showToast, showLoadingToast, closeToast } from 'vant'
+  import jsQR from 'jsqr'
+  import { merchantService } from '@/services/merchant'
+  import { merchantOperatorService } from '@/services/merchantOperator'
+  import { useAuthStore } from '@/stores/auth'
 
   const router = useRouter()
+  const authStore = useAuthStore()
 
   // 摄像头相关
   const videoRef = ref<HTMLVideoElement | null>(null)
@@ -181,59 +247,56 @@
 
   // 扫描相关
   const scanResult = ref<any>(null)
-  const scanHistory = ref([
-    {
-      id: '1',
-      type: 'order',
-      title: '订单核销',
-      description: 'iPhone 15 Pro x1',
-      scannedAt: '2024-01-15 14:30:00',
-      status: 'success',
-      data: {
-        orderNo: 'ORD202401150001',
-        productName: 'iPhone 15 Pro',
-        quantity: 1,
-        amount: 8999,
-        status: 'pending',
-        purchasedAt: '2024-01-15 10:00:00'
-      }
-    },
-    {
-      id: '2',
-      type: 'product',
-      title: '商品信息',
-      description: '华为 Mate 60',
-      scannedAt: '2024-01-15 13:20:00',
-      status: 'info',
-      data: {
-        productId: '2',
-        productName: '华为 Mate 60',
-        price: 6999,
-        stock: 50
-      }
-    }
-  ])
+  const scanHistory = ref<any[]>([]) // 改为空数组，从 API 加载真实数据
 
   // UI状态
   const loading = ref(false)
   const isVerifying = ref(false)
+  const isQuerying = ref(false)
   const showResultPopup = ref(false)
   const showToastPopup = ref(false)
   const showPermissionDialog = ref(false)
+  const initError = ref<string | null>(null)
+  
+  // 手动输入订单号
+  const manualOrderNo = ref('')
 
   // Toast相关
   const toastIcon = ref('success')
   const toastType = ref('success')
   const toastMessage = ref('')
 
+  // 检查可用设备
+  const checkAvailableDevices = async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices()
+      const videoDevices = devices.filter(device => device.kind === 'videoinput')
+      console.log('📷 [扫描] 可用摄像头设备:', videoDevices.length, videoDevices)
+      return videoDevices.length > 0
+    } catch (error) {
+      console.error('❌ [扫描] 枚举设备失败:', error)
+      return false
+    }
+  }
+
   // 初始化摄像头
   const initCamera = async () => {
     try {
       loading.value = true
+      initError.value = null
+      console.log('📷 [扫描] 开始初始化摄像头...')
 
       // 检查浏览器支持
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('浏览器不支持摄像头功能')
+        console.error('❌ [扫描] 浏览器不支持摄像头功能')
+        throw new Error('浏览器不支持摄像头功能，请使用支持摄像头的浏览器（如 Chrome、Safari）')
+      }
+
+      // 检查是否有可用设备
+      const hasDevices = await checkAvailableDevices()
+      if (!hasDevices) {
+        console.warn('⚠️ [扫描] 未检测到摄像头设备')
+        throw new Error('未检测到摄像头设备。请确保：\n1. 设备有摄像头\n2. 摄像头未被其他应用占用\n3. 在真实设备上测试（模拟器可能没有摄像头）')
       }
 
       // 请求摄像头权限
@@ -245,35 +308,145 @@
         }
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints)
+      console.log('📷 [扫描] 请求摄像头权限，约束条件:', constraints)
+
+      // 添加超时处理
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('摄像头初始化超时，请检查摄像头权限'))
+        }, 10000) // 10秒超时
+      })
+
+      const stream = await Promise.race([
+        navigator.mediaDevices.getUserMedia(constraints),
+        timeoutPromise
+      ]) as MediaStream
+
+      console.log('✅ [扫描] 摄像头权限获取成功')
       currentStream.value = stream
 
-      if (videoRef.value) {
-        videoRef.value.srcObject = stream
-        videoRef.value.onloadedmetadata = () => {
-          isCameraReady.value = true
-          loading.value = false
+      // 等待 DOM 更新，确保 video 元素已经渲染
+      await nextTick()
+      
+      // 再次检查 video 元素是否存在
+      if (!videoRef.value) {
+        console.error('❌ [扫描] 视频元素引用不存在，等待 DOM 更新...')
+        // 再等待一次，给 Vue 更多时间渲染
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
+        if (!videoRef.value) {
+          console.error('❌ [扫描] 视频元素引用仍然不存在')
+          throw new Error('视频元素未找到，请刷新页面重试')
         }
       }
-    } catch (error) {
-      loading.value = false
-      console.error('摄像头初始化失败:', error)
 
-      // 处理权限被拒绝的情况
+      const videoElement = videoRef.value
+      console.log('📹 [扫描] 视频元素已找到，设置视频流...')
+      
+      try {
+        videoElement.srcObject = stream
+        
+        // 添加错误处理
+        videoElement.onerror = (error) => {
+          console.error('❌ [扫描] 视频元素错误:', error)
+          loading.value = false
+          isCameraReady.value = false
+          showToast({ type: 'fail', message: '摄像头启动失败，请重试' })
+        }
+
+        videoElement.onloadedmetadata = () => {
+          console.log('✅ [扫描] 视频元数据加载完成')
+          console.log('📹 [扫描] 视频尺寸:', videoElement.videoWidth, 'x', videoElement.videoHeight)
+          isCameraReady.value = true
+          loading.value = false
+          showToast({ type: 'success', message: '摄像头已就绪' })
+        }
+
+        // 添加播放错误处理
+        videoElement.onplay = () => {
+          console.log('✅ [扫描] 视频开始播放')
+        }
+
+        // 确保视频播放
+        try {
+          await videoElement.play()
+          console.log('✅ [扫描] 视频播放成功')
+        } catch (playError: any) {
+          console.warn('⚠️ [扫描] 视频自动播放失败，可能需要用户交互:', playError)
+          // 自动播放失败不是致命错误，继续执行
+        }
+      } catch (videoError: any) {
+        console.error('❌ [扫描] 设置视频流失败:', videoError)
+        throw new Error(`设置视频流失败: ${videoError?.message || '未知错误'}`)
+      }
+    } catch (error: any) {
+      loading.value = false
+      isCameraReady.value = false
+      console.error('❌ [扫描] 摄像头初始化失败:', error)
+      console.error('❌ [扫描] 错误详情:', {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack
+      })
+
+      // 处理不同类型的错误
       if (
-        (error as any).name === 'NotAllowedError' ||
-        (error as any).name === 'PermissionDeniedError'
+        error?.name === 'NotAllowedError' ||
+        error?.name === 'PermissionDeniedError'
       ) {
+        console.warn('⚠️ [扫描] 摄像头权限被拒绝')
+        initError.value = '摄像头权限被拒绝，请在浏览器设置中允许摄像头权限'
         showPermissionDialog.value = true
+      } else if (error?.name === 'NotFoundError' || error?.message?.includes('device not found')) {
+        console.warn('⚠️ [扫描] 未找到摄像头设备')
+        initError.value = '未找到摄像头设备。\n\n可能原因：\n• 设备没有摄像头\n• 摄像头被其他应用占用\n• 在模拟器中运行（模拟器没有摄像头）\n\n建议：\n• 在真实设备上测试\n• 关闭其他使用摄像头的应用\n• 检查设备摄像头是否正常'
+        showToast({ type: 'fail', message: '未找到摄像头设备，请检查设备或使用真实设备测试' })
+      } else if (error?.message?.includes('超时')) {
+        console.warn('⚠️ [扫描] 摄像头初始化超时')
+        initError.value = '摄像头初始化超时，请检查权限设置或重试'
+        showToast({ type: 'fail', message: '摄像头初始化超时，请检查权限设置' })
       } else {
-        showToast('摄像头初始化失败')
+        const errorMsg = error?.message || '摄像头初始化失败，请重试'
+        console.error('❌ [扫描] 其他错误:', errorMsg)
+        initError.value = errorMsg
+        showToast({ type: 'fail', message: errorMsg })
       }
     }
   }
 
-  // 开始扫描
-  const startScan = () => {
-    if (!isCameraReady.value) return
+  // 重试初始化
+  const retryInit = async () => {
+    console.log('🔄 [扫描] 用户点击重试，重新初始化摄像头')
+    initError.value = null
+    loading.value = true
+    await initCamera()
+  }
+
+  // 开始扫描（手动开启摄像头）
+  const startScan = async () => {
+    // 如果摄像头未就绪，先初始化摄像头
+    if (!isCameraReady.value) {
+      try {
+        // 先检查权限
+        const hasPermission = await checkPermission()
+        if (!hasPermission) {
+          return
+        }
+        
+        // 初始化摄像头
+        await initCamera()
+        
+        // 等待摄像头就绪
+        if (!isCameraReady.value) {
+          showToast({ type: 'fail', message: '摄像头启动失败，请重试' })
+          return
+        }
+      } catch (error: any) {
+        console.error('❌ [扫描] 初始化摄像头失败:', error)
+        showToast({ type: 'fail', message: error.message || '摄像头启动失败' })
+        return
+      }
+    }
 
     isScanning.value = true
 
@@ -282,16 +455,47 @@
       const canvas = canvasRef.value
       const context = canvas.getContext('2d', { willReadFrequently: true })
 
-      if (context) {
-        canvas.width = videoRef.value.videoWidth
-        canvas.height = videoRef.value.videoHeight
+      if (context && videoRef.value) {
+        const video = videoRef.value
+        
+        // 设置 canvas 尺寸
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
 
-        // 模拟扫描过程
-        scanningInterval.value = setInterval(() => {
-          // 这里应该集成实际的二维码扫描库
-          // 现在只是模拟扫描结果
-          simulateScan()
-        }, 1000) as any
+        // 真实二维码扫描
+        const scanFrame = () => {
+          if (!isScanning.value || !video || video.readyState !== video.HAVE_ENOUGH_DATA) {
+            return
+          }
+
+          try {
+            // 将视频帧绘制到 canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height)
+            
+            // 获取图像数据
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
+            
+            // 使用 jsQR 识别二维码
+            const qrCode = jsQR(imageData.data, imageData.width, imageData.height, {
+              inversionAttempts: 'dontInvert'
+            })
+
+            if (qrCode) {
+              console.log('✅ [扫描] 识别到二维码:', qrCode.data)
+              
+              // 停止扫描
+              stopScan()
+              
+              // 处理扫描结果（只提取订单号）
+              processQRCode(qrCode.data)
+            }
+          } catch (error) {
+            console.error('❌ [扫描] 二维码识别失败:', error)
+          }
+        }
+
+        // 每 100ms 扫描一次（10fps）
+        scanningInterval.value = setInterval(scanFrame, 100) as any
       }
     }
   }
@@ -306,27 +510,54 @@
     }
   }
 
-  // 模拟扫描结果
-  const simulateScan = () => {
-    // 随机生成扫描结果
-    const types = ['order', 'product', 'promotion']
-    const randomType = types[Math.floor(Math.random() * types.length)]
+  // 处理二维码内容（只提取订单号，填入输入框）
+  const processQRCode = (qrData: string) => {
+    try {
+      console.log('📋 [扫描] 处理二维码内容:', qrData)
+      
+      // 解析二维码内容（优先处理订单号格式，保留JSON格式兼容性）
+      let orderNo: string | null = null
 
-    const mockResult = {
-      type: randomType,
-      title:
-        randomType === 'order' ? '订单核销' : randomType === 'product' ? '商品信息' : '促销活动',
-      data: {
-        orderNo: `ORD${Date.now()}`,
-        productName: randomType === 'order' ? 'iPhone 15 Pro' : '华为 Mate 60',
-        quantity: 1,
-        amount: randomType === 'order' ? 8999 : 6999,
-        status: randomType === 'order' ? 'pending' : 'info',
-        purchasedAt: new Date().toISOString()
+      // 优先处理：如果是订单号格式（以 ORD 开头），直接作为订单号
+      if (qrData.startsWith('ORD')) {
+        orderNo = qrData
+      } 
+      // 兼容处理：尝试解析为 JSON（旧格式）
+      else {
+        try {
+          const parsed = JSON.parse(qrData)
+          orderNo = parsed.orderNo || parsed.order_no || null
+        } catch {
+          // 如果不是 JSON，尝试作为订单号
+          orderNo = qrData
+        }
       }
-    }
 
-    handleScanResult(mockResult)
+      if (!orderNo) {
+        showToast({ 
+          type: 'fail', 
+          message: '无法从二维码中解析订单号' 
+        })
+        return
+      }
+
+      // 将订单号自动填入输入框
+      manualOrderNo.value = orderNo
+      
+      // 显示成功提示
+      showToast({ 
+        type: 'success', 
+        message: '订单号已识别，请点击查询订单' 
+      })
+      
+      console.log('✅ [扫描] 订单号已填入输入框:', orderNo)
+    } catch (error: any) {
+      console.error('❌ [扫描] 处理二维码失败:', error)
+      showToast({ 
+        type: 'fail', 
+        message: error.message || '二维码识别失败，请重试' 
+      })
+    }
   }
 
   // 处理扫描结果
@@ -368,28 +599,206 @@
     await initCamera()
   }
 
+  // 检查权限
+  const checkPermission = async () => {
+    try {
+      const status = await merchantOperatorService.getMyStatus()
+      if (!status.hasBinding || !status.merchantUser) {
+        showToast('您尚未绑定商户，请先申请')
+        router.push('/customer/merchant-binding')
+        return false
+      }
+      if (status.merchantUser.approvalStatus !== 'APPROVED' || !status.merchantUser.isActive) {
+        showToast('您的商户权限已被取消或未审核通过')
+        router.push('/customer/merchant-binding')
+        return false
+      }
+      return true
+    } catch (error) {
+      console.error('检查权限失败:', error)
+      showToast('权限验证失败')
+      return false
+    }
+  }
+
+  // 手动查询订单（根据订单号）
+  const queryOrderByNo = async () => {
+    if (!manualOrderNo.value || !manualOrderNo.value.trim()) {
+      showToast({ type: 'fail', message: '请输入订单号' })
+      return
+    }
+
+    const orderNo = manualOrderNo.value.trim()
+
+    try {
+      isQuerying.value = true
+      showLoadingToast({ message: '正在查询订单信息...', forbidClick: true, duration: 0 })
+
+      // 先通过订单号查询订单ID
+      const ordersResponse = await merchantService.getMerchantOrders({ 
+        search: orderNo,
+        limit: 1 
+      })
+      
+      if (!ordersResponse.orders || ordersResponse.orders.length === 0) {
+        throw new Error('未找到对应的订单')
+      }
+
+      const orderId = ordersResponse.orders[0].id
+
+      // 获取订单详情
+      const orderDetail = await merchantService.getMerchantOrderDetail(orderId)
+      
+      console.log('✅ [查询] 订单详情获取成功:', orderDetail)
+      
+      // 处理金额字段：确保转换为数字类型
+      // Prisma Decimal 类型可能是对象，需要转换为字符串再转换为数字
+      const parseAmount = (value: any): number => {
+        if (value == null) return 0
+        if (typeof value === 'number') return value
+        if (typeof value === 'string') return parseFloat(value) || 0
+        // Prisma Decimal 类型有 toString() 方法
+        if (typeof value === 'object' && value.toString) {
+          return parseFloat(value.toString()) || 0
+        }
+        return 0
+      }
+      
+      const totalAmount = parseAmount(orderDetail.totalAmount)
+      const finalAmount = parseAmount(orderDetail.finalAmount)
+      
+      // 使用实付金额（finalAmount），如果为0则使用总金额（totalAmount）
+      const orderAmount = finalAmount > 0 ? finalAmount : (totalAmount > 0 ? totalAmount : 0)
+      
+      console.log('💰 [查询] 订单金额:', { 
+        totalAmountRaw: orderDetail.totalAmount, 
+        totalAmountRawType: typeof orderDetail.totalAmount,
+        finalAmountRaw: orderDetail.finalAmount,
+        finalAmountRawType: typeof orderDetail.finalAmount,
+        totalAmount, 
+        finalAmount, 
+        orderAmount,
+        orderDetailKeys: Object.keys(orderDetail)
+      })
+      
+      // 转换订单状态：后端返回大写（PAID），前端使用小写（paid）
+      const statusMap: Record<string, string> = {
+        'PENDING': 'pending',
+        'PAID': 'paid',
+        'VERIFIED': 'verified',
+        'CANCELLED': 'cancelled',
+        'REFUNDED': 'refunded',
+        'REFUND_REQUESTED': 'refund_requested'
+      }
+      const normalizedStatus = statusMap[orderDetail.status as string] || orderDetail.status || 'pending'
+      
+      // 构建扫描结果
+      const result = {
+        type: 'order' as const,
+        title: '订单核销',
+        data: {
+          id: orderDetail.id,
+          orderId: orderDetail.id,
+          orderNo: orderDetail.orderNo || orderNo,
+          productName: orderDetail.items?.[0]?.productName || '商品',
+          quantity: orderDetail.items?.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0) || 1,
+          amount: orderAmount, // 使用处理后的金额
+          status: normalizedStatus, // 使用转换后的状态
+          purchasedAt: orderDetail.createdAt || new Date().toISOString()
+        }
+      }
+
+      // 关闭 loading toast
+      closeToast()
+      // 关闭 loading toast
+      closeToast()
+      handleScanResult(result)
+      isQuerying.value = false
+    } catch (error: any) {
+      console.error('❌ [查询] 查询订单失败:', error)
+      // 先关闭 loading toast，再显示错误提示
+      closeToast()
+      // 直接使用错误消息（已经通过 handleApiError 处理，会优先使用 API 返回的错误信息）
+      const errorMessage = error.message || '查询订单失败，请检查订单号是否正确'
+      showToast({ 
+        type: 'fail', 
+        message: errorMessage,
+        duration: 5000 // 显示5秒（延长2秒）
+      })
+    } finally {
+      // 确保无论成功还是失败，都清理加载状态
+      isQuerying.value = false
+    }
+  }
+
   // 确认核销
   const verifyOrder = async () => {
     if (!scanResult.value) return
 
+    // 先检查权限
+    const hasPermission = await checkPermission()
+    if (!hasPermission) {
+      return
+    }
+
     try {
       isVerifying.value = true
-      showToast('核销中...')
+      showLoadingToast({ message: '核销中...', forbidClick: true, duration: 0 })
 
-      // 模拟核销API调用
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      // 从扫描结果中提取订单ID或订单号
+      let orderId = scanResult.value.data.orderId || scanResult.value.data.id
+      const orderNo = scanResult.value.data.orderNo
 
-      // 更新订单状态
-      if (scanResult.value.data.status === 'pending') {
-        scanResult.value.data.status = 'verified'
-        scanResult.value.data.verifiedAt = new Date().toISOString()
+      // 如果只有订单号，先查询订单ID
+      if (!orderId && orderNo) {
+        const ordersResponse = await merchantService.getMerchantOrders({ 
+          search: orderNo,
+          limit: 1 
+        })
+        
+        if (ordersResponse.orders && ordersResponse.orders.length > 0) {
+          orderId = ordersResponse.orders[0].id
+        } else {
+          throw new Error('未找到对应的订单')
+        }
       }
 
-      showToast('核销成功')
-      isVerifying.value = false
-      closeResultPopup()
-    } catch (error) {
-      showToast('核销失败，请重试')
+      if (!orderId) {
+        throw new Error('无法获取订单ID')
+      }
+
+      // 调用真实API进行核销（后端已支持订单号，这里使用订单ID）
+      const result = await merchantService.verifyOrder(orderId, {
+        operatorName: authStore.user?.nickname || '操作员',
+        notes: manualOrderNo.value ? '手动核销' : '扫码核销'
+      })
+
+      // 更新扫描结果
+      scanResult.value.data.status = 'verified'
+      scanResult.value.data.verifiedAt = new Date().toISOString()
+      scanResult.value.data.verificationResult = result
+
+      // 清空输入框
+      manualOrderNo.value = ''
+
+      // 重新加载最近核销记录
+      await loadRecentVerifications()
+
+      // 关闭 loading toast，再显示成功提示
+      closeToast()
+      showToast({ type: 'success', message: '核销成功' })
+      
+      // 延迟关闭弹窗，让用户看到成功提示
+      setTimeout(() => {
+        closeResultPopup()
+      }, 1500)
+    } catch (error: any) {
+      console.error('核销失败:', error)
+      // 先关闭 loading toast，再显示错误提示
+      closeToast()
+      showToast({ type: 'fail', message: error.message || '核销失败，请重试' })
+    } finally {
+      // 确保无论成功还是失败，都清理加载状态
       isVerifying.value = false
     }
   }
@@ -470,14 +879,67 @@
     router.push('/merchant/scan-history')
   }
 
+  // 加载最近核销记录
+  const loadRecentVerifications = async () => {
+    try {
+      const result = await merchantOperatorService.getVerifications({
+        date: 'today',
+        page: 1,
+        pageSize: 5
+      })
+      
+      // 将核销记录转换为扫描历史格式
+      scanHistory.value = result.list.map((record: any) => ({
+        id: record.id,
+        type: 'order',
+        title: '订单核销',
+        description: record.promotionName || '商品',
+        scannedAt: record.verifiedAt,
+        status: 'success',
+        data: {
+          orderId: record.orderId,
+          orderNo: record.orderNo,
+          productName: record.promotionName || '商品',
+          quantity: 1,
+          amount: record.amount,
+          status: 'verified',
+          purchasedAt: record.verifiedAt
+        }
+      }))
+    } catch (error: any) {
+      console.error('加载核销记录失败:', error)
+      // 静默失败，不影响主功能
+    }
+  }
+
   // 返回上一页
   const onClickLeft = () => {
     router.back()
   }
 
-  // 组件挂载时初始化
-  onMounted(() => {
-    initCamera()
+  // 组件挂载时初始化（只检查权限，不自动开启摄像头）
+  onMounted(async () => {
+    console.log('📱 [扫描] 组件已挂载，开始初始化...')
+    
+    try {
+      // 先检查权限
+      console.log('🔐 [扫描] 检查商户权限...')
+      const hasPermission = await checkPermission()
+      
+      if (!hasPermission) {
+        console.warn('⚠️ [扫描] 权限检查失败，无法使用扫描功能')
+        loading.value = false
+      } else {
+        console.log('✅ [扫描] 权限检查通过，等待用户手动开启摄像头')
+        loading.value = false
+        // 加载最近核销记录
+        await loadRecentVerifications()
+      }
+    } catch (error) {
+      console.error('❌ [扫描] 初始化过程出错:', error)
+      loading.value = false
+      showToast({ type: 'fail', message: '初始化失败，请刷新页面重试' })
+    }
   })
 
   // 组件卸载时清理
@@ -494,12 +956,14 @@
 <style lang="scss" scoped>
   @use '@/styles/variables.scss' as *;
   @use '@/styles/mixins.scss' as *;
+  @use '@/styles/dialog-mixin.scss' as *;
 
   .scan-page {
     min-height: 100vh;
-    background: $glass-bg-gradient;
+    background: var(--theme-bg-gradient, $glass-bg-gradient);
     background-attachment: fixed;
     background-size: cover;
+    padding-top: 46px;
     padding-bottom: 20px;
   }
 
@@ -545,10 +1009,32 @@
 
   .loading-container {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     height: 100%;
     background: #000;
+    color: white;
+  }
+
+  .error-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    background: #000;
+    padding: 20px;
+    text-align: center;
+
+    .error-message {
+      color: var(--theme-text-on-glass, $text-color-primary);
+      font-size: 14px;
+      margin-top: 16px;
+      line-height: 1.6;
+      white-space: pre-line;
+      max-width: 80%;
+    }
   }
 
   .scan-frame {
@@ -670,6 +1156,27 @@
     .switch-button {
       flex: 1;
       max-width: 200px;
+    }
+  }
+
+  .manual-input-container {
+    margin: 16px;
+    @include glassmorphism-card(base);
+    padding: 16px;
+    border-radius: var(--van-radius-lg);
+
+    .input-section {
+      .order-input {
+        margin-bottom: 12px;
+        background: var(--van-background-2);
+        border-radius: var(--van-radius-md);
+      }
+
+      .input-actions {
+        .query-button {
+          width: 100%;
+        }
+      }
     }
   }
 

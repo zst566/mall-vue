@@ -15,8 +15,10 @@ export class MerchantService extends BaseApiService {
     search?: string;
   }): Promise<{ orders: MerchantOrder[]; total: number; page: number; limit: number }> {
     try {
-      const response = await this.client.get<{ orders: MerchantOrder[]; total: number; page: number; limit: number }>('/merchant/orders', { params })
-      return response.data
+      // 使用正确的接口：/api/merchants/me/orders
+      // 使用 this.get 方法，它会自动提取 response.data.data
+      const response = await this.get<{ orders: MerchantOrder[]; total: number; page: number; limit: number }>('/merchants/me/orders', { params })
+      return response
     } catch (error) {
       throw new Error(this.handleApiError(error))
     }
@@ -25,8 +27,10 @@ export class MerchantService extends BaseApiService {
   // 获取商户订单详情
   async getMerchantOrderDetail(orderId: string): Promise<MerchantOrder> {
     try {
-      const response = await this.client<MerchantOrder>(`/merchant/orders/${orderId}`)
-      return response.data
+      // 使用通用的订单接口：/api/orders/:orderId
+      // 使用 this.get 而不是 this.client.get，因为 BaseApiService.get 会自动提取 response.data.data
+      const orderDetail = await this.get<MerchantOrder>(`/orders/${orderId}`)
+      return orderDetail
     } catch (error) {
       throw new Error(this.handleApiError(error))
     }
@@ -35,8 +39,20 @@ export class MerchantService extends BaseApiService {
   // 核销订单
   async verifyOrder(orderId: string, verificationData?: { operatorName?: string; notes?: string }): Promise<VerificationResult> {
     try {
-      const response = await this.client.post<VerificationResult>(`/merchant/orders/${orderId}/verify`, verificationData)
-      return response.data
+      // 后端返回 { success: true, data: Order, message: '订单核销成功' }
+      // 使用 this.post 会自动提取 response.data.data，得到 Order 对象
+      // 注意：路径是 /merchants（复数），不是 /merchant（单数）
+      const order = await this.post<any>(`/merchants/orders/${orderId}/verify`, verificationData)
+      
+      // 构建 VerificationResult 对象
+      const result: VerificationResult = {
+        success: true,
+        order: order,
+        message: '订单核销成功',
+        canRevoke: true // 默认可以撤销（当天）
+      }
+      
+      return result
     } catch (error) {
       throw new Error(this.handleApiError(error))
     }
@@ -160,7 +176,8 @@ export class MerchantService extends BaseApiService {
     description?: string;
   }): Promise<void> {
     try {
-      await this.client.patch('/merchant/profile', profileData)
+      // 使用正确的接口：/api/merchants/me/profile (PUT)
+      await this.client.put('/merchants/me/profile', profileData)
     } catch (error) {
       throw new Error(this.handleApiError(error))
     }
@@ -169,7 +186,8 @@ export class MerchantService extends BaseApiService {
   // 获取商户信息
   async getMerchantProfile(): Promise<any> {
     try {
-      const response = await this.client.get('/merchant/profile')
+      // 使用正确的接口：/api/merchants/me
+      const response = await this.client.get('/merchants/me')
       return response.data
     } catch (error) {
       throw new Error(this.handleApiError(error))
@@ -179,12 +197,20 @@ export class MerchantService extends BaseApiService {
   // 获取商户统计信息
   async getMerchantStatistics(dateRange?: { startDate: string; endDate: string }): Promise<MerchantOrderStats> {
     try {
-      const response = await this.client.get<MerchantOrderStats>('/merchant/statistics', {
+      // 使用正确的接口：/api/merchants/statistics/today 或 /api/merchants/me/dashboard
+      // 优先使用 dashboard 接口，它包含更完整的统计信息
+      const response = await this.client.get<MerchantOrderStats>('/merchants/me/dashboard', {
         params: dateRange
       })
       return response.data
     } catch (error) {
-      throw new Error(this.handleApiError(error))
+      // 如果 dashboard 接口失败，尝试使用 today 接口
+      try {
+        const response = await this.client.get<MerchantOrderStats>('/merchants/statistics/today')
+        return response.data
+      } catch (fallbackError) {
+        throw new Error(this.handleApiError(error))
+      }
     }
   }
 
@@ -266,9 +292,17 @@ export class MerchantService extends BaseApiService {
       const status = error.response.status
       const data = error.response.data
 
+      // 优先使用 API 返回的错误信息
+      if (data?.error) {
+        return data.error
+      }
+      if (data?.message) {
+        return data.message
+      }
+
       switch (status) {
         case 400:
-          return data.message || '请求参数错误'
+          return '请求参数错误'
         case 401:
           return '登录已过期，请重新登录'
         case 403:

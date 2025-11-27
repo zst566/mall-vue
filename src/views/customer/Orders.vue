@@ -24,15 +24,11 @@
 
     <!-- 订单列表 -->
     <div class="orders-container">
-      <div v-if="loading" class="loading-container">
-        <van-loading type="spinner" size="24px">加载中...</van-loading>
-      </div>
-
-      <div v-else-if="orders.length === 0" class="empty-container">
+      <div v-if="!loading && orders.length === 0" class="empty-container">
         <van-empty description="暂无订单" />
       </div>
 
-      <div v-else class="orders-list">
+      <div v-else-if="!loading && orders.length > 0" class="orders-list">
         <div
           v-for="order in orders"
           :key="order.id"
@@ -429,13 +425,6 @@
 
   .orders-container {
     padding: 16px;
-  }
-
-  .loading-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 200px;
   }
 
   .empty-container {

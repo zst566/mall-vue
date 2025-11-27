@@ -165,13 +165,36 @@
         </van-button>
       </div>
     </div>
+    <!-- 确认对话框：确认兑换 -->
+    <van-dialog
+      v-model:show="showExchangeDialog"
+      title=""
+      :show-cancel-button="true"
+      :confirm-button-text="'确认兑换'"
+      :cancel-button-text="'取消'"
+      @confirm="confirmExchange"
+      @cancel="showExchangeDialog = false"
+      :close-on-click-overlay="false"
+      class="standard-confirm-dialog"
+      :width="320"
+    >
+      <div class="dialog-content">
+        <div class="dialog-icon">
+          <van-icon name="success" size="48" />
+        </div>
+        <h3 class="dialog-title">确认兑换</h3>
+        <p class="dialog-message">
+          使用 {{ exchangeRequiredPoints }} 积分兑换此促销活动？
+        </p>
+      </div>
+    </van-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
   import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
-  import { showToast, showLoadingToast, closeToast, showConfirmDialog, showDialog } from 'vant'
+  import { showToast, showLoadingToast, closeToast } from 'vant'
   import PlaceholderImage from '@/components/common/PlaceholderImage.vue'
   import VariantSelector from '@/components/customer/VariantSelector.vue'
   import { api } from '@/services/api'
@@ -265,6 +288,11 @@
   // 促销活动信息
   const promotionId = route.params.id as string
   const loading = ref(false)
+
+  // 对话框状态
+  const showExchangeDialog = ref(false)
+  const exchangeRequiredPoints = ref(0)
+
   const promotion = reactive({
     id: promotionId,
     name: '',
@@ -698,31 +726,30 @@
       return
     }
 
-    // 确认购买
-    try {
-      await showConfirmDialog({
-        title: '确认兑换',
-        message: `使用 ${requiredPoints} 积分兑换此促销活动？`,
-        confirmButtonText: '确认兑换',
-        cancelButtonText: '取消'
-      })
-    } catch {
-      // 用户取消
-      closeToast()
-      return
-    }
+    // 显示确认对话框
+    exchangeRequiredPoints.value = requiredPoints
+    showExchangeDialog.value = true
+  }
 
-    // 创建订单（后端会扣减积分）
-    const variantId = selectedVariant.value?.id
-    const result = await orderService.createPromotionOrder(promotionId, 1, variantId)
-    
-    closeToast()
-    showToast('兑换成功！')
-    
-    // 跳转到订单详情
-    setTimeout(() => {
-      router.push({ name: 'OrderDetail', params: { id: result.order.id } })
-    }, 1500)
+  const confirmExchange = async () => {
+    try {
+      showExchangeDialog.value = false
+      
+      // 创建订单（后端会扣减积分）
+      const variantId = selectedVariant.value?.id
+      const result = await orderService.createPromotionOrder(promotionId, 1, variantId)
+      
+      closeToast()
+      showToast('兑换成功！')
+      
+      // 跳转到订单详情
+      setTimeout(() => {
+        router.push({ name: 'OrderDetail', params: { id: result.order.id } })
+      }, 1500)
+    } catch (error: any) {
+      closeToast()
+      showToast(error.message || '兑换失败')
+    }
   }
 
   // 等待 wx 对象注入（微信小程序 webview 会在页面加载后异步注入）
@@ -1079,6 +1106,9 @@
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+  @use '@/styles/dialog-mixin.scss' as *;
   @use '@/styles/variables.scss' as *;
   @use '@/styles/mixins.scss' as *;
 
@@ -1577,6 +1607,27 @@
         }
       }
     }
+  }
+
+  // 统一对话框样式
+  .standard-confirm-dialog {
+    @include standard-dialog;
+  }
+
+  .dialog-content {
+    @include dialog-content;
+  }
+
+  .dialog-icon {
+    @include dialog-icon(#ff6b6b);
+  }
+
+  .dialog-title {
+    @include dialog-title;
+  }
+
+  .dialog-message {
+    @include dialog-message;
   }
 </style>
 

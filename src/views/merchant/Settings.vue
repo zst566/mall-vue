@@ -3,7 +3,6 @@
     <!-- 顶部导航 -->
     <van-nav-bar
       title="商户设置"
-      left-text="返回"
       left-arrow
       @click-left="handleBack"
       fixed
@@ -200,8 +199,16 @@
         </div>
       </div>
 
-      <!-- 退出登录 -->
+      <!-- 退出商户管理 -->
       <div class="logout-section">
+        <van-button
+          type="warning"
+          block
+          @click="handleExitMerchant"
+          style="margin-bottom: 15px;"
+        >
+          退出商户管理
+        </van-button>
         <van-button
           type="danger"
           block
@@ -276,14 +283,40 @@
         </van-form>
       </div>
     </van-popup>
+
+    <!-- 退出商户管理确认对话框 -->
+    <van-dialog
+      v-model:show="showExitDialog"
+      title=""
+      :show-cancel-button="true"
+      :confirm-button-text="'确定退出'"
+      :cancel-button-text="'取消'"
+      @confirm="confirmExitMerchant"
+      @cancel="showExitDialog = false"
+      :close-on-click-overlay="false"
+      class="exit-merchant-dialog"
+      :width="320"
+    >
+      <div class="exit-dialog-content">
+        <div class="exit-dialog-icon">
+          <van-icon name="warning-o" size="48" />
+        </div>
+        <h3 class="exit-dialog-title">退出商户管理</h3>
+        <p class="exit-dialog-message">
+          确定要退出商户管理模式吗？<br />
+          退出后将返回客户端应用。
+        </p>
+      </div>
+    </van-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
 import { showToast, showLoadingToast } from 'vant'
 import { merchantService } from '@/services/merchant'
 import { useAuthStore } from '@/stores/auth'
+import { useAppStore } from '@/stores/app'
 import router from '@/router'
 
 // 页面导航
@@ -310,6 +343,9 @@ const editForm = reactive({
   businessHours: '',
   description: ''
 })
+
+// 退出商户管理对话框
+const showExitDialog = ref(false)
 
 // 安全设置
 const securitySettings = reactive({
@@ -435,6 +471,59 @@ const updateSystemNotification = (value: boolean) => {
   })
 }
 
+// 退出商户管理
+const handleExitMerchant = () => {
+  showExitDialog.value = true
+}
+
+// 确认退出商户管理
+const confirmExitMerchant = async () => {
+  try {
+    // 先关闭对话框
+    showExitDialog.value = false
+    
+    // 等待对话框关闭动画完成
+    await nextTick()
+    await new Promise(resolve => setTimeout(resolve, 200))
+    
+    // 切换到客户端模式
+    const appStore = useAppStore()
+    appStore.switchToCustomer()
+
+    // 等待状态更新完成
+    await nextTick()
+
+    // 显示提示信息（使用较短的持续时间，避免与路由跳转冲突）
+    showToast({
+      message: '已退出商户管理',
+      type: 'success',
+      duration: 1000
+    })
+
+    // 延迟跳转，确保 Toast 显示完成且状态已更新
+    setTimeout(() => {
+      try {
+        // 使用 push 而不是 replace，避免路由历史问题
+        router.push('/').catch((error) => {
+          console.warn('路由跳转失败，尝试使用 window.location:', error)
+          // 如果路由跳转失败，使用 window.location 作为后备方案
+          window.location.href = '/'
+        })
+      } catch (error) {
+        console.error('路由跳转异常:', error)
+        // 最后的后备方案
+        window.location.href = '/'
+      }
+    }, 500)
+  } catch (error) {
+    console.error('退出商户管理失败:', error)
+    showToast({
+      message: '退出失败，请重试',
+      type: 'fail'
+    })
+  }
+}
+
 // 退出登录
 const handleLogout = () => {
   showLoadingToast({
@@ -462,8 +551,8 @@ onMounted(() => {
   @use '@/styles/mixins.scss' as *;
 
 .merchant-settings {
-  padding-top: 120px;
-  background: $glass-bg-gradient;
+  padding-top: 46px;
+  background: var(--theme-bg-gradient, $glass-bg-gradient);
   background-attachment: fixed;
   background-size: cover;
   min-height: 100vh;
@@ -507,13 +596,13 @@ onMounted(() => {
 .info-label {
   min-width: 80px;
   font-size: 14px;
-  color: #666;
+  color: var(--theme-text-secondary, $text-color-secondary);
 }
 
 .info-value {
   flex: 1;
   font-size: 14px;
-  color: #333;
+  color: var(--theme-text-on-glass, $text-color-primary);
 }
 
 .settings-list {
@@ -539,13 +628,13 @@ onMounted(() => {
 .setting-title {
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--theme-text-on-glass, $text-color-primary);
   margin-bottom: 4px;
 }
 
 .setting-desc {
   font-size: 12px;
-  color: #666;
+  color: var(--theme-text-secondary, $text-color-secondary);
 }
 
 .permission-grid {
@@ -568,12 +657,12 @@ onMounted(() => {
 
 .permission-item van-icon {
   font-size: 24px;
-  color: #667eea;
+  color: var(--primary-color, $primary);
 }
 
 .permission-item span {
   font-size: 12px;
-  color: #333;
+  color: var(--theme-text-on-glass, $text-color-primary);
 }
 
 .info-list {
@@ -586,7 +675,7 @@ onMounted(() => {
 
 .info-list .info-value {
   text-align: right;
-  color: #3A82F6;
+  color: var(--primary-color, $primary);
   cursor: pointer;
 }
 
@@ -612,9 +701,118 @@ onMounted(() => {
   margin-top: 20px;
 }
 
+// 退出商户管理对话框样式
+.exit-merchant-dialog {
+  :deep(.van-dialog) {
+    @include glassmorphism-card(strong);
+    border-radius: 20px !important;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+  }
+
+  :deep(.van-dialog__header) {
+    display: none !important;
+  }
+
+  :deep(.van-dialog__content) {
+    padding: 0 !important;
+  }
+
+  :deep(.van-dialog__footer) {
+    padding: 0 !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+    background: transparent !important;
+  }
+
+  :deep(.van-dialog__confirm),
+  :deep(.van-dialog__cancel) {
+    height: 56px !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    line-height: 56px !important;
+  }
+
+  :deep(.van-dialog__confirm) {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%) !important;
+    color: white !important;
+    order: 2;
+    
+    &:active {
+      background: linear-gradient(135deg, #ee5a6f 0%, #dc4a5f 100%) !important;
+      transform: scale(0.98);
+    }
+  }
+
+  :deep(.van-dialog__cancel) {
+    background: rgba(0, 0, 0, 0.03) !important;
+    color: $text-color-primary !important;
+    order: 1;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    
+    &:active {
+      background: rgba(0, 0, 0, 0.06) !important;
+    }
+  }
+}
+
+.exit-dialog-content {
+  padding: 32px 24px 24px;
+  text-align: center;
+  background: transparent;
+}
+
+.exit-dialog-icon {
+  margin-bottom: 20px;
+  color: var(--van-danger-color, $danger);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
+  :deep(.van-icon) {
+    filter: drop-shadow(0 4px 12px rgba(255, 107, 107, 0.4));
+    animation: pulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.exit-dialog-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: $text-color-primary;
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+  letter-spacing: 0.5px;
+}
+
+.exit-dialog-message {
+  font-size: 15px;
+  color: $text-color-secondary;
+  line-height: 1.8;
+  margin: 0;
+  padding: 0 8px;
+}
+
 @media (max-width: 375px) {
   .merchant-settings {
-    padding-top: 140px;
+    padding-top: 46px;
   }
 
   .settings-content {

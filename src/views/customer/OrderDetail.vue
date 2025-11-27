@@ -257,13 +257,86 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- 确认对话框：取消订单 -->
+    <van-dialog
+      v-model:show="showCancelOrderDialog"
+      title=""
+      :show-cancel-button="true"
+      :confirm-button-text="'确定'"
+      :cancel-button-text="'取消'"
+      @confirm="confirmCancelOrder"
+      @cancel="showCancelOrderDialog = false"
+      :close-on-click-overlay="false"
+      class="standard-confirm-dialog"
+      :width="320"
+    >
+      <div class="dialog-content">
+        <div class="dialog-icon">
+          <van-icon name="warning-o" size="48" />
+        </div>
+        <h3 class="dialog-title">取消订单</h3>
+        <p class="dialog-message">
+          确定要取消此订单吗？
+        </p>
+      </div>
+    </van-dialog>
+
+    <!-- 确认对话框：确认收货 -->
+    <van-dialog
+      v-model:show="showConfirmReceiveDialog"
+      title=""
+      :show-cancel-button="true"
+      :confirm-button-text="'确认收货'"
+      :cancel-button-text="'再想想'"
+      @confirm="confirmReceiveOrder"
+      @cancel="showConfirmReceiveDialog = false"
+      :close-on-click-overlay="false"
+      class="standard-confirm-dialog"
+      :width="320"
+    >
+      <div class="dialog-content">
+        <div class="dialog-icon">
+          <van-icon name="success" size="48" />
+        </div>
+        <h3 class="dialog-title">确认收货</h3>
+        <p class="dialog-message">
+          确认已收到商品吗？
+        </p>
+      </div>
+    </van-dialog>
+
+    <!-- 确认对话框：撤销退款申请 -->
+    <van-dialog
+      v-model:show="showCancelRefundDialog"
+      title=""
+      :show-cancel-button="true"
+      :confirm-button-text="'确定撤销'"
+      :cancel-button-text="'取消'"
+      @confirm="confirmCancelRefund"
+      @cancel="showCancelRefundDialog = false"
+      :close-on-click-overlay="false"
+      class="standard-confirm-dialog"
+      :width="320"
+    >
+      <div class="dialog-content">
+        <div class="dialog-icon">
+          <van-icon name="warning-o" size="48" />
+        </div>
+        <h3 class="dialog-title">撤销退款申请</h3>
+        <p class="dialog-message">
+          确定要撤销退款申请吗？<br />
+          撤销后订单将恢复为"已支付（待使用）"状态。
+        </p>
+      </div>
+    </van-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
   import { ref, onMounted, computed, onUnmounted, watch } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
-  import { showToast, showLoadingToast, closeToast, showDialog, showImagePreview } from 'vant'
+  import { showToast, showLoadingToast, closeToast, showImagePreview } from 'vant'
   import type { OrderStatus, Order } from '@/types'
   import { formatMoney } from '@/utils/format'
   import { orderService } from '@/services/orders'
@@ -271,6 +344,11 @@
 
   const router = useRouter()
   const route = useRoute()
+
+  // 对话框状态
+  const showCancelOrderDialog = ref(false)
+  const showConfirmReceiveDialog = ref(false)
+  const showCancelRefundDialog = ref(false)
 
   // 订单数据（使用 any 类型以兼容后端返回的数据结构）
   const order = ref<any>({
@@ -412,38 +490,24 @@
 
   // 取消订单
   const cancelOrder = () => {
-    showDialog({
-      title: '取消订单',
-      message: '确定要取消此订单吗？',
-      showCancelButton: true,
-      confirmButtonText: '确定',
-      cancelButtonText: '取消'
-    })
-      .then(() => {
-        showToast('订单已取消')
-        // 这里应该调用API取消订单
-      })
-      .catch(() => {
-        // 取消操作
-      })
+    showCancelOrderDialog.value = true
+  }
+
+  const confirmCancelOrder = () => {
+    showCancelOrderDialog.value = false
+    showToast('订单已取消')
+    // 这里应该调用API取消订单
   }
 
   // 确认收货
   const confirmReceive = () => {
-    showDialog({
-      title: '确认收货',
-      message: '确认已收到商品吗？',
-      showCancelButton: true,
-      confirmButtonText: '确认收货',
-      cancelButtonText: '再想想'
-    })
-      .then(() => {
-        showToast('确认收货成功')
-        // 这里应该调用API确认收货
-      })
-      .catch(() => {
-        // 取消操作
-      })
+    showConfirmReceiveDialog.value = true
+  }
+
+  const confirmReceiveOrder = () => {
+    showConfirmReceiveDialog.value = false
+    showToast('确认收货成功')
+    // 这里应该调用API确认收货
   }
 
   // 评价商品
@@ -484,30 +548,23 @@
 
   // 撤销退款申请
   const handleCancelRefundRequest = () => {
-    showDialog({
-      title: '撤销退款申请',
-      message: '确定要撤销退款申请吗？撤销后订单将恢复为"已支付（待使用）"状态。',
-      showCancelButton: true,
-      confirmButtonText: '确定撤销',
-      cancelButtonText: '取消'
-    })
-      .then(async () => {
-        try {
-          showLoadingToast('处理中...')
-          await orderService.cancelRefundRequest(order.value.id)
-          closeToast()
-          showToast('退款申请已撤销')
-          // 重新加载订单详情
-          await loadOrderDetail()
-          refundRequestDetail.value = null
-        } catch (error: any) {
-          closeToast()
-          showToast(error.message || '撤销退款申请失败')
-        }
-      })
-      .catch(() => {
-        // 取消操作
-      })
+    showCancelRefundDialog.value = true
+  }
+
+  const confirmCancelRefund = async () => {
+    try {
+      showCancelRefundDialog.value = false
+      showLoadingToast('处理中...')
+      await orderService.cancelRefundRequest(order.value.id)
+      closeToast()
+      showToast('退款申请已撤销')
+      // 重新加载订单详情
+      await loadOrderDetail()
+      refundRequestDetail.value = null
+    } catch (error: any) {
+      closeToast()
+      showToast(error.message || '撤销退款申请失败')
+    }
   }
 
   // 加载退款申请详情
@@ -774,6 +831,9 @@
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+  @use '@/styles/dialog-mixin.scss' as *;
   @use '@/styles/variables.scss' as *;
   @use '@/styles/mixins.scss' as *;
 
@@ -1336,6 +1396,27 @@
         color: #ff6b6b;
       }
     }
+  }
+
+  // 统一对话框样式
+  .standard-confirm-dialog {
+    @include standard-dialog;
+  }
+
+  .dialog-content {
+    @include dialog-content;
+  }
+
+  .dialog-icon {
+    @include dialog-icon(#ff6b6b);
+  }
+
+  .dialog-title {
+    @include dialog-title;
+  }
+
+  .dialog-message {
+    @include dialog-message;
   }
 </style>
 

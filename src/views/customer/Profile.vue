@@ -95,10 +95,15 @@
           </template>
         </van-cell>
 
-        <!-- 商户登录 -->
-        <van-cell title="商户登录" is-link @click="goToMerchantLogin">
+        <!-- 商户管理 -->
+        <van-cell :title="merchantMenuTitle" is-link @click="goToMerchantManagement">
           <template #icon>
             <van-icon name="shop-o" />
+          </template>
+          <template #right-icon>
+            <van-tag v-if="merchantStatus" :type="merchantStatusTagType">
+              {{ merchantStatusText }}
+            </van-tag>
           </template>
         </van-cell>
       </van-cell-group>
@@ -191,15 +196,41 @@
         <van-button type="primary" block round @click="showVersionPopup = false">确定</van-button>
       </div>
     </van-popup>
+
+    <!-- 确认对话框：退出登录 -->
+    <van-dialog
+      v-model:show="showLogoutDialog"
+      title=""
+      :show-cancel-button="true"
+      :confirm-button-text="'确定退出'"
+      :cancel-button-text="'取消'"
+      @confirm="confirmLogout"
+      @cancel="showLogoutDialog = false"
+      :close-on-click-overlay="false"
+      class="standard-confirm-dialog"
+      :width="320"
+    >
+      <div class="dialog-content">
+        <div class="dialog-icon">
+          <van-icon name="warning-o" size="48" />
+        </div>
+        <h3 class="dialog-title">确认退出</h3>
+        <p class="dialog-message">
+          确定要退出登录吗？
+        </p>
+      </div>
+    </van-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
   import { ref, computed, onMounted } from 'vue'
   import { useRouter } from 'vue-router'
-  import { showToast, showConfirmDialog, showImagePreview } from 'vant'
+  import { showToast, showImagePreview } from 'vant'
   import { useAuthStore } from '@/stores/auth'
+  import { useAppStore } from '@/stores/app'
   import { authService } from '@/services/auth'
+  import { merchantOperatorService, type MerchantOperatorStatus } from '@/services/merchantOperator'
   import type { User } from '@/types'
 
   const router = useRouter()
@@ -231,6 +262,10 @@
   const showAvatarPopup = ref(false)
   const showVersionPopup = ref(false)
   const isLoggingOut = ref(false)
+  const showLogoutDialog = ref(false)
+
+  // 商户绑定状态
+  const merchantBindingStatus = ref<MerchantOperatorStatus | null>(null)
 
   // 计算是否有未支付订单
   const hasUnpaidOrders = computed(() => (userStats.value.unpaidOrders || 0) > 0)
@@ -373,12 +408,160 @@
     router.push('/customer/notifications')
   }
 
-  // 跳转到商户登录
-  const goToMerchantLogin = () => {
-    showToast({ type: 'loading', message: '正在跳转...', duration: 1000 })
-    setTimeout(() => {
-      router.push('/merchant')
-    }, 500)
+  // 商户菜单标题和状态
+  const merchantMenuTitle = computed(() => {
+    if (!merchantBindingStatus.value) return '商户管理'
+    if (!merchantBindingStatus.value.hasBinding) return '申请绑定商户操作员'
+    
+    // 如果已绑定且审核通过，显示商户编号
+    const merchantUser = merchantBindingStatus.value.merchantUser
+    if (merchantUser?.approvalStatus === 'APPROVED' && merchantUser?.merchantCode) {
+      return `商户管理 (${merchantUser.merchantCode})`
+    }
+    
+    return '商户管理'
+  })
+
+  const merchantStatus = computed(() => {
+    if (!merchantBindingStatus.value?.hasBinding) return null
+    return merchantBindingStatus.value.merchantUser?.approvalStatus
+  })
+
+  const merchantStatusText = computed(() => {
+    const status = merchantStatus.value
+    if (!status) return ''
+    const statusMap = {
+      PENDING: '审核中',
+      APPROVED: '已通过',
+      REJECTED: '已拒绝'
+    }
+    return statusMap[status] || ''
+  })
+
+  const merchantStatusTagType = computed(() => {
+    const status = merchantStatus.value
+    if (status === 'APPROVED') return 'success'
+    if (status === 'REJECTED') return 'danger'
+    return 'warning'
+  })
+
+  // 跳转到商户管理
+  // 防止循环跳转的标记
+  const isNavigatingToMerchant = ref(false)
+  
+  const goToMerchantManagement = async () => {
+    try {
+      // 防止重复点击
+      if (isNavigatingToMerchant.value) {
+        console.warn('⚠️ [个人中心] 正在跳转中，忽略重复点击')
+        return
+      }
+      
+      console.log('🚀 [个人中心] 准备进入商户管理页面')
+      console.log('📊 [个人中心] 当前商户绑定状态:', JSON.stringify(merchantBindingStatus.value, null, 2))
+      
+      // 检查循环跳转保护
+      const redirectKey = 'merchant_redirect_count'
+      const redirectCount = parseInt(sessionStorage.getItem(redirectKey) || '0', 10)
+      if (redirectCount >= 3) {
+        console.error('❌ [个人中心] 检测到循环跳转，中断跳转')
+        sessionStorage.removeItem(redirectKey)
+        showToast('跳转异常，请刷新页面重试')
+        return
+      }
+      
+      isNavigatingToMerchant.value = true
+      
+      // 已绑定且审核通过，直接跳转到商户管理页面
+      // 不需要再次检查状态，因为页面加载时已经检查过了
+      if (merchantBindingStatus.value?.hasBinding && 
+          merchantBindingStatus.value?.merchantUser?.approvalStatus === 'APPROVED' && 
+          merchantBindingStatus.value?.merchantUser?.isActive) {
+        console.log('✅ [个人中心] 状态检查通过，切换到商户模式')
+        
+        // 切换到商户模式
+        const appStore = useAppStore()
+        appStore.switchToMerchant()
+        
+        // 记录跳转次数
+        sessionStorage.setItem(redirectKey, String(redirectCount + 1))
+        
+        // 直接跳转到商户管理页面
+        router.push('/merchant').finally(() => {
+          // 清除标记，允许下次跳转
+          setTimeout(() => {
+            isNavigatingToMerchant.value = false
+            sessionStorage.removeItem(redirectKey)
+          }, 2000)
+        })
+        return
+      }
+      
+      // 如果状态不确定，先刷新状态
+      try {
+        const statusResult = await merchantOperatorService.getMyStatus()
+        merchantBindingStatus.value = statusResult
+        console.log('✅ [个人中心] 商户绑定状态已更新:', statusResult)
+        
+        // 刷新后再次检查
+        if (statusResult.hasBinding && 
+            statusResult.merchantUser?.approvalStatus === 'APPROVED' && 
+            statusResult.merchantUser?.isActive) {
+          console.log('✅ [个人中心] 刷新后状态检查通过，切换到商户模式')
+          const appStore = useAppStore()
+          appStore.switchToMerchant()
+          
+          // 记录跳转次数
+          const redirectKey = 'merchant_redirect_count'
+          const redirectCount = parseInt(sessionStorage.getItem(redirectKey) || '0', 10)
+          sessionStorage.setItem(redirectKey, String(redirectCount + 1))
+          
+          router.push('/merchant').finally(() => {
+            setTimeout(() => {
+              isNavigatingToMerchant.value = false
+              sessionStorage.removeItem(redirectKey)
+            }, 2000)
+          })
+          return
+        }
+      } catch (statusError) {
+        console.warn('⚠️ [个人中心] 获取商户绑定状态失败:', statusError)
+        isNavigatingToMerchant.value = false
+      }
+      
+      // 如果未绑定，跳转到申请页面
+      if (!merchantBindingStatus.value?.hasBinding) {
+        console.log('⚠️ [个人中心] 未绑定商户，跳转到申请页面')
+        router.push('/customer/merchant-binding')
+        return
+      }
+
+      const merchantUser = merchantBindingStatus.value.merchantUser
+      
+      // 如果已绑定但未审核通过，提示用户
+      if (merchantUser?.approvalStatus !== 'APPROVED' || !merchantUser?.isActive) {
+        console.log('⚠️ [个人中心] 商户状态未通过:', {
+          approvalStatus: merchantUser?.approvalStatus,
+          isActive: merchantUser?.isActive
+        })
+        
+        if (merchantUser?.approvalStatus === 'PENDING') {
+          showToast('您的申请正在审核中，请耐心等待')
+          router.push('/customer/merchant-binding')
+        } else if (merchantUser?.approvalStatus === 'REJECTED') {
+          showToast('您的申请已被拒绝，请重新申请')
+          router.push('/customer/merchant-binding')
+        } else {
+          showToast('您的商户权限已被取消')
+          router.push('/customer/merchant-binding')
+        }
+        return
+      }
+    } catch (error) {
+      console.error('❌ [个人中心] 跳转商户管理失败:', error)
+      showToast('跳转失败，请重试')
+      isNavigatingToMerchant.value = false
+    }
   }
 
   // 联系客服
@@ -403,15 +586,13 @@
   }
 
   // 处理退出登录
-  const handleLogout = async () => {
-    try {
-      await showConfirmDialog({
-        title: '确认退出',
-        message: '确定要退出登录吗？',
-        confirmButtonText: '确定退出',
-        cancelButtonText: '取消'
-      })
+  const handleLogout = () => {
+    showLogoutDialog.value = true
+  }
 
+  const confirmLogout = async () => {
+    try {
+      showLogoutDialog.value = false
       isLoggingOut.value = true
 
       // 调用退出登录API
@@ -422,10 +603,8 @@
       // 跳转到登录页
       router.push('/login')
     } catch (error) {
-      // 用户取消或操作失败
-      if (error !== 'cancel') {
-        showToast({ type: 'fail', message: '退出失败，请重试' })
-      }
+      console.error('退出登录失败:', error)
+      showToast({ type: 'fail', message: '退出失败，请重试' })
     } finally {
       isLoggingOut.value = false
     }
@@ -476,6 +655,30 @@
         // 统计数据加载失败不影响页面展示
       }
 
+      // 获取商户绑定状态（非关键操作，失败不影响）
+      try {
+        const statusResult = await merchantOperatorService.getMyStatus()
+        merchantBindingStatus.value = statusResult
+        console.log('✅ 商户绑定状态已更新:', JSON.stringify(statusResult, null, 2))
+        console.log('📊 商户绑定状态详情:', {
+          hasBinding: statusResult.hasBinding,
+          merchantUser: statusResult.merchantUser ? {
+            id: statusResult.merchantUser.id,
+            merchantId: statusResult.merchantUser.merchantId,
+            merchantName: statusResult.merchantUser.merchantName,
+            merchantCode: statusResult.merchantUser.merchantCode,
+            role: statusResult.merchantUser.role,
+            approvalStatus: statusResult.merchantUser.approvalStatus,
+            isActive: statusResult.merchantUser.isActive,
+            appliedAt: statusResult.merchantUser.appliedAt,
+            approvedAt: statusResult.merchantUser.approvedAt
+          } : null
+        })
+      } catch (statusError) {
+        console.warn('⚠️ 获取商户绑定状态失败:', statusError)
+        // 绑定状态加载失败不影响页面展示
+      }
+
       console.log('✅ 用户数据加载流程完成')
     } catch (error) {
       // 🔥 处理意外的错误
@@ -498,6 +701,7 @@
 <style lang="scss" scoped>
   @use '@/styles/variables.scss' as *;
   @use '@/styles/mixins.scss' as *;
+  @use '@/styles/dialog-mixin.scss' as *;
 
   .profile-page {
     min-height: 100vh;
@@ -941,5 +1145,26 @@
         }
       }
     }
+  }
+
+  // 统一对话框样式
+  .standard-confirm-dialog {
+    @include standard-dialog;
+  }
+
+  .dialog-content {
+    @include dialog-content;
+  }
+
+  .dialog-icon {
+    @include dialog-icon(#ff6b6b);
+  }
+
+  .dialog-title {
+    @include dialog-title;
+  }
+
+  .dialog-message {
+    @include dialog-message;
   }
 </style>

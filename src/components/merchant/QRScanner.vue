@@ -96,11 +96,33 @@
     <!-- 手动输入弹窗 -->
     <van-dialog
       v-model:show="showManualInputDialog"
-      title="手动输入"
-      show-cancel-button
-      confirmButtonText="确定"
+      title=""
+      :show-cancel-button="true"
+      :confirm-button-text="'确定'"
+      :cancel-button-text="'取消'"
       @confirm="handleManualInput"
+      @cancel="showManualInputDialog = false"
+      :close-on-click-overlay="false"
+      class="standard-confirm-dialog"
+      :width="320"
     >
+      <div class="dialog-content">
+        <div class="dialog-icon">
+          <van-icon name="edit" size="48" />
+        </div>
+        <h3 class="dialog-title">手动输入</h3>
+        <div class="dialog-input">
+          <van-field
+            v-model="manualInput"
+            placeholder="请输入订单号或二维码内容"
+            type="textarea"
+            rows="3"
+            clearable
+            :rules="[{ required: true, message: '请输入内容' }]"
+          />
+        </div>
+      </div>
+    </van-dialog>
       <van-field
         v-model="manualInput"
         placeholder="请输入订单号或二维码内容"
@@ -567,6 +589,9 @@
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+  @use '@/styles/dialog-mixin.scss' as *;
   .qr-scanner {
     width: 100%;
     height: 100%;
@@ -979,5 +1004,27 @@
         padding: 4px 8px;
       }
     }
+  }
+
+  // 统一对话框样式
+  .standard-confirm-dialog {
+    @include standard-dialog;
+  }
+
+  .dialog-content {
+    @include dialog-content;
+  }
+
+  .dialog-icon {
+    @include dialog-icon(#1989fa);
+  }
+
+  .dialog-title {
+    @include dialog-title;
+  }
+
+  .dialog-input {
+    margin-top: 16px;
+    padding: 0 8px;
   }
 </style>

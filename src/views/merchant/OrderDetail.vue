@@ -164,13 +164,112 @@
 
       <van-button type="default" block round @click="goBack">返回</van-button>
     </div>
+
+    <!-- 确认对话框：撤销订单 -->
+    <van-dialog
+      v-model:show="showCancelDialog"
+      title=""
+      :show-cancel-button="true"
+      :confirm-button-text="'确定撤销'"
+      :cancel-button-text="'取消'"
+      @confirm="confirmCancelOrder"
+      @cancel="showCancelDialog = false"
+      :close-on-click-overlay="false"
+      class="standard-confirm-dialog"
+      :width="320"
+    >
+      <div class="dialog-content">
+        <div class="dialog-icon">
+          <van-icon name="warning-o" size="48" />
+        </div>
+        <h3 class="dialog-title">确认撤销</h3>
+        <p class="dialog-message">
+          确定要撤销此订单吗？<br />
+          撤销后订单状态将变更为已取消。
+        </p>
+      </div>
+    </van-dialog>
+
+    <!-- 确认对话框：申请退款 -->
+    <van-dialog
+      v-model:show="showRefundDialog"
+      title=""
+      :show-cancel-button="true"
+      :confirm-button-text="'确定退款'"
+      :cancel-button-text="'取消'"
+      @confirm="confirmRefund"
+      @cancel="showRefundDialog = false"
+      :close-on-click-overlay="false"
+      class="standard-confirm-dialog"
+      :width="320"
+    >
+      <div class="dialog-content">
+        <div class="dialog-icon">
+          <van-icon name="warning-o" size="48" />
+        </div>
+        <h3 class="dialog-title">确认退款</h3>
+        <p class="dialog-message">
+          确定要为此订单申请退款吗？<br />
+          退款成功后订单金额将原路返回。
+        </p>
+      </div>
+    </van-dialog>
+
+    <!-- 确认对话框：确认订单 -->
+    <van-dialog
+      v-model:show="showConfirmDialog"
+      title=""
+      :show-cancel-button="true"
+      :confirm-button-text="'确认'"
+      :cancel-button-text="'取消'"
+      @confirm="confirmOrder"
+      @cancel="showConfirmDialog = false"
+      :close-on-click-overlay="false"
+      class="standard-confirm-dialog"
+      :width="320"
+    >
+      <div class="dialog-content">
+        <div class="dialog-icon">
+          <van-icon name="success" size="48" />
+        </div>
+        <h3 class="dialog-title">确认订单</h3>
+        <p class="dialog-message">
+          确认已收到用户订单并开始处理？
+        </p>
+      </div>
+    </van-dialog>
+
+    <!-- 确认对话框：确认发货 -->
+    <van-dialog
+      v-model:show="showShipDialog"
+      title=""
+      :show-cancel-button="true"
+      :confirm-button-text="'确认发货'"
+      :cancel-button-text="'取消'"
+      @confirm="confirmShipOrder"
+      @cancel="showShipDialog = false"
+      :close-on-click-overlay="false"
+      class="standard-confirm-dialog"
+      :width="320"
+    >
+      <div class="dialog-content">
+        <div class="dialog-icon">
+          <van-icon name="logistics" size="48" />
+        </div>
+        <h3 class="dialog-title">确认发货</h3>
+        <p class="dialog-message">
+          确认已发货？<br />
+          发货后用户将收到物流信息。
+        </p>
+      </div>
+    </van-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
   import { ref, computed, onMounted } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
-  import { showToast, showLoadingToast, showConfirmDialog, showSuccessToast } from 'vant'
+  import { showToast, showLoadingToast, showSuccessToast } from 'vant'
   import AppHeader from '@/components/common/AppHeader.vue'
   import { useMerchantOrderStore } from '@/stores/merchantOrder'
   import type { MerchantOrderStatus } from '@/types'
@@ -224,6 +323,12 @@
   const isRefunding = ref(false)
   const isConfirming = ref(false)
   const isShipping = ref(false)
+
+  // 对话框状态
+  const showCancelDialog = ref(false)
+  const showRefundDialog = ref(false)
+  const showConfirmDialog = ref(false)
+  const showShipDialog = ref(false)
 
   const orderInfo = ref<OrderInfo>({
     id: '',
@@ -360,26 +465,22 @@
   }
 
   // 撤销订单
-  const handleCancelOrder = async () => {
+  const handleCancelOrder = () => {
+    showCancelDialog.value = true
+  }
+
+  const confirmCancelOrder = async () => {
     try {
-      const result = await showConfirmDialog({
-        title: '确认撤销',
-        message: '确定要撤销此订单吗？撤销后订单状态将变更为已取消。',
-        confirmButtonText: '确定撤销',
-        cancelButtonText: '取消'
-      })
+      showCancelDialog.value = false
+      isCanceling.value = true
 
-      if (result) {
-        isCanceling.value = true
+      const response = await merchantOrderStore.cancelMerchantOrder(orderInfo.value.id)
 
-        const response = await merchantOrderStore.cancelMerchantOrder(orderInfo.value.id)
-
-        if (response.success) {
-          showToast('订单撤销成功')
-          await loadOrderDetail()
-        } else {
-          showToast(response.message || '撤销订单失败')
-        }
+      if (response.success) {
+        showToast('订单撤销成功')
+        await loadOrderDetail()
+      } else {
+        showToast(response.message || '撤销订单失败')
       }
     } catch (error) {
       console.error('撤销订单失败:', error)
@@ -390,26 +491,22 @@
   }
 
   // 申请退款
-  const handleRefund = async () => {
+  const handleRefund = () => {
+    showRefundDialog.value = true
+  }
+
+  const confirmRefund = async () => {
     try {
-      const result = await showConfirmDialog({
-        title: '确认退款',
-        message: '确定要为此订单申请退款吗？退款成功后订单金额将原路返回。',
-        confirmButtonText: '确定退款',
-        cancelButtonText: '取消'
-      })
+      showRefundDialog.value = false
+      isRefunding.value = true
 
-      if (result) {
-        isRefunding.value = true
+      const response = await merchantOrderStore.refundMerchantOrder(orderInfo.value.id)
 
-        const response = await merchantOrderStore.refundMerchantOrder(orderInfo.value.id)
-
-        if (response.success) {
-          showToast('退款申请成功')
-          await loadOrderDetail()
-        } else {
-          showToast(response.message || '退款申请失败')
-        }
+      if (response.success) {
+        showToast('退款申请成功')
+        await loadOrderDetail()
+      } else {
+        showToast(response.message || '退款申请失败')
       }
     } catch (error) {
       console.error('申请退款失败:', error)
@@ -420,26 +517,22 @@
   }
 
   // 确认订单
-  const handleConfirmOrder = async () => {
+  const handleConfirmOrder = () => {
+    showConfirmDialog.value = true
+  }
+
+  const confirmOrder = async () => {
     try {
-      const result = await showConfirmDialog({
-        title: '确认订单',
-        message: '确认已收到用户订单并开始处理？',
-        confirmButtonText: '确认',
-        cancelButtonText: '取消'
-      })
+      showConfirmDialog.value = false
+      isConfirming.value = true
 
-      if (result) {
-        isConfirming.value = true
+      const response = await merchantOrderStore.confirmMerchantOrder(orderInfo.value.id)
 
-        const response = await merchantOrderStore.confirmMerchantOrder(orderInfo.value.id)
-
-        if (response.success) {
-          showToast('订单确认成功')
-          await loadOrderDetail()
-        } else {
-          showToast(response.message || '确认订单失败')
-        }
+      if (response.success) {
+        showToast('订单确认成功')
+        await loadOrderDetail()
+      } else {
+        showToast(response.message || '确认订单失败')
       }
     } catch (error) {
       console.error('确认订单失败:', error)
@@ -450,30 +543,26 @@
   }
 
   // 确认发货
-  const handleShipOrder = async () => {
+  const handleShipOrder = () => {
+    showShipDialog.value = true
+  }
+
+  const confirmShipOrder = async () => {
     try {
-      const result = await showConfirmDialog({
-        title: '确认发货',
-        message: '确认已发货？发货后用户将收到物流信息。',
-        confirmButtonText: '确认发货',
-        cancelButtonText: '取消'
-      })
+      showShipDialog.value = false
+      isShipping.value = true
 
-      if (result) {
-        isShipping.value = true
+      const response = await merchantOrderStore.shipMerchantOrder(orderInfo.value.id)
 
-        const response = await merchantOrderStore.shipMerchantOrder(orderInfo.value.id)
-
-        if (response.success) {
-          showToast('发货确认成功')
-          await loadOrderDetail()
-        } else {
-          showToast(response.message || '发货确认失败')
-        }
+      if (response.success) {
+        showToast('发货成功')
+        await loadOrderDetail()
+      } else {
+        showToast(response.message || '发货失败')
       }
     } catch (error) {
-      console.error('发货确认失败:', error)
-      showToast('发货确认失败')
+      console.error('发货失败:', error)
+      showToast('发货失败')
     } finally {
       isShipping.value = false
     }
@@ -491,11 +580,18 @@
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+  @use '@/styles/dialog-mixin.scss' as *;
+
   .merchant-order-detail-page {
     min-height: 100vh;
-    background-color: var(--van-background);
+    background: var(--theme-bg-gradient, $glass-bg-gradient);
+    background-attachment: fixed;
+    background-size: cover;
     display: flex;
     flex-direction: column;
+    padding-top: 46px;
   }
 
   .order-detail-content {
@@ -854,5 +950,26 @@
         height: 120px;
       }
     }
+  }
+
+  // 统一对话框样式
+  .standard-confirm-dialog {
+    @include standard-dialog;
+  }
+
+  .dialog-content {
+    @include dialog-content;
+  }
+
+  .dialog-icon {
+    @include dialog-icon(#ff6b6b);
+  }
+
+  .dialog-title {
+    @include dialog-title;
+  }
+
+  .dialog-message {
+    @include dialog-message;
   }
 </style>

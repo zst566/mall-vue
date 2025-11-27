@@ -1,0 +1,122 @@
+// 统一对话框样式 Mixin
+// 用于所有确认对话框，保持与 Settings.vue 相同的风格
+
+@use './variables.scss' as *;
+@use './mixins.scss' as *;
+
+// 标准确认对话框样式
+@mixin standard-dialog {
+  :deep(.van-dialog) {
+    @include glassmorphism-card(strong);
+    border-radius: 20px !important;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+  }
+
+  :deep(.van-dialog__header) {
+    display: none !important;
+  }
+
+  :deep(.van-dialog__content) {
+    padding: 0 !important;
+  }
+
+  :deep(.van-dialog__footer) {
+    padding: 0 !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+    background: transparent !important;
+  }
+
+  :deep(.van-dialog__confirm),
+  :deep(.van-dialog__cancel) {
+    height: 56px !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    line-height: 56px !important;
+  }
+
+  :deep(.van-dialog__confirm) {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%) !important;
+    color: white !important;
+    order: 2;
+    
+    &:active {
+      background: linear-gradient(135deg, #ee5a6f 0%, #dc4a5f 100%) !important;
+      transform: scale(0.98);
+    }
+  }
+
+  :deep(.van-dialog__cancel) {
+    background: rgba(0, 0, 0, 0.03) !important;
+    color: $text-color-primary !important;
+    order: 1;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    
+    &:active {
+      background: rgba(0, 0, 0, 0.06) !important;
+    }
+  }
+}
+
+// 对话框内容样式
+@mixin dialog-content {
+  padding: 32px 24px 24px;
+  text-align: center;
+  background: transparent;
+}
+
+// 对话框图标样式
+@mixin dialog-icon($color: #ff6b6b) {
+  margin-bottom: 20px;
+  color: $color;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
+  :deep(.van-icon) {
+    filter: drop-shadow(0 4px 12px rgba($color, 0.4));
+    animation: pulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+// 对话框标题样式
+@mixin dialog-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: $text-color-primary;
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+  letter-spacing: 0.5px;
+}
+
+// 对话框消息样式
+@mixin dialog-message {
+  font-size: 15px;
+  color: $text-color-secondary;
+  line-height: 1.8;
+  margin: 0;
+  padding: 0 8px;
+}
+
+
+
+

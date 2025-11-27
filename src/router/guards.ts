@@ -192,7 +192,18 @@ export function setupRouteGuards(routerInstance: any) {
     }
 
     // 检查权限
-    if (!PermissionChecker.hasUserPermission(requiredPermission)) {
+    // 对于商户路由，如果用户已登录，允许通过，让后续的商户绑定状态检查来决定是否允许访问
+    if (requiredPermission === 'merchant') {
+      // 商户路由：如果用户已登录，允许通过，后续会检查商户绑定状态
+      if (!PermissionChecker.isUserAuthenticated()) {
+        // 用户未登录
+        sessionStorage.setItem('redirectAfterLogin', path)
+        showToast('请先登录')
+        next('/login')
+        return
+      }
+      // 用户已登录，允许通过，后续会检查商户绑定状态
+    } else if (!PermissionChecker.hasUserPermission(requiredPermission)) {
       // 用户未登录
       if (!PermissionChecker.isUserAuthenticated()) {
         // 记录要访问的页面，登录后跳转回来
@@ -204,7 +215,7 @@ export function setupRouteGuards(routerInstance: any) {
 
       // 权限不足
       showToast('权限不足')
-      next('/home') // 或返回有权限的页面
+      next('/') // 重定向到首页
       return
     }
 
@@ -213,6 +224,129 @@ export function setupRouteGuards(routerInstance: any) {
       showToast('无法访问此页面')
       next(false)
       return
+    }
+
+    // 商户路由需要检查绑定状态
+    if (requiredPermission === 'merchant' && to.meta.requiresMerchantAccess) {
+      try {
+        // 检查循环跳转保护
+        const redirectKey = 'merchant_redirect_count'
+        const redirectCount = parseInt(sessionStorage.getItem(redirectKey) || '0', 10)
+        if (redirectCount >= 3) {
+          console.error('❌ [路由守卫] 检测到循环跳转，中断跳转')
+          sessionStorage.removeItem(redirectKey)
+          next(false) // 阻止导航
+          return
+        }
+        
+        console.log('🔐 [路由守卫] 检查商户路由权限:', to.path)
+        
+        // 切换到商户模式
+        const { useAppStore } = await import('@/stores/app')
+        const appStore = useAppStore()
+        appStore.switchToMerchant()
+        
+        const { merchantOperatorService } = await import('@/services/merchantOperator')
+        const status = await merchantOperatorService.getMyStatus()
+        
+        console.log('🔐 [路由守卫] 商户绑定状态:', {
+          hasBinding: status.hasBinding,
+          hasMerchantUser: !!status.merchantUser,
+          approvalStatus: status.merchantUser?.approvalStatus,
+          isActive: status.merchantUser?.isActive,
+          merchantCode: status.merchantUser?.merchantCode
+        })
+        
+        if (!status.hasBinding || !status.merchantUser) {
+          console.warn('⚠️ [路由守卫] 未绑定商户或商户用户信息不存在')
+          appStore.switchToCustomer() // 切换回客户模式
+          showToast('您尚未绑定商户，请先申请')
+          // 清除跳转计数，允许正常跳转到申请页面
+          sessionStorage.removeItem(redirectKey)
+          next('/customer/merchant-binding')
+          return
+        }
+        
+        if (status.merchantUser.approvalStatus !== 'APPROVED' || !status.merchantUser.isActive) {
+          console.warn('⚠️ [路由守卫] 商户状态未通过:', {
+            approvalStatus: status.merchantUser.approvalStatus,
+            isActive: status.merchantUser.isActive
+          })
+          appStore.switchToCustomer() // 切换回客户模式
+          if (status.merchantUser.approvalStatus === 'PENDING') {
+            showToast('您的申请正在审核中，请耐心等待')
+          } else {
+            showToast('您的商户权限已被取消或未审核通过')
+          }
+          // 清除跳转计数，允许正常跳转到申请页面
+          sessionStorage.removeItem(redirectKey)
+          next('/customer/merchant-binding')
+          return
+        }
+        
+        console.log('✅ [路由守卫] 商户权限检查通过，允许访问')
+        // 清除跳转计数，允许正常访问
+        sessionStorage.removeItem(redirectKey)
+      } catch (error) {
+        console.error('❌ [路由守卫] 检查商户绑定状态失败:', error)
+        const { useAppStore } = await import('@/stores/app')
+        const appStore = useAppStore()
+        appStore.switchToCustomer() // 切换回客户模式
+        
+        // 检查循环跳转保护
+        const redirectKey = 'merchant_redirect_count'
+        const redirectCount = parseInt(sessionStorage.getItem(redirectKey) || '0', 10)
+        if (redirectCount >= 3) {
+          console.error('❌ [路由守卫] 检测到循环跳转，中断跳转')
+          sessionStorage.removeItem(redirectKey)
+          next(false) // 阻止导航
+          return
+        }
+        
+        showToast('权限验证失败')
+        sessionStorage.setItem(redirectKey, String(redirectCount + 1))
+        next('/customer/merchant-binding')
+        return
+      }
+    }
+    
+    // 如果访问申请页面但已审核通过，自动跳转到商户管理页面
+    if (to.path === '/customer/merchant-binding' && requiredPermission === 'customer') {
+      try {
+        // 检查循环跳转保护
+        const redirectKey = 'merchant_redirect_count'
+        const redirectCount = parseInt(sessionStorage.getItem(redirectKey) || '0', 10)
+        if (redirectCount >= 3) {
+          console.error('❌ [路由守卫] 检测到循环跳转，中断跳转')
+          sessionStorage.removeItem(redirectKey)
+          next(false) // 阻止导航
+          return
+        }
+        
+        const { merchantOperatorService } = await import('@/services/merchantOperator')
+        const status = await merchantOperatorService.getMyStatus()
+        
+        if (status.hasBinding && status.merchantUser?.approvalStatus === 'APPROVED' && status.merchantUser?.isActive) {
+          console.log('✅ [路由守卫] 已审核通过，自动跳转到商户管理页面')
+          const { useAppStore } = await import('@/stores/app')
+          const appStore = useAppStore()
+          appStore.switchToMerchant()
+          
+          // 记录跳转次数
+          sessionStorage.setItem(redirectKey, String(redirectCount + 1))
+          
+          next('/merchant')
+          return
+        }
+      } catch (error) {
+        // 如果查询失败，继续正常流程
+        console.warn('⚠️ [路由守卫] 检查商户状态失败，继续正常流程:', error)
+      }
+    } else if (requiredPermission !== 'merchant' && from.path.startsWith('/merchant')) {
+      // 离开商户路由时，切换回客户模式
+      const { useAppStore } = await import('@/stores/app')
+      const appStore = useAppStore()
+      appStore.switchToCustomer()
     }
 
     // 检查是否需要加载页面数据
@@ -370,14 +504,14 @@ export function createPageGuard(pageType: string) {
 
         case 'merchant-dashboard':
           if (!authStore.isAuthenticated || authStore.user?.role !== 'merchant') {
-            next('/home')
+            next('/')
             return
           }
           break
 
         case 'admin-dashboard':
           if (!authStore.isAuthenticated || authStore.user?.role !== 'admin') {
-            next('/home')
+            next('/')
             return
           }
           break
@@ -461,6 +595,6 @@ export class GuardTools {
 
   // 获取重定向路径
   static getRedirectPath(): string {
-    return sessionStorage.getItem('redirectAfterLogin') || '/home'
+    return sessionStorage.getItem('redirectAfterLogin') || '/'
   }
 }

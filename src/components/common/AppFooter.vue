@@ -1,10 +1,19 @@
 <template>
   <footer class="app-footer" :class="{ 'merchant-mode': isMerchantMode }">
-    <van-tabbar v-model="active" route :border="false" class="footer-tabbar">
+    <!-- 客户模式导航 -->
+    <van-tabbar v-if="!isMerchantMode" v-model="active" route :border="false" class="footer-tabbar">
       <van-tabbar-item replace to="/" icon="home-o" @click="onHomeClick">首页</van-tabbar-item>
       <van-tabbar-item replace to="/parking" icon="location-o">停车</van-tabbar-item>
       <van-tabbar-item replace to="/orders" icon="orders-o">订单</van-tabbar-item>
       <van-tabbar-item replace to="/profile" icon="user-o">我的</van-tabbar-item>
+    </van-tabbar>
+    
+    <!-- 商户模式导航 -->
+    <van-tabbar v-else v-model="merchantActive" route :border="false" class="footer-tabbar merchant-tabbar">
+      <van-tabbar-item replace to="/merchant/scan" icon="scan">核销</van-tabbar-item>
+      <van-tabbar-item replace to="/merchant/verifications" icon="orders-o">记录</van-tabbar-item>
+      <van-tabbar-item replace to="/merchant/statistics" icon="chart-trending-o">统计</van-tabbar-item>
+      <van-tabbar-item replace to="/merchant" icon="shop-o">商户</van-tabbar-item>
     </van-tabbar>
   </footer>
 </template>
@@ -21,6 +30,7 @@
   const router = useRouter()
   const route = useRoute()
   const active = ref(0)
+  const merchantActive = ref(0)
 
   // 计算当前是否为商户模式
   const isMerchantMode = computed(() => appStore.isMerchantMode)
@@ -90,20 +100,34 @@
   const updateActiveTab = () => {
     const path = route.path
 
-    if (path === '/') {
-      active.value = 0
-    } else if (path.startsWith('/parking')) {
-      active.value = 1
-    } else if (path.startsWith('/orders')) {
-      active.value = 2
-    } else if (path.startsWith('/profile')) {
-      active.value = 3
+    if (isMerchantMode.value) {
+      // 商户模式导航
+      if (path.startsWith('/merchant/scan')) {
+        merchantActive.value = 0
+      } else if (path.startsWith('/merchant/verifications')) {
+        merchantActive.value = 1
+      } else if (path.startsWith('/merchant/statistics')) {
+        merchantActive.value = 2
+      } else if (path.startsWith('/merchant')) {
+        merchantActive.value = 3
+      }
+    } else {
+      // 客户模式导航
+      if (path === '/') {
+        active.value = 0
+      } else if (path.startsWith('/parking')) {
+        active.value = 1
+      } else if (path.startsWith('/orders')) {
+        active.value = 2
+      } else if (path.startsWith('/profile')) {
+        active.value = 3
+      }
     }
   }
 
   // 监听路由变化
   watch(
-    () => route.path,
+    () => [route.path, isMerchantMode.value],
     () => {
       updateActiveTab()
     },

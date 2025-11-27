@@ -44,12 +44,37 @@
     </div>
 
     <van-loading v-if="loading" class="loading-center" />
+
+    <!-- 确认对话框：确认结算 -->
+    <van-dialog
+      v-model:show="showConfirmDialog"
+      title=""
+      :show-cancel-button="true"
+      :confirm-button-text="'确认'"
+      :cancel-button-text="'取消'"
+      @confirm="confirmSettlement"
+      @cancel="showConfirmDialog = false"
+      :close-on-click-overlay="false"
+      class="standard-confirm-dialog"
+      :width="320"
+    >
+      <div class="dialog-content">
+        <div class="dialog-icon">
+          <van-icon name="success" size="48" />
+        </div>
+        <h3 class="dialog-title">确认结算</h3>
+        <p class="dialog-message">
+          确认执行此订单的结算操作吗？<br />
+          结算后将无法修改。
+        </p>
+      </div>
+    </van-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { computed } from 'vue'
-  import { showToast, showConfirmDialog } from 'vant'
+  import { computed, ref } from 'vue'
+  import { showToast } from 'vant'
   import { useSettlementStore } from '@/stores/settlement'
   import type { OrderSettlementResult } from '@/types/payment'
 
@@ -72,38 +97,37 @@
   const settlementStore = useSettlementStore()
 
   const loading = computed(() => settlementStore.loading)
+  const showConfirmDialog = ref(false)
 
   const formatAmount = (amount: number): string => {
     return settlementStore.formatAmount(amount)
   }
 
-  const handleConfirmSettlement = async () => {
+  const handleConfirmSettlement = () => {
     if (!props.settlementResult) {
       showToast('结算结果不存在')
       return
     }
+    showConfirmDialog.value = true
+  }
 
+  const confirmSettlement = async () => {
     try {
-      await showConfirmDialog({
-        title: '确认结算',
-        message: '确认执行此订单的结算操作吗？结算后将无法修改。',
-        confirmButtonText: '确认',
-        cancelButtonText: '取消'
-      })
-
-      await settlementStore.confirmOrderSettlement(props.orderId, props.settlementResult)
-
+      showConfirmDialog.value = false
+      await settlementStore.confirmOrderSettlement(props.orderId, props.settlementResult!)
       showToast('结算确认成功')
-      emit('settlement-confirmed', props.settlementResult)
+      emit('settlement-confirmed', props.settlementResult!)
     } catch (error) {
-      if (error !== 'cancel') {
-        showToast('结算确认失败')
-      }
+      console.error('结算确认失败:', error)
+      showToast('结算确认失败')
     }
   }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+  @use '@/styles/dialog-mixin.scss' as *;
   .order-settlement {
     padding: 16px;
   }
@@ -148,5 +172,26 @@
   :deep(.van-cell__value) {
     font-weight: 600;
     color: #1989fa;
+  }
+
+  // 统一对话框样式
+  .standard-confirm-dialog {
+    @include standard-dialog;
+  }
+
+  .dialog-content {
+    @include dialog-content;
+  }
+
+  .dialog-icon {
+    @include dialog-icon(#ff6b6b);
+  }
+
+  .dialog-title {
+    @include dialog-title;
+  }
+
+  .dialog-message {
+    @include dialog-message;
   }
 </style>

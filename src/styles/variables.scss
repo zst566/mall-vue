@@ -249,6 +249,14 @@ $tabbar-height: 60px;
   --primary-dark: #{$primary-dark};
   --theme-bg-gradient: #{$glass-bg-gradient};
 
+  // 主题文本颜色变量（确保与背景有足够对比度）
+  --theme-text-primary: #{$dark}; // 主要文本，深色，确保在浅色背景上可见
+  --theme-text-secondary: #{$text-color-secondary}; // 次要文本
+  --theme-text-tertiary: #{$text-color-tertiary}; // 辅助文本
+  --theme-text-on-dark: #{$white}; // 在深色/彩色背景上的文本（白色）
+  --theme-text-on-glass: #{$dark}; // 在玻璃态背景上的文本（深色，确保对比度）
+  --theme-text-on-light: #{$dark}; // 在浅色背景上的文本（深色）
+
   // Vant主题变量
   --van-primary-color: #{$primary};
   --van-success-color: #{$success};

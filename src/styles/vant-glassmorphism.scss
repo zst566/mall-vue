@@ -180,6 +180,32 @@
   min-width: 88px;
   max-width: 70%;
   
+  // 确保 Toast 位置正确（默认中间）
+  position: fixed !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 9999 !important;
+  
+  // 位置变体：顶部
+  &--top {
+    top: 20% !important;
+    transform: translate(-50%, 0) !important;
+  }
+  
+  // 位置变体：底部
+  &--bottom {
+    top: auto !important;
+    bottom: 20% !important;
+    transform: translate(-50%, 0) !important;
+  }
+  
+  // 位置变体：中间（默认）
+  &--middle {
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+  }
+  
   // Toast 文本样式
   .van-toast__text {
     color: $text-color-primary !important;
@@ -200,11 +226,97 @@
   
   // 失败类型
   &--fail {
-    background: rgba(244, 67, 54, 0.2) !important;
-    border: 1px solid rgba(244, 67, 54, 0.4) !important;
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.28) 0%, rgba(211, 47, 47, 0.32) 100%) !important;
+    border: 1.5px solid rgba(244, 67, 54, 0.55) !important;
+    box-shadow: 0 8px 32px rgba(244, 67, 54, 0.35), 
+                0 4px 16px rgba(244, 67, 54, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+    padding: $spacing-5 $spacing-6 !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    min-width: 120px !important;
     
     .van-toast__icon {
-      color: #f44336 !important;
+      color: #ff5252 !important;
+      font-size: 26px !important;
+      margin-bottom: $spacing-2 !important;
+      filter: drop-shadow(0 2px 6px rgba(244, 67, 54, 0.5)) !important;
+      animation: iconPulse 0.6s ease-in-out !important;
+    }
+    
+    .van-toast__text {
+      color: #ffffff !important;
+      font-size: 15px !important;
+      font-weight: $font-weight-semibold !important;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+      letter-spacing: 0.3px !important;
+      line-height: 1.4 !important;
+    }
+    
+    // 添加轻微的震动动画效果（中间位置）
+    &.van-toast--middle {
+      animation: toastShakeMiddle 0.4s ease !important;
+    }
+    
+    // 顶部位置动画
+    &.van-toast--top {
+      animation: toastShakeTop 0.4s ease !important;
+    }
+    
+    // 底部位置动画
+    &.van-toast--bottom {
+      animation: toastShakeBottom 0.4s ease !important;
+    }
+  }
+  
+  // Toast 震动动画 - 中间位置
+  @keyframes toastShakeMiddle {
+    0%, 100% {
+      transform: translate(-50%, -50%) scale(1);
+    }
+    10%, 30%, 50%, 70%, 90% {
+      transform: translate(-50%, -50%) scale(1.02) translateX(-2px);
+    }
+    20%, 40%, 60%, 80% {
+      transform: translate(-50%, -50%) scale(1.02) translateX(2px);
+    }
+  }
+  
+  // Toast 震动动画 - 顶部位置
+  @keyframes toastShakeTop {
+    0%, 100% {
+      transform: translate(-50%, 0) scale(1);
+    }
+    10%, 30%, 50%, 70%, 90% {
+      transform: translate(-50%, 0) scale(1.02) translateX(-2px);
+    }
+    20%, 40%, 60%, 80% {
+      transform: translate(-50%, 0) scale(1.02) translateX(2px);
+    }
+  }
+  
+  // Toast 震动动画 - 底部位置
+  @keyframes toastShakeBottom {
+    0%, 100% {
+      transform: translate(-50%, 0) scale(1);
+    }
+    10%, 30%, 50%, 70%, 90% {
+      transform: translate(-50%, 0) scale(1.02) translateX(-2px);
+    }
+    20%, 40%, 60%, 80% {
+      transform: translate(-50%, 0) scale(1.02) translateX(2px);
+    }
+  }
+  
+  // 图标脉冲动画
+  @keyframes iconPulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 0.9;
     }
   }
   

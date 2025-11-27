@@ -82,6 +82,19 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
+    path: '/customer/merchant-binding',
+    name: 'MerchantBinding',
+    component: () => import('@/views/customer/MerchantBinding.vue'),
+    meta: {
+      title: '商户操作员申请',
+      permission: 'customer' as Permission,
+      requiresAuth: true,
+      hideHeader: true,
+      hideFooter: false,
+      hideVersionSwitcher: false
+    }
+  },
+  {
     path: '/orders',
     name: 'Orders',
     component: () => import('@/views/customer/Orders.vue'),
@@ -228,6 +241,20 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
+    path: '/merchant/verifications',
+    name: 'MerchantVerifications',
+    component: () => import('@/views/merchant/Verifications.vue'),
+    meta: {
+      title: '核销记录',
+      permission: 'merchant' as Permission,
+      requiresAuth: true,
+      hideHeader: false,
+      hideFooter: false,
+      hideVersionSwitcher: false,
+      requiresMerchantAccess: true
+    }
+  },
+  {
     path: '/merchant/orders',
     name: 'MerchantOrders',
     component: () => import('@/views/merchant/Orders.vue'),
@@ -247,6 +274,20 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/merchant/OrderDetail.vue'),
     meta: {
       title: '订单详情',
+      permission: 'merchant' as Permission,
+      requiresAuth: true,
+      hideHeader: false,
+      hideFooter: false,
+      hideVersionSwitcher: false,
+      requiresMerchantAccess: true
+    }
+  },
+  {
+    path: '/merchant/statistics',
+    name: 'MerchantStatistics',
+    component: () => import('@/views/merchant/Statistics.vue'),
+    meta: {
+      title: '统计报表',
       permission: 'merchant' as Permission,
       requiresAuth: true,
       hideHeader: false,

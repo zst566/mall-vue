@@ -238,13 +238,37 @@
         </div>
       </div>
     </van-popup>
+
+    <!-- 确认对话框：确认购买 -->
+    <van-dialog
+      v-model:show="showPurchaseDialog"
+      title=""
+      :show-cancel-button="true"
+      :confirm-button-text="'确认购买'"
+      :cancel-button-text="'再想想'"
+      @confirm="confirmPurchase"
+      @cancel="showPurchaseDialog = false"
+      :close-on-click-overlay="false"
+      class="standard-confirm-dialog"
+      :width="320"
+    >
+      <div class="dialog-content">
+        <div class="dialog-icon">
+          <van-icon name="success" size="48" />
+        </div>
+        <h3 class="dialog-title">确认购买</h3>
+        <p class="dialog-message">
+          确认购买 {{ purchaseSpecName }} 规格的商品吗？
+        </p>
+      </div>
+    </van-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
   import { ref, reactive, computed, onMounted } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
-  import { showToast, showConfirmDialog, showLoadingToast, closeToast } from 'vant'
+  import { showToast, showLoadingToast, closeToast } from 'vant'
   import PlaceholderImage from '@/components/common/PlaceholderImage.vue'
   import { productService } from '@/services/products'
   import type { Product } from '@/types'
@@ -288,6 +312,10 @@
 
   // 产品图片列表（支持字符串数组和对象数组）
   const productImages = ref<Array<string | { url: string; position?: number; id?: string; isMain?: boolean }>>([])
+
+  // 购买对话框相关
+  const showPurchaseDialog = ref(false)
+  const purchaseSpecName = ref('')
 
   // 主图列表（用于顶部banner，只显示标记为主图的图片）
   const mainImages = computed(() => {
@@ -538,18 +566,17 @@
     }
 
     const specName = selectedSpec.value ? selectedSpec.value.name : '默认规格'
-    showConfirmDialog({
-      title: '确认购买',
-      message: `确认购买 ${specName} 规格的商品吗？`,
-      confirmButtonText: '确认购买',
-      cancelButtonText: '再想想'
-    }).then(() => {
-      showToast('正在跳转到支付页面...')
-      setTimeout(() => {
-        // 直接跳转到支付页面，无需购物车
-        router.push({ name: 'Payment', params: { productId: productId.toString() } })
-      }, 1000)
-    })
+    purchaseSpecName.value = specName
+    showPurchaseDialog.value = true
+  }
+
+  const confirmPurchase = () => {
+    showPurchaseDialog.value = false
+    showToast('正在跳转到支付页面...')
+    setTimeout(() => {
+      // 直接跳转到支付页面，无需购物车
+      router.push({ name: 'Payment', params: { productId: productId.toString() } })
+    }, 1000)
   }
 
   // 初始化
@@ -561,6 +588,7 @@
 <style lang="scss" scoped>
   @use '@/styles/variables.scss' as *;
   @use '@/styles/mixins.scss' as *;
+  @use '@/styles/dialog-mixin.scss' as *;
 
   .product-detail-page {
     min-height: 100vh;

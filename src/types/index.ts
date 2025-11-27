@@ -171,6 +171,7 @@ export interface MerchantOrder {
   paymentMethod: 'wechat' | 'alipay' | 'cash'
   paymentStatus: 'unpaid' | 'paid' | 'refunded'
   totalAmount: number
+  finalAmount?: number // 实付金额
   createdAt: string
   updatedAt: string
   paidAt?: string

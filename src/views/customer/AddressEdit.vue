@@ -112,13 +112,38 @@
         </div>
       </van-form>
     </div>
+
+    <!-- 确认对话框：删除地址 -->
+    <van-dialog
+      v-model:show="showDeleteDialog"
+      title=""
+      :show-cancel-button="true"
+      :confirm-button-text="'确定删除'"
+      :cancel-button-text="'取消'"
+      @confirm="confirmDelete"
+      @cancel="showDeleteDialog = false"
+      :close-on-click-overlay="false"
+      class="standard-confirm-dialog"
+      :width="320"
+    >
+      <div class="dialog-content">
+        <div class="dialog-icon">
+          <van-icon name="warning-o" size="48" />
+        </div>
+        <h3 class="dialog-title">确认删除</h3>
+        <p class="dialog-message">
+          确定要删除这个地址吗？<br />
+          删除后无法恢复。
+        </p>
+      </div>
+    </van-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { showToast, showConfirmDialog } from 'vant'
+import { showToast } from 'vant'
 import AppHeader from '@/components/common/AppHeader.vue'
 import { useAddressStore } from '@/stores/address'
 
@@ -170,6 +195,7 @@ const addressStore = useAddressStore()
 const pageTitle = ref('编辑地址')
 const isSubmitting = ref(false)
 const isDeleting = ref(false)
+const showDeleteDialog = ref(false)
 const showProvincePicker = ref(false)
 const showCityPicker = ref(false)
 const showDistrictPicker = ref(false)
@@ -301,26 +327,22 @@ const handleSubmit = async () => {
 }
 
 // 删除地址
-const handleDelete = async () => {
+const handleDelete = () => {
+  showDeleteDialog.value = true
+}
+
+const confirmDelete = async () => {
   try {
-    const result = await showConfirmDialog({
-      title: '确认删除',
-      message: '确定要删除这个地址吗？删除后无法恢复。',
-      confirmButtonText: '确定删除',
-      cancelButtonText: '取消'
-    })
+    showDeleteDialog.value = false
+    isDeleting.value = true
 
-    if (result) {
-      isDeleting.value = true
+    const response = await addressStore.deleteAddress(addressId)
 
-      const response = await addressStore.deleteAddress(addressId)
-
-      if (response.success) {
-        showToast('地址删除成功')
-        router.go(-1) // 返回上一页
-      } else {
-        showToast(response.message || '删除地址失败')
-      }
+    if (response.success) {
+      showToast('地址删除成功')
+      router.go(-1) // 返回上一页
+    } else {
+      showToast(response.message || '删除地址失败')
     }
   } catch (error) {
     console.error('删除地址失败:', error)
@@ -339,6 +361,7 @@ onMounted(() => {
 <style lang="scss" scoped>
   @use '@/styles/variables.scss' as *;
   @use '@/styles/mixins.scss' as *;
+  @use '@/styles/dialog-mixin.scss' as *;
 
 .address-edit-page {
   min-height: 100vh;
@@ -391,6 +414,27 @@ onMounted(() => {
   .submit-button,
   .delete-button {
     margin-top: 12px;
+  }
+
+  // 统一对话框样式
+  .standard-confirm-dialog {
+    @include standard-dialog;
+  }
+
+  .dialog-content {
+    @include dialog-content;
+  }
+
+  .dialog-icon {
+    @include dialog-icon(#ff6b6b);
+  }
+
+  .dialog-title {
+    @include dialog-title;
+  }
+
+  .dialog-message {
+    @include dialog-message;
   }
 }
 </style>

@@ -2,6 +2,7 @@ import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse 
 import { useAuthStore } from '@/stores/auth'
 import type { ApiResponse, ApiError } from '@/types'
 import { webViewBridge } from '@/utils/webview-bridge'
+import { showToast } from 'vant'
 
 // 基础配置
 // 使用相对路径，由 Nginx 网关处理路由转发
@@ -85,6 +86,34 @@ export const createApiInstance = (): AxiosInstance => {
         headers: error.response.headers
       })
 
+      // 商户相关API的403错误处理（权限被取消）
+      if (status === 403 && config.url?.includes('/merchant')) {
+        console.log('🔐 商户API返回 403 权限不足')
+        const authStore = useAuthStore()
+        
+        // 检查是否是"不是本商户的订单"错误（优先处理）
+        if (data?.error?.includes('不是本商户的订单') || data?.message?.includes('不是本商户的订单')) {
+          // 创建一个新的错误对象，保留 response 信息，确保重试逻辑能识别
+          const customError: any = new Error('不是本商户的订单！')
+          customError.response = error.response
+          customError.config = error.config
+          throw customError
+        }
+        
+        // 检查是否是商户权限问题
+        if (data?.message?.includes('商户') || data?.message?.includes('绑定') || data?.message?.includes('权限')) {
+          showToast('您的商户权限已被取消，请重新申请')
+          // 跳转到申请页面
+          if (typeof window !== 'undefined') {
+            window.location.href = '/customer/merchant-binding'
+          }
+          const customError: any = new Error('商户权限已被取消')
+          customError.response = error.response
+          customError.config = error.config
+          throw customError
+        }
+      }
+
       // 认证失败处理
       if (status === 401) {
         console.log('🔐 API 返回 401 未授权')
@@ -95,7 +124,8 @@ export const createApiInstance = (): AxiosInstance => {
           '/auth/user-info',       // 获取用户信息
           '/auth/stats',           // 用户统计数据
           '/user/profile',         // 用户资料
-          '/user/stats'            // 用户统计
+          '/user/stats',           // 用户统计
+          '/merchant-operators/my-status'  // 商户绑定状态查询
         ]
         
         const isTolerantEndpoint = tolerantEndpoints.some(endpoint => 
@@ -189,7 +219,29 @@ export const createApiInstance = (): AxiosInstance => {
 const retryRequest = async (fn: () => Promise<AxiosResponse>, retries: number = 0): Promise<AxiosResponse> => {
   try {
     return await fn()
-  } catch (error) {
+  } catch (error: any) {
+    // 不重试以下错误（业务错误，重试无意义）：
+    // 1. 403 错误（权限错误，包括"不是本商户的订单"）
+    // 2. 401 错误（认证错误）
+    // 3. 400 错误（参数错误）
+    // 4. 404 错误（资源不存在）
+    if (error.response) {
+      const status = error.response.status
+      if ([400, 401, 403, 404].includes(status)) {
+        console.log(`🚫 不重试 ${status} 错误:`, error.message || error.response.data?.error || error.response.data?.message)
+        throw error
+      }
+    }
+    
+    // 如果错误消息明确表示是业务错误，也不重试
+    const errorMessage = error.message || ''
+    if (errorMessage.includes('不是本商户的订单') || 
+        errorMessage.includes('商户权限已被取消') ||
+        errorMessage.includes('权限不足')) {
+      console.log(`🚫 不重试业务错误:`, errorMessage)
+      throw error
+    }
+    
     if (retries >= MAX_RETRIES) {
       throw error
     }
@@ -302,9 +354,17 @@ export class ApiErrorHandler {
       const status = error.response.status
       const data = error.response.data
 
+      // 优先使用 API 返回的错误信息（error 或 message 字段）
+      if (data?.error) {
+        return data.error
+      }
+      if (data?.message) {
+        return data.message
+      }
+
       switch (status) {
         case 400:
-          return data.message || '请求参数错误'
+          return '请求参数错误'
         case 401:
           return '登录已过期，请重新登录'
         case 403:

@@ -8,7 +8,8 @@
     @confirm="handleSubmit"
     @cancel="handleCancel"
     :close-on-click-overlay="false"
-    class="refund-request-dialog"
+    class="refund-request-dialog standard-confirm-dialog"
+    :width="320"
   >
     <div class="refund-form">
       <!-- 退款原因 -->
@@ -346,7 +347,13 @@ watch(visible, (val) => {
 </script>
 
 <style lang="scss" scoped>
+  @use '@/styles/variables.scss' as *;
+  @use '@/styles/mixins.scss' as *;
+  @use '@/styles/dialog-mixin.scss' as *;
+
 .refund-request-dialog {
+  @include standard-dialog;
+
   :deep(.van-dialog__content) {
     padding: 20px;
   }

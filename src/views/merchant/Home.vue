@@ -3,7 +3,6 @@
     <!-- 顶部导航 -->
     <van-nav-bar
       title="商户中心"
-      left-text="返回"
       left-arrow
       @click-left="handleBack"
       fixed
@@ -27,13 +26,25 @@
       <div class="merchant-details">
         <h2 class="merchant-name">{{ merchantInfo.name || '商户名称' }}</h2>
         <p class="merchant-id">商户ID: {{ merchantInfo.id }}</p>
+        
+        <!-- 商铺切换 -->
+        <div v-if="shops.length > 1" class="shop-selector">
+          <van-dropdown-menu>
+            <van-dropdown-item v-model="selectedShopId" :options="shopOptions" @change="handleShopChange" />
+          </van-dropdown-menu>
+        </div>
+        <div v-else-if="shops.length === 1" class="current-shop">
+          <van-icon name="shop-o" size="14" />
+          <span>{{ shops[0].shopCode }} - {{ shops[0].tenantName }}</span>
+        </div>
+        
         <div class="merchant-stats">
           <span class="stat-item">
-            <strong>{{ merchantStats.total || 0 }}</strong>
-            <span class="stat-label">今日订单</span>
+            <strong>{{ todayStats.verificationCount || 0 }}</strong>
+            <span class="stat-label">今日核销</span>
           </span>
           <span class="stat-item">
-            <strong>{{ merchantStats.totalAmount || 0 }}</strong>
+            <strong>¥{{ formatAmount(todayStats.verificationAmount || 0) }}</strong>
             <span class="stat-label">今日营收</span>
           </span>
         </div>
@@ -95,8 +106,8 @@
             <van-icon name="orders" size="24" color="#3A82F6" />
           </div>
           <div class="stat-content">
-            <div class="stat-number">{{ merchantStats.todayOrders || 0 }}</div>
-            <div class="stat-label">订单总数</div>
+            <div class="stat-number">{{ todayStats.verificationCount || 0 }}</div>
+            <div class="stat-label">核销笔数</div>
           </div>
         </div>
 
@@ -105,28 +116,28 @@
             <van-icon name="balance-o" size="24" color="#10B981" />
           </div>
           <div class="stat-content">
-            <div class="stat-number">¥{{ formatAmount(merchantStats.todayAmount || 0) }}</div>
-            <div class="stat-label">营业额</div>
+            <div class="stat-number">¥{{ formatAmount(todayStats.verificationAmount || 0) }}</div>
+            <div class="stat-label">核销金额</div>
           </div>
         </div>
 
         <div class="stat-card">
-          <div class="stat-icon success">
-            <van-icon name="success" size="24" color="#10B981" />
+          <div class="stat-icon refund">
+            <van-icon name="refund-o" size="24" color="#F59E0B" />
           </div>
           <div class="stat-content">
-            <div class="stat-number">{{ merchantStats.successRate || 0 }}%</div>
-            <div class="stat-label">完成率</div>
+            <div class="stat-number">{{ todayStats.refundCount || 0 }}</div>
+            <div class="stat-label">退款笔数</div>
           </div>
         </div>
 
         <div class="stat-card">
           <div class="stat-icon avg">
-            <van-icon name="clock" size="24" color="#F59E0B" />
+            <van-icon name="gold-coin-o" size="24" color="#10B981" />
           </div>
           <div class="stat-content">
-            <div class="stat-number">{{ merchantStats.avgProcessTime || 0 }}分钟</div>
-            <div class="stat-label">平均处理时间</div>
+            <div class="stat-number">¥{{ formatAmount(todayStats.averagePrice || 0) }}</div>
+            <div class="stat-label">客单价</div>
           </div>
         </div>
       </div>
@@ -140,6 +151,9 @@
       </div>
 
       <div class="order-list">
+        <div v-if="recentOrders.length === 0" class="empty-orders">
+          <van-empty description="暂无近期订单" />
+        </div>
         <div
           v-for="order in recentOrders"
           :key="order.id"
@@ -149,31 +163,67 @@
           <div class="order-info">
             <div class="order-header">
               <span class="order-no">订单号: {{ order.orderNo }}</span>
-              <span :class="['order-status', order.status]">{{ formatStatus(order.status) }}</span>
+              <span :class="['order-status', normalizeStatusClass(order.status)]">{{ formatStatus(order.status) }}</span>
             </div>
             <div class="order-time">{{ formatTime(order.createdAt) }}</div>
           </div>
-          <div class="order-amount">¥{{ formatAmount(order.totalAmount) }}</div>
+          <div class="order-amount">¥{{ formatAmount(order.finalAmount || order.totalAmount || 0) }}</div>
         </div>
       </div>
     </div>
 
-    <!-- 快速操作按钮 -->
-    <div class="quick-actions-fab">
-      <van-button type="primary" size="large" round icon="scan" @click="goToScan">
-        扫码核销
+    <!-- 退出商户管理按钮 -->
+    <div class="exit-merchant-section">
+      <van-button
+        type="danger"
+        size="large"
+        block
+        round
+        @click="handleExitMerchant"
+        class="exit-merchant-btn"
+      >
+        退出商户管理
       </van-button>
     </div>
+
+    <!-- 退出商户管理确认对话框 -->
+    <van-dialog
+      v-model:show="showExitDialog"
+      title=""
+      :show-cancel-button="true"
+      :confirm-button-text="'确定退出'"
+      :cancel-button-text="'取消'"
+      @confirm="confirmExitMerchant"
+      @cancel="showExitDialog = false"
+      :close-on-click-overlay="false"
+      class="exit-merchant-dialog"
+      :width="320"
+    >
+      <div class="exit-dialog-content">
+        <div class="exit-dialog-icon">
+          <van-icon name="warning-o" size="48" />
+        </div>
+        <h3 class="exit-dialog-title">退出商户管理</h3>
+        <p class="exit-dialog-message">
+          确定要退出商户管理模式吗？<br />
+          退出后将返回客户端应用。
+        </p>
+      </div>
+    </van-dialog>
+
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue'
+  import { ref, computed, onMounted, nextTick } from 'vue'
+  import { useRoute } from 'vue-router'
   import { showToast, showLoadingToast } from 'vant'
   import { merchantService } from '@/services/merchant'
+  import { merchantOperatorService, type ShopInfo } from '@/services/merchantOperator'
   import { useAuthStore } from '@/stores/auth'
+  import { useAppStore } from '@/stores/app'
   import router from '@/router'
-  import type { MerchantOrderStats } from '@/types'
+  import type { MerchantOrder } from '@/types'
 
   // 商户信息
   const merchantInfo = ref({
@@ -184,71 +234,145 @@
     address: ''
   })
 
-  // 商户统计
-  const merchantStats = ref<MerchantOrderStats>({
-    todayOrders: 0,
-    todayAmount: 0,
-    successRate: 0,
-    avgProcessTime: 0,
-    total: 0,
-    pending: 0,
-    confirmed: 0,
-    shipped: 0,
-    delivered: 0,
-    cancelled: 0,
-    refunded: 0,
-    totalAmount: 0
+  // 今日统计
+  const todayStats = ref({
+    verificationCount: 0,
+    verificationAmount: 0,
+    refundCount: 0,
+    refundAmount: 0,
+    averagePrice: 0
   })
 
   // 订单计数
   const newOrdersCount = ref(0)
   const totalOrdersCount = ref(0)
 
+  // 退出商户管理对话框
+  const showExitDialog = ref(false)
+
   // 近期订单
-  const recentOrders = ref([
-    {
-      id: '1',
-      orderNo: '2024010100001',
-      status: 'pending_verification',
-      totalAmount: 99.9,
-      createdAt: '2024-01-01 10:30:00'
-    },
-    {
-      id: '2',
-      orderNo: '2024010100002',
-      status: 'verified',
-      totalAmount: 158.8,
-      createdAt: '2024-01-01 09:15:00'
-    }
-  ])
+  const recentOrders = ref<any[]>([])
 
   // 认证store
   const authStore = useAuthStore()
+  const route = useRoute()
 
-  // 加载商户信息
-  const loadMerchantInfo = async () => {
-    showLoadingToast({
-      message: '加载中...',
-      forbidClick: true,
-      duration: 1000
-    })
+  // 底部导航（已移除，使用 AppFooter 的商户模式导航）
 
+  // 商铺相关
+  const shops = ref<ShopInfo[]>([])
+  const selectedShopId = ref<string>('')
+
+  // 商铺选项（用于下拉菜单）
+  const shopOptions = computed(() => {
+    return shops.value.map(shop => ({
+      text: `${shop.shopCode} - ${shop.tenantName}`,
+      value: shop.id
+    }))
+  })
+
+  // 当前选中的商铺
+  const currentShop = computed(() => {
+    return shops.value.find(shop => shop.id === selectedShopId.value) || shops.value[0]
+  })
+
+  // 加载商户绑定状态和商铺列表
+  const loadMerchantBinding = async () => {
     try {
-      const response = await merchantService.getMerchantProfile()
-      merchantInfo.value = response
+      const status = await merchantOperatorService.getMyStatus()
+      if (status.hasBinding && status.merchantUser) {
+        merchantInfo.value = {
+          id: status.merchantUser.merchantId,
+          name: status.merchantUser.merchantName,
+          avatar: '',
+          phone: '',
+          address: ''
+        }
+
+        // 加载商铺列表
+        const shopList = await merchantOperatorService.getShops()
+        shops.value = shopList
+
+        // 设置默认选中的商铺
+        if (shopList.length > 0) {
+          const savedShopId = localStorage.getItem('merchant_selected_shop_id')
+          if (savedShopId && shopList.find(s => s.id === savedShopId)) {
+            selectedShopId.value = savedShopId
+          } else {
+            selectedShopId.value = shopList[0].id
+            localStorage.setItem('merchant_selected_shop_id', shopList[0].id)
+          }
+        }
+      } else {
+        // 未绑定，跳转到申请页面
+        showToast('您尚未绑定商户，请先申请')
+        router.push('/customer/merchant-binding')
+      }
     } catch (error) {
+      console.error('加载商户绑定状态失败:', error)
       showToast('加载商户信息失败')
-      console.error('Failed to load merchant info:', error)
     }
   }
 
-  // 加载商户统计
-  const loadMerchantStats = async () => {
+  // 加载商户信息（兼容旧接口）
+  const loadMerchantInfo = async () => {
     try {
-      const response = await merchantService.getMerchantStatistics()
-      merchantStats.value = response
+      // 先尝试加载绑定状态
+      await loadMerchantBinding()
+      
+      // 如果旧接口存在，也可以调用
+      try {
+        const response = await merchantService.getMerchantProfile()
+        if (response && !merchantInfo.value.name) {
+          merchantInfo.value = { ...merchantInfo.value, ...response }
+        }
+      } catch (error) {
+        // 忽略旧接口错误
+      }
     } catch (error) {
-      console.error('Failed to load merchant stats:', error)
+      console.error('加载商户信息失败:', error)
+    }
+  }
+
+  // 加载近期订单
+  const loadRecentOrders = async () => {
+    try {
+      const response = await merchantService.getMerchantOrders({
+        limit: 10, // 只获取最近10条
+        page: 1
+      })
+      recentOrders.value = response.orders || []
+    } catch (error) {
+      console.error('加载近期订单失败:', error)
+      recentOrders.value = []
+    }
+  }
+
+  // 商铺切换
+  const handleShopChange = (shopId: string) => {
+    selectedShopId.value = shopId
+    localStorage.setItem('merchant_selected_shop_id', shopId)
+    showToast(`已切换到：${currentShop.value?.shopCode || ''}`)
+    // 重新加载统计数据
+    loadTodayStats()
+    loadOrderCounts()
+    loadRecentOrders()
+  }
+
+  // 加载今日统计
+  const loadTodayStats = async () => {
+    try {
+      const stats = await merchantOperatorService.getTodayStatistics()
+      todayStats.value = {
+        verificationCount: stats.verificationCount || 0,
+        verificationAmount: stats.verificationAmount || 0,
+        refundCount: stats.refundCount || 0,
+        refundAmount: stats.refundAmount || 0,
+        averagePrice: stats.averagePrice || 0
+      }
+    } catch (error) {
+      console.error('加载今日统计失败:', error)
+      showToast({ type: 'fail', message: '加载今日统计失败' })
     }
   }
 
@@ -274,17 +398,36 @@
   }
 
   // 格式化金额
-  const formatAmount = (amount: number): string => {
-    return amount.toFixed(2)
+  const formatAmount = (amount: number | string | null | undefined): string => {
+    if (amount == null) return '0.00'
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount
+    if (isNaN(numAmount)) return '0.00'
+    return numAmount.toFixed(2)
   }
 
-  // 格式化状态
+  // 规范化状态类名（用于CSS类名）
+  const normalizeStatusClass = (status: string): string => {
+    // 将大写状态转换为小写，并处理下划线
+    return status.toLowerCase().replace(/_/g, '_')
+  }
+
+  // 格式化状态显示文本
   const formatStatus = (status: string): string => {
+    // 支持后端返回的大写状态和前端小写状态
     const statusMap: Record<string, string> = {
-      pending_verification: '待核销',
-      verified: '已核销',
-      cancelled: '已取消',
-      refunded: '已退款'
+      'PENDING': '待支付',
+      'PAID': '已支付',
+      'VERIFIED': '已核销',
+      'CANCELLED': '已取消',
+      'REFUNDED': '已退款',
+      'REFUND_REQUESTED': '退款中',
+      'pending': '待支付',
+      'paid': '已支付',
+      'verified': '已核销',
+      'cancelled': '已取消',
+      'refunded': '已退款',
+      'refund_requested': '退款中',
+      'pending_verification': '待核销'
     }
     return statusMap[status] || status
   }
@@ -325,6 +468,10 @@
     router.push('/merchant/statistics')
   }
 
+  const goToVerifications = () => {
+    router.push('/merchant/verifications')
+  }
+
   const goToSettings = () => {
     router.push('/merchant/settings')
   }
@@ -349,11 +496,58 @@
     router.push(`/merchant/orders/${orderId}`)
   }
 
+  // 退出商户管理
+  const handleExitMerchant = () => {
+    showExitDialog.value = true
+  }
+
+  // 确认退出商户管理
+  const confirmExitMerchant = async () => {
+    try {
+      // 切换到客户端模式
+      const appStore = useAppStore()
+      appStore.switchToCustomer()
+
+      // 等待状态更新完成
+      await nextTick()
+
+      // 显示提示信息
+      showToast({
+        message: '已退出商户管理',
+        type: 'success',
+        duration: 1000
+      })
+
+      // 延迟跳转，确保 Toast 显示完成且状态已更新
+      setTimeout(() => {
+        try {
+          // 使用 push 而不是 replace，避免路由历史问题
+          router.push('/').catch((error) => {
+            console.warn('路由跳转失败，尝试使用 window.location:', error)
+            // 如果路由跳转失败，使用 window.location 作为后备方案
+            window.location.href = '/'
+          })
+        } catch (error) {
+          console.error('路由跳转异常:', error)
+          // 最后的后备方案
+          window.location.href = '/'
+        }
+      }, 500)
+    } catch (error) {
+      console.error('退出商户管理失败:', error)
+      showToast({
+        message: '退出失败，请重试',
+        type: 'fail'
+      })
+    }
+  }
+
   // 生命周期钩子
   onMounted(() => {
     loadMerchantInfo()
-    loadMerchantStats()
+    loadTodayStats()
     loadOrderCounts()
+    loadRecentOrders()
   })
 </script>
 
@@ -362,8 +556,9 @@
   @use '@/styles/mixins.scss' as *;
 
   .merchant-home {
-    padding-bottom: 80px;
-    background: $glass-bg-gradient;
+    padding-top: 46px;
+    padding-bottom: 100px;
+    background: var(--theme-bg-gradient, $glass-bg-gradient);
     background-attachment: fixed;
     background-size: cover;
     min-height: 100vh;
@@ -400,7 +595,29 @@
   .merchant-id {
     font-size: 14px;
     opacity: 0.8;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
+  }
+
+  .shop-selector {
+    margin-bottom: 10px;
+    
+    :deep(.van-dropdown-menu) {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+    }
+  }
+
+  .current-shop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 13px;
+    opacity: 0.9;
+    margin-bottom: 10px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
   }
 
   .merchant-stats {
@@ -431,7 +648,7 @@
     font-size: 16px;
     font-weight: 600;
     margin-bottom: 10px;
-    color: #333;
+    color: var(--theme-text-on-glass, $text-color-primary);
   }
 
   .action-grid {
@@ -449,7 +666,7 @@
     font-size: 16px;
     font-weight: 600;
     margin-bottom: 15px;
-    color: #333;
+    color: var(--theme-text-on-glass, $text-color-primary);
   }
 
   .stats-container {
@@ -473,13 +690,13 @@
   .stat-number {
     font-size: 18px;
     font-weight: bold;
-    color: #333;
+    color: var(--theme-text-on-glass, $text-color-primary);
     margin-bottom: 4px;
   }
 
   .stat-label {
     font-size: 12px;
-    color: #666;
+    color: var(--theme-text-secondary, $text-color-secondary);
   }
 
   .recent-orders {
@@ -498,7 +715,7 @@
   .section-header h3 {
     font-size: 16px;
     font-weight: 600;
-    color: #333;
+    color: var(--theme-text-on-glass, $text-color-primary);
   }
 
   .order-list {
@@ -528,7 +745,7 @@
   .order-no {
     font-size: 14px;
     font-weight: 500;
-    color: #333;
+    color: var(--theme-text-on-glass, $text-color-primary);
   }
 
   .order-status {
@@ -536,37 +753,188 @@
     padding: 2px 8px;
     border-radius: 12px;
     font-weight: 500;
+    text-transform: lowercase;
   }
 
+  .order-status.pending,
+  .order-status.PENDING,
   .order-status.pending_verification {
     background: #fef3c7;
     color: #92400e;
   }
 
-  .order-status.verified {
+  .order-status.paid,
+  .order-status.PAID {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  .order-status.verified,
+  .order-status.VERIFIED {
     background: #d1fae5;
     color: #065f46;
   }
 
-  .order-status.cancelled {
+  .order-status.cancelled,
+  .order-status.CANCELLED {
     background: #fee2e2;
     color: #991b1b;
   }
 
-  .order-status.refunded {
+  .order-status.refunded,
+  .order-status.REFUNDED {
     background: #e0e7ff;
     color: #3730a3;
   }
 
+  .order-status.refund_requested,
+  .order-status.REFUND_REQUESTED {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .empty-orders {
+    padding: 40px 0;
+  }
+
   .order-time {
     font-size: 12px;
-    color: #666;
+    color: var(--theme-text-secondary, $text-color-secondary);
   }
 
   .order-amount {
     font-size: 16px;
     font-weight: bold;
-    color: #333;
+    color: var(--theme-text-on-glass, $text-color-primary);
+  }
+
+  .exit-merchant-section {
+    padding: 20px 16px;
+    margin-bottom: 80px; // 为底部导航栏留出空间
+  }
+
+  .exit-merchant-btn {
+    height: 48px;
+    font-size: 16px;
+    font-weight: 500;
+    background: linear-gradient(135deg, #ff4757 0%, #ee5a6f 100%);
+    border: none;
+    box-shadow: 0 4px 12px rgba(255, 71, 87, 0.3);
+    transition: all 0.3s ease;
+
+    &:active {
+      transform: scale(0.98);
+      box-shadow: 0 2px 8px rgba(255, 71, 87, 0.4);
+    }
+  }
+
+  // 退出商户管理对话框样式
+  .exit-merchant-dialog {
+    :deep(.van-dialog) {
+      @include glassmorphism-card(strong);
+      border-radius: 20px !important;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+      background: rgba(255, 255, 255, 0.95) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
+    }
+
+    :deep(.van-dialog__header) {
+      display: none !important;
+    }
+
+    :deep(.van-dialog__content) {
+      padding: 0 !important;
+    }
+
+    :deep(.van-dialog__footer) {
+      padding: 0 !important;
+      border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 0 !important;
+      background: transparent !important;
+    }
+
+    :deep(.van-dialog__confirm),
+    :deep(.van-dialog__cancel) {
+      height: 56px !important;
+      margin: 0 !important;
+      border: none !important;
+      border-radius: 0 !important;
+      font-size: 16px !important;
+      font-weight: 600 !important;
+      transition: all 0.3s ease !important;
+      line-height: 56px !important;
+    }
+
+    :deep(.van-dialog__confirm) {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%) !important;
+      color: white !important;
+      order: 2;
+      
+      &:active {
+        background: linear-gradient(135deg, #ee5a6f 0%, #dc4a5f 100%) !important;
+        transform: scale(0.98);
+      }
+    }
+
+    :deep(.van-dialog__cancel) {
+      background: rgba(0, 0, 0, 0.03) !important;
+      color: $text-color-primary !important;
+      order: 1;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+      
+      &:active {
+        background: rgba(0, 0, 0, 0.06) !important;
+      }
+    }
+  }
+
+  .exit-dialog-content {
+    padding: 32px 24px 24px;
+    text-align: center;
+    background: transparent;
+  }
+
+  .exit-dialog-icon {
+    margin-bottom: 20px;
+    color: #ff6b6b;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    :deep(.van-icon) {
+      filter: drop-shadow(0 4px 12px rgba(255, 107, 107, 0.4));
+      animation: pulse 2s ease-in-out infinite;
+    }
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+  }
+
+  .exit-dialog-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: $text-color-primary;
+    margin: 0 0 16px 0;
+    line-height: 1.4;
+    letter-spacing: 0.5px;
+  }
+
+  .exit-dialog-message {
+    font-size: 15px;
+    color: $text-color-secondary;
+    line-height: 1.8;
+    margin: 0;
+    padding: 0 8px;
   }
 
   .quick-actions-fab {
@@ -583,6 +951,10 @@
 
     .stats-container {
       grid-template-columns: 1fr 1fr;
+    }
+
+    .exit-merchant-section {
+      padding: 16px;
     }
   }
 </style>

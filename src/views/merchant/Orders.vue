@@ -3,7 +3,6 @@
     <!-- 顶部导航 -->
     <van-nav-bar
       title="订单管理"
-      left-text="返回"
       left-arrow
       @click-left="handleBack"
       fixed
@@ -437,8 +436,8 @@
   @use '@/styles/mixins.scss' as *;
 
   .merchant-orders {
-    padding-top: 120px;
-    background: $glass-bg-gradient;
+    padding-top: 46px;
+    background: var(--theme-bg-gradient, $glass-bg-gradient);
     background-attachment: fixed;
     background-size: cover;
     min-height: 100vh;
@@ -482,13 +481,13 @@
   .stat-number {
     font-size: 16px;
     font-weight: bold;
-    color: #333;
+    color: var(--theme-text-on-glass, $text-color-primary);
     line-height: 1;
   }
 
   .stat-label {
     font-size: 12px;
-    color: #666;
+    color: var(--theme-text-secondary, $text-color-secondary);
     line-height: 1;
   }
 
@@ -513,7 +512,7 @@
   .order-no {
     font-size: 14px;
     font-weight: 500;
-    color: #333;
+    color: var(--theme-text-on-glass, $text-color-primary);
   }
 
   .order-status {
@@ -560,7 +559,7 @@
     display: flex;
     gap: 15px;
     font-size: 13px;
-    color: #666;
+    color: var(--theme-text-secondary, $text-color-secondary);
     margin-bottom: 8px;
   }
 
@@ -574,12 +573,12 @@
     align-items: center;
     padding: 4px 0;
     font-size: 13px;
-    color: #333;
+    color: var(--theme-text-on-glass, $text-color-primary);
   }
 
   .more-items {
     font-size: 12px;
-    color: #999;
+    color: var(--theme-text-tertiary, $text-color-tertiary);
     text-align: center;
     padding: 4px 0;
   }
@@ -600,13 +599,13 @@
 
   .amount-label {
     font-size: 14px;
-    color: #666;
+    color: var(--theme-text-secondary, $text-color-secondary);
   }
 
   .amount-value {
     font-size: 16px;
     font-weight: bold;
-    color: #333;
+    color: var(--theme-text-on-glass, $text-color-primary);
   }
 
   .order-actions {
