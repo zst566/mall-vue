@@ -81,25 +81,105 @@ else
     exit 1
 fi
 
-# 3. 构建 Docker 镜像
-show_progress "构建 Docker 镜像"
+# 查找本地基础镜像
+find_local_nginx_image() {
+    local image_name="nginx"
+    local image_tag="stable-alpine"
+    local target_arch="amd64"
+    
+    # 首先查找完整的镜像名:标签
+    local full_name="${image_name}:${image_tag}"
+    if docker image inspect "$full_name" &> /dev/null; then
+        local arch=$(docker inspect "$full_name" --format '{{.Architecture}}' 2>/dev/null)
+        if [ "$arch" = "$target_arch" ]; then
+            echo "$full_name"
+            return 0
+        fi
+    fi
+    
+    # 查找其他 nginx alpine 版本
+    local images=$(docker images --format "{{.Repository}}:{{.Tag}} {{.ID}}" | grep "^nginx:")
+    while IFS= read -r line; do
+        if [ -n "$line" ]; then
+            local img_name=$(echo "$line" | awk '{print $1}')
+            local img_id=$(echo "$line" | awk '{print $2}')
+            if echo "$img_name" | grep -q "alpine"; then
+                local arch=$(docker inspect "$img_id" --format '{{.Architecture}}' 2>/dev/null)
+                if [ "$arch" = "$target_arch" ]; then
+                    echo "$img_name"
+                    return 0
+                fi
+            fi
+        fi
+    done <<< "$images"
+    
+    return 1
+}
 
-# 检查本地是否有 nginx:stable-alpine 镜像
-if ! docker image inspect nginx:stable-alpine &> /dev/null; then
-    show_progress "拉取 nginx:stable-alpine 基础镜像..."
-    if ! docker pull nginx:stable-alpine; then
-        show_error "拉取基础镜像失败"
+# 检查本地镜像架构
+check_image_architecture() {
+    local image="$1"
+    local target_arch="amd64"
+    
+    if docker image inspect "$image" &> /dev/null; then
+        local arch=$(docker inspect "$image" --format '{{.Architecture}}' 2>/dev/null)
+        if [ "$arch" = "$target_arch" ]; then
+            return 0
+        fi
+    fi
+    return 1
+}
+
+# 3. 构建 Docker 镜像
+show_progress "检查 Docker 镜像"
+
+# 首先检查是否已有合适架构的目标镜像
+if check_image_architecture "${IMAGE_NAME}:${IMAGE_TAG}"; then
+    show_success "发现本地已有 amd64 架构的 ${IMAGE_NAME}:${IMAGE_TAG} 镜像，跳过构建"
+    echo -e "${BLUE}镜像信息:${NC}"
+    docker images ${IMAGE_NAME}:${IMAGE_TAG} --format "  {{.Repository}}:{{.Tag}} - {{.Size}} - {{.CreatedSince}}"
+else
+    show_progress "构建 Docker 镜像"
+    
+    # 查找本地 nginx:stable-alpine 镜像
+    show_progress "查找本地基础镜像"
+    local base_image=$(find_local_nginx_image)
+    
+    if [ -z "$base_image" ]; then
+        show_error "本地未找到 nginx:stable-alpine 镜像，请先拉取基础镜像"
         exit 1
     fi
-else
-    show_progress "使用本地 nginx:stable-alpine 镜像"
-fi
-
-if docker build $BUILD_PLATFORM -t ${IMAGE_NAME}:${IMAGE_TAG} .; then
-    show_success "Docker 镜像构建成功"
-else
-    show_error "Docker 构建失败"
-    exit 1
+    
+    show_success "找到本地 amd64 基础镜像: $base_image"
+    
+    # 显示基础镜像信息
+    echo -e "${BLUE}基础镜像信息:${NC}"
+    docker images --format "  {{.Repository}}:{{.Tag}} - {{.Size}} - {{.CreatedSince}}" | grep -E "(nginx.*alpine|$base_image)"
+    
+    # 临时修改 Dockerfile 使用本地镜像
+    local dockerfile_backup="Dockerfile.backup.$(date +%s)"
+    cp Dockerfile "$dockerfile_backup"
+    
+    # 替换 Dockerfile 中的基础镜像为本地镜像
+    sed -i.tmp "s|FROM nginx:stable-alpine|FROM $base_image|g" Dockerfile
+    rm -f Dockerfile.tmp
+    
+    # 禁用 BuildKit 以避免在线验证，使用传统构建方式
+    export DOCKER_BUILDKIT=0
+    
+    show_progress "使用本地镜像构建 Docker 镜像"
+    if docker build $BUILD_PLATFORM --no-cache -t ${IMAGE_NAME}:${IMAGE_TAG} .; then
+        show_success "Docker 镜像构建成功"
+    else
+        show_error "Docker 构建失败"
+        # 恢复原始 Dockerfile
+        mv "$dockerfile_backup" Dockerfile
+        exit 1
+    fi
+    
+    # 恢复原始 Dockerfile
+    mv "$dockerfile_backup" Dockerfile
+    show_success "已恢复原始 Dockerfile"
 fi
 
 # 4. 保存镜像为 tar 文件

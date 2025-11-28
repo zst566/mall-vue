@@ -15,39 +15,64 @@
 
     <!-- 商户信息卡片 -->
     <div class="merchant-info-card">
-      <div class="merchant-avatar">
-        <van-image
-          round
-          :src="merchantInfo.avatar || '/images/merchant-avatar.png'"
-          width="80"
-          height="80"
-        />
+      <div class="merchant-card-content">
+        <!-- 左侧：商户Logo（占50%） -->
+        <div class="merchant-logo-section">
+          <div class="merchant-logo-wrapper">
+            <img 
+              v-if="merchantLogo" 
+              :src="merchantLogo" 
+              alt="商户Logo" 
+              class="merchant-logo-img"
+              @error="handleLogoError"
+            />
+            <img 
+              v-else 
+              src="/wepark-logo.svg" 
+              alt="WePark Logo" 
+              class="default-logo-img"
+            />
+          </div>
+        </div>
+        
+        <!-- 右侧：商户信息（占50%） -->
+        <div class="merchant-info-section">
+          <!-- 上：商户简称 -->
+          <div class="info-row info-row-top">
+            <h2 class="merchant-name">{{ merchantInfo.name || '商户名称' }}</h2>
+          </div>
+          
+          <!-- 中：商户编号 -->
+          <div class="info-row info-row-middle">
+            <span class="info-label">商户编号：</span>
+            <span class="info-value">{{ merchantInfo.merchantCode || merchantInfo.id || '--' }}</span>
+          </div>
+          
+          <!-- 下：默认店铺编号 -->
+          <div class="info-row info-row-bottom">
+            <span class="info-label">店铺编号：</span>
+            <span class="info-value">{{ currentShop?.shopCode || shops[0]?.shopCode || '--' }}</span>
+          </div>
+        </div>
       </div>
-      <div class="merchant-details">
-        <h2 class="merchant-name">{{ merchantInfo.name || '商户名称' }}</h2>
-        <p class="merchant-id">商户ID: {{ merchantInfo.id }}</p>
-        
-        <!-- 商铺切换 -->
-        <div v-if="shops.length > 1" class="shop-selector">
-          <van-dropdown-menu>
-            <van-dropdown-item v-model="selectedShopId" :options="shopOptions" @change="handleShopChange" />
-          </van-dropdown-menu>
-        </div>
-        <div v-else-if="shops.length === 1" class="current-shop">
-          <van-icon name="shop-o" size="14" />
-          <span>{{ shops[0].shopCode }} - {{ shops[0].tenantName }}</span>
-        </div>
-        
-        <div class="merchant-stats">
-          <span class="stat-item">
-            <strong>{{ todayStats.verificationCount || 0 }}</strong>
-            <span class="stat-label">今日核销</span>
-          </span>
-          <span class="stat-item">
-            <strong>¥{{ formatAmount(todayStats.verificationAmount || 0) }}</strong>
-            <span class="stat-label">今日营收</span>
-          </span>
-        </div>
+      
+      <!-- 商铺切换（如果有多个商铺） -->
+      <div v-if="shops.length > 1" class="shop-selector">
+        <van-dropdown-menu>
+          <van-dropdown-item v-model="selectedShopId" :options="shopOptions" @change="handleShopChange" />
+        </van-dropdown-menu>
+      </div>
+      
+      <!-- 今日统计 -->
+      <div class="merchant-stats">
+        <span class="stat-item">
+          <strong>{{ todayStats.verificationCount || 0 }}</strong>
+          <span class="stat-label">今日核销</span>
+        </span>
+        <span class="stat-item">
+          <strong>¥{{ formatAmount(todayStats.verificationAmount || 0) }}</strong>
+          <span class="stat-label">今日营收</span>
+        </span>
       </div>
     </div>
 
@@ -64,12 +89,12 @@
               :badge="newOrdersCount > 0 ? newOrdersCount : undefined"
             />
             <van-grid-item
-              icon="orders"
+              icon="orders-o"
               text="订单列表"
               @click="goToOrders"
               :badge="totalOrdersCount > 0 ? totalOrdersCount : undefined"
             />
-            <van-grid-item icon="qr-code" text="二维码管理" @click="goToQRManagement" />
+            <van-grid-item icon="qr" text="二维码管理" @click="goToQRManagement" />
           </van-grid>
         </div>
       </div>
@@ -78,9 +103,9 @@
         <h3>商户工具</h3>
         <div class="action-grid">
           <van-grid :column-num="3" gutter="10">
-            <van-grid-item icon="chart-line" text="统计报表" @click="goToStatistics" />
-            <van-grid-item icon="setting" text="商户设置" @click="goToSettings" />
-            <van-grid-item icon="service" text="客户服务" @click="goToCustomerService" />
+            <van-grid-item icon="chart-trending-o" text="统计报表" @click="goToStatistics" />
+            <van-grid-item icon="setting-o" text="商户设置" @click="goToSettings" />
+            <van-grid-item icon="service-o" text="客户服务" @click="goToCustomerService" />
           </van-grid>
         </div>
       </div>
@@ -89,9 +114,9 @@
         <h3>财务功能</h3>
         <div class="action-grid">
           <van-grid :column-num="3" gutter="10">
-            <van-grid-item icon="balance" text="结算管理" @click="goToSettlement" />
-            <van-grid-item icon="refund" text="退款申请" @click="goToRefunds" />
-            <van-grid-item icon="invoice" text="发票管理" @click="goToInvoices" />
+            <van-grid-item icon="balance-o" text="结算管理" @click="goToSettlement" />
+            <van-grid-item icon="refund-o" text="退款申请" @click="goToRefunds" />
+            <van-grid-item icon="description" text="发票管理" @click="goToInvoices" />
           </van-grid>
         </div>
       </div>
@@ -228,11 +253,24 @@
   // 商户信息
   const merchantInfo = ref({
     id: 'M001',
+    merchantCode: '',
     name: '示例商户',
     avatar: '',
     phone: '',
-    address: ''
+    address: '',
+    logo: ''
   })
+
+  // 商户Logo（计算属性，优先使用商户logo，没有则使用默认logo）
+  const merchantLogo = computed(() => {
+    return merchantInfo.value.logo || null
+  })
+
+  // Logo加载错误处理
+  const handleLogoError = () => {
+    // Logo加载失败时，使用默认logo（通过v-else自动处理）
+    console.warn('商户Logo加载失败，使用默认Logo')
+  }
 
   // 今日统计
   const todayStats = ref({
@@ -283,10 +321,12 @@
       if (status.hasBinding && status.merchantUser) {
         merchantInfo.value = {
           id: status.merchantUser.merchantId,
+          merchantCode: status.merchantUser.merchantCode || '',
           name: status.merchantUser.merchantName,
           avatar: '',
           phone: '',
-          address: ''
+          address: '',
+          logo: ''
         }
 
         // 加载商铺列表
@@ -302,6 +342,32 @@
             selectedShopId.value = shopList[0].id
             localStorage.setItem('merchant_selected_shop_id', shopList[0].id)
           }
+        }
+
+        // 加载商户详情以获取logo和完整的merchantCode
+        try {
+          const merchantProfile = await merchantService.getMerchantProfile()
+          if (merchantProfile && merchantProfile.data) {
+            const profileData = merchantProfile.data
+            merchantInfo.value = {
+              ...merchantInfo.value,
+              merchantCode: profileData.merchantCode || merchantInfo.value.merchantCode || merchantInfo.value.id,
+              logo: profileData.logo || merchantInfo.value.logo,
+              phone: profileData.phone || merchantInfo.value.phone,
+              address: profileData.address || merchantInfo.value.address
+            }
+          } else if (merchantProfile) {
+            // 兼容直接返回数据的情况
+            merchantInfo.value = {
+              ...merchantInfo.value,
+              merchantCode: merchantProfile.merchantCode || merchantInfo.value.merchantCode || merchantInfo.value.id,
+              logo: merchantProfile.logo || merchantInfo.value.logo,
+              phone: merchantProfile.phone || merchantInfo.value.phone,
+              address: merchantProfile.address || merchantInfo.value.address
+            }
+          }
+        } catch (error) {
+          console.warn('加载商户详情失败，使用基本信息:', error)
         }
       } else {
         // 未绑定，跳转到申请页面
@@ -577,25 +643,101 @@
     }
   }
 
-  .merchant-avatar {
-    text-align: center;
-    margin-bottom: 15px;
+  .merchant-card-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
   }
 
-  .merchant-details {
-    text-align: center;
+  // 左侧：商户Logo（占40%）
+  .merchant-logo-section {
+    flex: 0 0 40%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .merchant-logo-wrapper {
+    width: 100%;
+    max-width: 100px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 50%;
+    }
+
+    .merchant-logo-img {
+      // 商户上传的logo
+    }
+
+    .default-logo-img {
+      // 默认wepark logo
+      padding: 12px;
+    }
+  }
+
+  // 右侧：商户信息（占60%）
+  .merchant-info-section {
+    flex: 0 0 60%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .info-row {
+    display: flex;
+    align-items: center;
+    line-height: 1.5;
+  }
+
+  .info-row-top {
+    .merchant-name {
+      font-size: 20px;
+      font-weight: bold;
+      margin: 0;
+      color: white;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .info-row-middle,
+  .info-row-bottom {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+
+    .info-label {
+      opacity: 0.8;
+      margin-right: 4px;
+      white-space: nowrap;
+    }
+
+    .info-value {
+      font-weight: 500;
+      color: white;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 
   .merchant-name {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: bold;
-    margin-bottom: 5px;
-  }
-
-  .merchant-id {
-    font-size: 14px;
-    opacity: 0.8;
-    margin-bottom: 10px;
+    margin: 0;
   }
 
   .shop-selector {
@@ -624,17 +766,38 @@
     display: flex;
     justify-content: center;
     gap: 20px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
   }
 
-  .stat-item strong {
-    display: block;
-    font-size: 18px;
-    font-weight: bold;
+  .stat-item {
+    text-align: center;
+    
+    strong {
+      display: block;
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--van-warning-color, $warning);
+      text-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.5),
+        0 0 10px rgba(255, 151, 106, 0.4),
+        0 0 20px rgba(255, 151, 106, 0.2);
+      margin-bottom: 4px;
+      filter: brightness(1.1) contrast(1.2);
+    }
   }
 
   .stat-label {
     font-size: 12px;
-    opacity: 0.8;
+    color: var(--van-warning-color, $warning);
+    opacity: 1;
+    font-weight: 600;
+    text-shadow: 
+      0 1px 3px rgba(0, 0, 0, 0.6),
+      0 0 8px rgba(255, 151, 106, 0.3);
+    letter-spacing: 0.3px;
+    filter: brightness(1.1) contrast(1.2);
   }
 
   .quick-actions {
@@ -653,6 +816,62 @@
 
   .action-grid {
     margin-bottom: 20px;
+
+    // 统一所有按钮的样式和尺寸
+    :deep(.van-grid-item) {
+      padding: 0;
+      margin: 0;
+    }
+
+    :deep(.van-grid-item__content) {
+      background: $white;
+      border-radius: $border-radius-base;
+      padding: 16px 8px;
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: $shadow-sm;
+      transition: all $transition-base;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+
+      &:active {
+        transform: scale(0.96);
+        box-shadow: $shadow-xs;
+      }
+    }
+
+    :deep(.van-grid-item__icon) {
+      font-size: 24px;
+      color: var(--van-primary-color, $primary);
+      margin-bottom: 8px;
+    }
+
+    :deep(.van-grid-item__text) {
+      font-size: 13px;
+      color: $text-color-primary;
+      font-weight: $font-weight-medium;
+      line-height: 1.4;
+      text-align: center;
+      margin-top: 0;
+    }
+
+    // 统一徽章样式
+    :deep(.van-badge) {
+      .van-badge__wrapper {
+        .van-badge {
+          background: var(--van-danger-color, $danger);
+          color: $white;
+          font-size: 11px;
+          min-width: 18px;
+          height: 18px;
+          line-height: 18px;
+          padding: 0 5px;
+          border-radius: 9px;
+        }
+      }
+    }
   }
 
   .today-stats {
