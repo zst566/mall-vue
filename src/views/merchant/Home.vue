@@ -128,7 +128,7 @@
       <div class="stats-container">
         <div class="stat-card">
           <div class="stat-icon order">
-            <van-icon name="orders" size="24" color="#3A82F6" />
+            <van-icon name="orders-o" size="24" color="#3A82F6" />
           </div>
           <div class="stat-content">
             <div class="stat-number">{{ todayStats.verificationCount || 0 }}</div>
@@ -824,7 +824,7 @@
     }
 
     :deep(.van-grid-item__content) {
-      background: $white;
+      @include glassmorphism-card(light);
       border-radius: $border-radius-base;
       padding: 16px 8px;
       min-height: 80px;
@@ -832,13 +832,12 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      box-shadow: $shadow-sm;
       transition: all $transition-base;
-      border: 1px solid rgba(0, 0, 0, 0.05);
+      border: $glass-border-width $glass-border-style $glass-border-color;
 
       &:active {
         transform: scale(0.96);
-        box-shadow: $shadow-xs;
+        opacity: 0.9;
       }
     }
 
@@ -895,11 +894,17 @@
   }
 
   .stat-card {
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    @include glassmorphism-card(light);
     padding: 15px;
-    border-radius: 8px;
+    border-radius: $border-radius-base;
     text-align: center;
-    border: 1px solid #e0e0e0;
+    border: $glass-border-width $glass-border-style $glass-border-color;
+    transition: all $transition-base;
+
+    &:active {
+      transform: scale(0.98);
+      opacity: 0.9;
+    }
   }
 
   .stat-icon {
@@ -914,8 +919,11 @@
   }
 
   .stat-label {
-    font-size: 12px;
-    color: var(--theme-text-secondary, $text-color-secondary);
+    font-size: 13px;
+    color: $text-color-primary;
+    font-weight: $font-weight-medium;
+    line-height: 1.4;
+    text-align: center;
   }
 
   .recent-orders {
