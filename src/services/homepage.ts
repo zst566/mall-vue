@@ -137,12 +137,19 @@ export class HomepageService extends BaseApiService {
    * 获取首页聚合数据（优化版，一次请求所有数据）
    * 返回：横幅 + 导航分类（含促销数据） + 轮播配置
    */
-  async getHomepageData(): Promise<{
+  async getHomepageData(forceRefresh: boolean = false): Promise<{
     banners: HomepageBannerConfig[]
     carouselConfig: { autoRotateInterval: number; bannerFullWidth: boolean }
     navigationCategories: Array<NavigationCategoryConfig & { promotions: Promotion[] }>
   }> {
     const cacheKey = 'homepage-data'
+    
+    // 如果强制刷新，清除缓存
+    if (forceRefresh) {
+      console.log('🔄 强制刷新：清除首页数据缓存')
+      this.cache.delete(cacheKey)
+    }
+    
     const cached = this.getCached<{
       banners: HomepageBannerConfig[]
       carouselConfig: { autoRotateInterval: number; bannerFullWidth: boolean }
@@ -154,11 +161,17 @@ export class HomepageService extends BaseApiService {
     }
 
     try {
+      console.log('📡 请求首页数据，forceRefresh:', forceRefresh)
+      // 强制刷新时添加时间戳参数，防止 HTTP 缓存
+      const url = forceRefresh 
+        ? `/homepage/data?_t=${Date.now()}`
+        : '/homepage/data'
+      
       const data = await this.get<{
         banners: HomepageBannerConfig[]
         carouselConfig: { autoRotateInterval: number; bannerFullWidth?: boolean }
         navigationCategories: Array<NavigationCategoryConfig & { promotions: Promotion[] }>
-      }>('/homepage/data')
+      }>(url)
 
       const normalized = {
         ...data,
@@ -169,6 +182,7 @@ export class HomepageService extends BaseApiService {
       }
 
       this.setCache(cacheKey, normalized)
+      console.log('✅ 首页数据加载成功，分类数量:', data.navigationCategories?.length || 0)
       return normalized
     } catch (error) {
       console.error('获取首页聚合数据失败:', error)

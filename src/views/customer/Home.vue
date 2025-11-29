@@ -55,6 +55,7 @@ import CategoryPromotions from '@/components/customer/CategoryPromotions.vue'
 import { useAppStore } from '@/stores/app'
 import { showToast } from 'vant'
 import { ApiErrorHandler } from '@/services/api'
+import { getThemeManager } from '@/utils/theme'
 
 // 数据
 const banners = ref<HomepageBannerConfig[]>([])
@@ -72,13 +73,13 @@ const hasError = ref(false)
 const refreshing = ref(false)
 
 // 加载首页数据（优化版：使用聚合接口，一次请求所有数据）
-const loadHomepageData = async () => {
+const loadHomepageData = async (forceRefresh: boolean = false) => {
   try {
     isLoading.value = true
     hasError.value = false
     
     // 使用聚合接口，一次性获取所有首页数据
-    const data = await homepageService.getHomepageData()
+    const data = await homepageService.getHomepageData(forceRefresh)
 
     // 解构数据并赋值
     banners.value = data.banners
@@ -133,7 +134,15 @@ const loadHomepageData = async () => {
 const onRefresh = async () => {
   refreshing.value = true
   try {
-    await loadHomepageData()
+    // 清除首页数据缓存，强制重新请求服务器
+    homepageService.clearCache()
+    
+    // 重新加载主题颜色配置
+    const themeManager = getThemeManager()
+    await themeManager.loadThemeFromServer()
+    
+    // 重新加载首页数据（强制刷新）
+    await loadHomepageData(true)
   } finally {
     refreshing.value = false
   }
