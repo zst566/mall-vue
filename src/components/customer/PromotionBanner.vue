@@ -28,24 +28,25 @@
               <!-- 主图片层 -->
               <div class="banner-image-main"></div>
               <div class="banner-overlay"></div>
+
+              <!-- 指示器叠加在图片底部，背景完全使用图片本身 -->
+              <div v-if="banners.length > 1" class="banner-indicators banner-indicators--overlay">
+                <div
+                  v-for="(banner, index) in banners"
+                  :key="banner.id"
+                  class="indicator-dot"
+                  :class="{ active: index === currentBannerIndex }"
+                  @click.stop="goToBanner(index)"
+                ></div>
+              </div>
             </div>
+
             <div v-if="currentBanner?.title || currentBanner?.subtitle" class="banner-content">
               <p class="banner-title" v-if="currentBanner?.title">{{ currentBanner.title }}</p>
               <p class="banner-subtitle" v-if="currentBanner?.subtitle">{{ currentBanner.subtitle }}</p>
             </div>
           </div>
         </transition>
-
-        <!-- 指示器：与图片同处一张卡片内，统一背景 -->
-        <div v-if="banners.length > 1" class="banner-indicators">
-          <div
-            v-for="(banner, index) in banners"
-            :key="banner.id"
-            class="indicator-dot"
-            :class="{ active: index === currentBannerIndex }"
-            @click="goToBanner(index)"
-          ></div>
-        </div>
       </div>
     </div>
   </section>
@@ -210,6 +211,18 @@ const handleBannerClick = (banner: HomepageBannerConfig) => {
 // 贯穿式：左右不留白
 .promotion-banner.is-fullwidth {
   margin: 12px 0 0;
+  // 贯穿式时，整块 Banner 与页面左右对齐，不使用圆角
+  .banner-wrapper,
+  .banner-card {
+    border-radius: 0;
+    // 贯穿式视觉更“贴屏”，不需要阴影浮起效果
+    box-shadow: none !important;
+  }
+
+  // 禁用 hover 态额外阴影
+  .banner-card.clickable:hover {
+    box-shadow: none !important;
+  }
 }
 
 .banner-carousel {
@@ -420,8 +433,20 @@ const handleBannerClick = (banner: HomepageBannerConfig) => {
   justify-content: center;
   align-items: center;
   gap: 8px;
-  margin-top: 8px;
-  padding: 4px 0 8px;
+}
+
+// 作为覆盖层叠加在图片底部，背景仅由图片决定
+.banner-indicators--overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  padding: 4px 12px;
+  pointer-events: none; // 容器不拦截事件，内部圆点仍可点击
+
+  .indicator-dot {
+    pointer-events: auto;
+  }
 }
 
 .indicator-dot {
