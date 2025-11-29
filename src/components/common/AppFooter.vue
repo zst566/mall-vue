@@ -1,9 +1,8 @@
 <template>
   <footer class="app-footer" :class="{ 'merchant-mode': isMerchantMode }">
-    <!-- 客户模式导航 -->
+    <!-- 客户模式导航（隐藏停车入口） -->
     <van-tabbar v-if="!isMerchantMode" v-model="active" route :border="false" class="footer-tabbar">
       <van-tabbar-item replace to="/" icon="home-o" @click="onHomeClick">首页</van-tabbar-item>
-      <van-tabbar-item replace to="/parking" icon="location-o">停车</van-tabbar-item>
       <van-tabbar-item replace to="/orders" icon="orders-o">订单</van-tabbar-item>
       <van-tabbar-item replace to="/profile" icon="user-o">我的</van-tabbar-item>
     </van-tabbar>
@@ -112,15 +111,13 @@
         merchantActive.value = 3
       }
     } else {
-      // 客户模式导航
+      // 客户模式导航（无停车 Tab，索引重新映射）
       if (path === '/') {
         active.value = 0
-      } else if (path.startsWith('/parking')) {
-        active.value = 1
       } else if (path.startsWith('/orders')) {
-        active.value = 2
+        active.value = 1
       } else if (path.startsWith('/profile')) {
-        active.value = 3
+        active.value = 2
       }
     }
   }
