@@ -115,6 +115,21 @@
     <!-- 促销活动统计 -->
     <div v-else-if="activeTab === 'promotion'" class="statistics-content">
       <van-pull-refresh v-model="refreshing" @refresh="loadPromotionStatistics">
+        <!-- 筛选开关 -->
+        <div class="promotion-filter">
+          <van-cell-group inset>
+            <van-cell>
+              <template #title>
+                <span>查看所有促销活动（包含已失效）</span>
+              </template>
+              <template #right-icon>
+                <van-switch v-model="showAllPromotions" @change="handleFilterChange" />
+              </template>
+            </van-cell>
+          </van-cell-group>
+        </div>
+        
+        <!-- 促销活动列表 -->
         <div class="promotion-stats">
           <van-cell-group inset v-if="promotionStats.length > 0">
             <van-cell
@@ -122,11 +137,13 @@
               :key="item.promotionId"
               :title="item.promotionName"
               :label="`核销${item.verificationCount}笔，退款${item.refundCount}笔`"
+              :class="{ 'inactive-promotion': !item.isActive }"
             >
               <template #value>
                 <div class="promotion-value">
                   <div class="amount">¥{{ formatAmount(item.verificationAmount) }}</div>
                   <div class="avg-price">客单价: ¥{{ formatAmount(item.averagePrice) }}</div>
+                  <van-tag v-if="!item.isActive" type="warning" style="margin-top: 4px; font-size: 10px;">已失效</van-tag>
                 </div>
               </template>
             </van-cell>
@@ -156,6 +173,7 @@
   const refreshing = ref(false)
   const activeTab = ref('today')
   const hourlyChartRef = ref<HTMLElement | null>(null)
+  const showAllPromotions = ref(false)  // 是否显示所有促销活动（包含已失效的）
 
   // 数据
   const todayStats = ref<TodayStatistics>({
@@ -263,9 +281,10 @@
   const loadPromotionStatistics = async () => {
     try {
       isLoading.value = !refreshing.value
-      console.log('📊 [统计] 加载促销活动统计...')
+      console.log('📊 [统计] 加载促销活动统计...', { includeInactive: showAllPromotions.value })
       const result = await merchantOperatorService.getStatisticsByPromotion({
-        date: 'today'
+        date: 'today',
+        includeInactive: showAllPromotions.value
       })
       console.log('📊 [统计] 促销活动统计结果:', result)
       console.log('📊 [统计] 结果类型:', typeof result, '是否为数组:', Array.isArray(result))
@@ -302,6 +321,11 @@
     } else if (activeTab.value === 'promotion') {
       loadPromotionStatistics()
     }
+  }
+
+  // 筛选开关变化处理
+  const handleFilterChange = () => {
+    loadPromotionStatistics()
   }
 
   // 格式化金额
@@ -500,6 +524,10 @@
     }
   }
 
+  .promotion-filter {
+    margin-bottom: 12px;
+  }
+
   .promotion-value {
     text-align: right;
 
@@ -513,6 +541,18 @@
     .avg-price {
       font-size: 12px;
       color: #646566;
+    }
+  }
+
+  .inactive-promotion {
+    opacity: 0.6;
+
+    :deep(.van-cell__title) {
+      color: var(--theme-text-secondary, $text-color-secondary);
+    }
+
+    :deep(.van-cell__label) {
+      color: var(--theme-text-secondary, $text-color-secondary);
     }
   }
 </style>

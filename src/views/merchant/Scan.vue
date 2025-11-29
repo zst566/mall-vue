@@ -51,11 +51,6 @@
           <div class="scan-line" :class="{ scanning: isScanning }"></div>
         </div>
 
-        <!-- 扫描提示 -->
-        <div class="scan-tips">
-          <p class="scan-text">将二维码放入框内，即可自动扫描</p>
-          <p class="scan-hint">请确保二维码清晰可见，光线充足</p>
-        </div>
       </div>
 
       <!-- 扫描按钮 -->

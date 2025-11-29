@@ -111,6 +111,7 @@ export interface MonthStatistics {
 export interface PromotionStatistics {
   promotionId: string
   promotionName: string
+  isActive: boolean  // 促销活动是否有效
   verificationCount: number
   verificationAmount: number
   refundCount: number
@@ -262,6 +263,7 @@ export class MerchantOperatorService extends BaseApiService {
   async getStatisticsByPromotion(params?: {
     date?: string // 'today' | 'month' | 'YYYY-MM-DD'
     shopId?: string
+    includeInactive?: boolean  // 是否包含已失效的促销活动
   }): Promise<PromotionStatistics[]> {
     try {
       // 使用 this.get 自动提取 response.data.data
