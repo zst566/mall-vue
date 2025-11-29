@@ -12,6 +12,10 @@ export interface ThemeConfig {
   darkMode: boolean
   primaryColor: string
   fontSize: 'small' | 'medium' | 'large'
+  /**
+   * 主题背景透明度，0-1 之间的小数
+   */
+  themeBgOpacity?: number
 }
 
 // 默认主题配置
@@ -20,7 +24,9 @@ const defaultThemeConfig: ThemeConfig = {
   theme: 'customer',
   darkMode: false,
   primaryColor: '#1989fa',
-  fontSize: 'medium'
+  fontSize: 'medium',
+  // 默认使用更“通透”的透明度，让效果更明显
+  themeBgOpacity: 0.25
 }
 
 // 主题键名
@@ -110,9 +116,18 @@ export class ThemeManager {
     root.style.setProperty('--primary-dark', darkColor)
     root.style.setProperty('--van-primary-color', color)
     
-    // 生成基于主题颜色的背景渐变
-    // 使用主题色和它的浅色变体创建渐变
-    const bgGradient = `linear-gradient(135deg, ${color} 0%, ${lightColor} 100%)`
+    // 生成基于主题颜色的背景渐变，支持透明度配置
+    const rawOpacity = this.config.value.themeBgOpacity ?? defaultThemeConfig.themeBgOpacity ?? 0.5
+    // 做一层夹紧，避免配置成 0 或 1 导致“看不到”或“完全不透明”
+    const opacity = Math.min(0.6, Math.max(0.1, rawOpacity))
+    // 将归一化后的透明度写回配置和 CSS 变量，便于样式层复用
+    this.config.value.themeBgOpacity = opacity
+    root.style.setProperty('--theme-bg-opacity', String(opacity))
+
+    const bgStart = this.hexToRgba(color, opacity)
+    // 结束色稍微再淡一点，增强渐变层次
+    const bgEnd = this.hexToRgba(lightColor, opacity * 0.7)
+    const bgGradient = `linear-gradient(135deg, ${bgStart} 0%, ${bgEnd} 100%)`
     root.style.setProperty('--theme-bg-gradient', bgGradient)
     
     // 生成主题颜色的半透明背景色（用于标签、徽章等）
@@ -150,11 +165,16 @@ export class ThemeManager {
     try {
       console.log('🔄 从服务器加载主题颜色配置...')
       const serverColor = await configService.getThemeColor()
+      const serverOpacity = await configService.getThemeOpacity()
       
       if (serverColor) {
         console.log('✅ 从服务器获取到主题颜色:', serverColor)
         // 使用服务器配置的颜色
         this.config.value.primaryColor = serverColor
+        // 使用服务器配置的背景透明度（如果有）
+        if (typeof serverOpacity === 'number' && serverOpacity >= 0 && serverOpacity <= 1) {
+          this.config.value.themeBgOpacity = serverOpacity
+        }
         this.applyPrimaryColor(serverColor)
         // 更新 localStorage 以保持同步
         this.saveTheme()
@@ -167,6 +187,9 @@ export class ThemeManager {
             const parsed = JSON.parse(saved) as ThemeConfig
             if (parsed.primaryColor) {
               this.config.value.primaryColor = parsed.primaryColor
+              if (typeof parsed.themeBgOpacity === 'number') {
+                this.config.value.themeBgOpacity = parsed.themeBgOpacity
+              }
               this.applyPrimaryColor(parsed.primaryColor)
             } else {
               // 使用默认颜色
@@ -190,6 +213,9 @@ export class ThemeManager {
           const parsed = JSON.parse(saved) as ThemeConfig
           if (parsed.primaryColor) {
             this.config.value.primaryColor = parsed.primaryColor
+            if (typeof parsed.themeBgOpacity === 'number') {
+              this.config.value.themeBgOpacity = parsed.themeBgOpacity
+            }
             this.applyPrimaryColor(parsed.primaryColor)
           } else {
             this.applyPrimaryColor(defaultThemeConfig.primaryColor)

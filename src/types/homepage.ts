@@ -47,7 +47,7 @@ export interface HomepageBannerConfig {
   animationType?: 'breathing' | 'shimmer' | 'none' // 微动态类型：呼吸放大、随机流光、无动画
 }
 
-// 首页数据响应
+// 首页数据响应（旧版接口使用，保留以兼容；新聚合接口在 services/homepage.ts 中单独定义）
 export interface HomepageData {
   banners: HomepageBannerConfig[]
   navigationCategories: NavigationCategoryConfig[]

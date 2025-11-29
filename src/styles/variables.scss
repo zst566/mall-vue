@@ -160,9 +160,23 @@ $glass-bg-strong: rgba(255, 255, 255, $glass-opacity-strong);
 $glass-bg-fallback: rgba(255, 255, 255, $glass-opacity-fallback);
 
 // 页面背景渐变（用于玻璃拟态效果支撑）
-$glass-bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-$glass-bg-gradient-alt: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-$glass-bg-gradient-blue: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+// 使用主题主色的半透明渐变，营造主题色玻璃拟态背景
+$glass-bg-gradient: linear-gradient(
+  135deg,
+  rgba($primary, $glass-opacity-base) 0%,
+  rgba($primary-light, $glass-opacity-base) 50%,
+  rgba($primary-dark, $glass-opacity-base) 100%
+);
+$glass-bg-gradient-alt: linear-gradient(
+  135deg,
+  rgba(#f093fb, $glass-opacity-base) 0%,
+  rgba(#f5576c, $glass-opacity-base) 100%
+);
+$glass-bg-gradient-blue: linear-gradient(
+  135deg,
+  rgba(#4facfe, $glass-opacity-base) 0%,
+  rgba(#00f2fe, $glass-opacity-base) 100%
+);
 
 // 边框变量
 $border-width: 1px;

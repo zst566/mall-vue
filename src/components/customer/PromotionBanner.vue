@@ -1,49 +1,51 @@
 <template>
-  <section class="promotion-banner">
+  <section class="promotion-banner" :class="{ 'is-fullwidth': fullWidthComputed }">
     <div v-if="banners.length > 0" class="banner-carousel">
-      <transition name="fade" mode="out-in">
-        <div
-          :key="currentBannerIndex"
-          class="banner-card"
-          :class="{ clickable: currentBanner?.linkType && currentBanner?.linkValue }"
-          @click="handleBannerClick(currentBanner!)"
-        >
+      <div class="banner-wrapper">
+        <transition name="fade" mode="out-in">
           <div
-            class="banner-image"
-            :class="{
-              'animation-breathing': currentBanner?.animationType === 'breathing',
-              'animation-shimmer': currentBanner?.animationType === 'shimmer',
-              'animation-none': currentBanner?.animationType === 'none' || !currentBanner?.animationType
-            }"
-            :style="{
-              '--banner-image-url': `url(${getImageUrl(currentBanner?.image || '')})`,
-              '--breathing-duration': currentBanner?.animationType === 'breathing' && currentBanner?.breathingDuration
-                ? `${currentBanner.breathingDuration}s`
-                : '7s'
-            }"
+            :key="currentBannerIndex"
+            class="banner-card"
+            :class="{ clickable: currentBanner?.linkType && currentBanner?.linkValue }"
+            @click="handleBannerClick(currentBanner!)"
           >
-            <!-- 模糊背景层 -->
-            <div class="banner-background-blur"></div>
-            <!-- 主图片层 -->
-            <div class="banner-image-main"></div>
-            <div class="banner-overlay"></div>
+            <div
+              class="banner-image"
+              :class="{
+                'animation-breathing': currentBanner?.animationType === 'breathing',
+                'animation-shimmer': currentBanner?.animationType === 'shimmer',
+                'animation-none': currentBanner?.animationType === 'none' || !currentBanner?.animationType
+              }"
+              :style="{
+                '--banner-image-url': `url(${getImageUrl(currentBanner?.image || '')})`,
+                '--breathing-duration': currentBanner?.animationType === 'breathing' && currentBanner?.breathingDuration
+                  ? `${currentBanner.breathingDuration}s`
+                  : '7s'
+              }"
+            >
+              <!-- 模糊背景层 -->
+              <div class="banner-background-blur"></div>
+              <!-- 主图片层 -->
+              <div class="banner-image-main"></div>
+              <div class="banner-overlay"></div>
+            </div>
+            <div v-if="currentBanner?.title || currentBanner?.subtitle" class="banner-content">
+              <p class="banner-title" v-if="currentBanner?.title">{{ currentBanner.title }}</p>
+              <p class="banner-subtitle" v-if="currentBanner?.subtitle">{{ currentBanner.subtitle }}</p>
+            </div>
           </div>
-          <div v-if="currentBanner?.title || currentBanner?.subtitle" class="banner-content">
-            <p class="banner-title" v-if="currentBanner?.title">{{ currentBanner.title }}</p>
-            <p class="banner-subtitle" v-if="currentBanner?.subtitle">{{ currentBanner.subtitle }}</p>
-          </div>
+        </transition>
+
+        <!-- 指示器：与图片同处一张卡片内，统一背景 -->
+        <div v-if="banners.length > 1" class="banner-indicators">
+          <div
+            v-for="(banner, index) in banners"
+            :key="banner.id"
+            class="indicator-dot"
+            :class="{ active: index === currentBannerIndex }"
+            @click="goToBanner(index)"
+          ></div>
         </div>
-      </transition>
-      
-      <!-- 指示器 -->
-      <div v-if="banners.length > 1" class="banner-indicators">
-        <div
-          v-for="(banner, index) in banners"
-          :key="banner.id"
-          class="indicator-dot"
-          :class="{ active: index === currentBannerIndex }"
-          @click="goToBanner(index)"
-        ></div>
       </div>
     </div>
   </section>
@@ -68,6 +70,11 @@ const getImageUrl = (image: any): string => {
 
 interface Props {
   banners: HomepageBannerConfig[]
+  /**
+   * 是否使用贯穿式展示（左右不留白）
+   * 默认 true，以保持旧版行为
+   */
+  fullWidth?: boolean
 }
 
 const props = defineProps<Props>()
@@ -77,6 +84,9 @@ const router = useRouter()
 const currentBannerIndex = ref(0)
 const autoPlayTimer = ref<number | null>(null)
 const autoRotateInterval = ref(3) // 默认3秒
+
+// 是否使用贯穿式展示（从父组件传入，不传则默认 true）
+const fullWidthComputed = computed(() => props.fullWidth ?? true)
 
 // 当前显示的banner
 const currentBanner = computed(() => {
@@ -197,17 +207,28 @@ const handleBannerClick = (banner: HomepageBannerConfig) => {
   margin: 12px 12px 0; // 底部margin设为0，避免留白
 }
 
+// 贯穿式：左右不留白
+.promotion-banner.is-fullwidth {
+  margin: 12px 0 0;
+}
+
 .banner-carousel {
   position: relative;
   width: 100%;
-  overflow: hidden;
+  overflow: visible;
 }
 
-.banner-card {
+.banner-wrapper {
   width: 100%;
   border-radius: 12px;
   overflow: hidden;
   @include glassmorphism-card(base);
+}
+
+.banner-card {
+  width: 100%;
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column; // 使用flex布局，确保内容区域紧贴图片
@@ -399,8 +420,8 @@ const handleBannerClick = (banner: HomepageBannerConfig) => {
   justify-content: center;
   align-items: center;
   gap: 8px;
-  margin-top: 12px;
-  padding: 0;
+  margin-top: 8px;
+  padding: 4px 0 8px;
 }
 
 .indicator-dot {
@@ -427,6 +448,10 @@ const handleBannerClick = (banner: HomepageBannerConfig) => {
 @media (max-width: 768px) {
   .promotion-banner {
     margin: 12px 8px 0; // 移动端也移除底部margin
+  }
+
+  .promotion-banner.is-fullwidth {
+    margin: 12px 0 0;
   }
 
   .banner-content {

@@ -1,7 +1,7 @@
 <template>
   <div class="home-page">
     <!-- 顶部横幅 -->
-    <PromotionBanner :banners="banners" />
+    <PromotionBanner :banners="banners" :full-width="bannerFullWidth" />
 
     <!-- 分类导航 -->
     <CategoryNavigation :categories="navigationCategories" />
@@ -28,6 +28,8 @@ import CategoryPromotions from '@/components/customer/CategoryPromotions.vue'
 const banners = ref<HomepageBannerConfig[]>([])
 const navigationCategories = ref<NavigationCategoryConfig[]>([])
 const categoryPromotionsMap = ref<Record<string, any[]>>({})
+// 是否使用贯穿式展示首页 Banner（左右不留白）
+const bannerFullWidth = ref(true)
 
 // 加载首页数据（优化版：使用聚合接口，一次请求所有数据）
 const loadHomepageData = async () => {
@@ -38,6 +40,7 @@ const loadHomepageData = async () => {
     // 解构数据并赋值
     banners.value = data.banners
     navigationCategories.value = data.navigationCategories
+    bannerFullWidth.value = data.carouselConfig?.bannerFullWidth ?? true
 
     // 构建促销映射表（前端不再需要单独请求促销数据）
     const map: Record<string, any[]> = {}

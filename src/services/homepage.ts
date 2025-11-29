@@ -57,20 +57,26 @@ export class HomepageService extends BaseApiService {
   /**
    * 获取轮播配置
    */
-  async getCarouselConfig(): Promise<{ autoRotateInterval: number }> {
+  async getCarouselConfig(): Promise<{ autoRotateInterval: number; bannerFullWidth: boolean }> {
     const cacheKey = 'carousel-config'
-    const cached = this.getCached<{ autoRotateInterval: number }>(cacheKey)
+    const cached = this.getCached<{ autoRotateInterval: number; bannerFullWidth: boolean }>(cacheKey)
     if (cached) {
       return cached
     }
 
     try {
-      const data = await this.get<{ autoRotateInterval: number }>('/homepage/carousel-config')
-      this.setCache(cacheKey, data)
-      return data
+      const data = await this.get<{ autoRotateInterval: number; bannerFullWidth?: boolean }>(
+        '/homepage/carousel-config'
+      )
+      const normalized = {
+        autoRotateInterval: data.autoRotateInterval ?? 3,
+        bannerFullWidth: data.bannerFullWidth ?? true,
+      }
+      this.setCache(cacheKey, normalized)
+      return normalized
     } catch (error) {
       console.error('获取轮播配置失败:', error)
-      return { autoRotateInterval: 3 } // 默认3秒
+      return { autoRotateInterval: 3, bannerFullWidth: true } // 默认3秒 + 贯穿式
     }
   }
 
@@ -132,7 +138,7 @@ export class HomepageService extends BaseApiService {
    */
   async getHomepageData(): Promise<{
     banners: HomepageBannerConfig[]
-    carouselConfig: { autoRotateInterval: number }
+    carouselConfig: { autoRotateInterval: number; bannerFullWidth: boolean }
     navigationCategories: Array<NavigationCategoryConfig & { promotions: any[] }>
   }> {
     const cacheKey = 'homepage-data'
@@ -149,18 +155,26 @@ export class HomepageService extends BaseApiService {
     try {
       const data = await this.get<{
         banners: HomepageBannerConfig[]
-        carouselConfig: { autoRotateInterval: number }
+        carouselConfig: { autoRotateInterval: number; bannerFullWidth?: boolean }
         navigationCategories: Array<NavigationCategoryConfig & { promotions: any[] }>
       }>('/homepage/data')
 
-      this.setCache(cacheKey, data)
-      return data
+      const normalized = {
+        ...data,
+        carouselConfig: {
+          autoRotateInterval: data.carouselConfig?.autoRotateInterval ?? 3,
+          bannerFullWidth: data.carouselConfig?.bannerFullWidth ?? true,
+        },
+      }
+
+      this.setCache(cacheKey, normalized)
+      return normalized
     } catch (error) {
       console.error('获取首页聚合数据失败:', error)
       // 返回空数据而不是抛出错误
       return {
         banners: [],
-        carouselConfig: { autoRotateInterval: 3 },
+        carouselConfig: { autoRotateInterval: 3, bannerFullWidth: true },
         navigationCategories: [],
       }
     }
