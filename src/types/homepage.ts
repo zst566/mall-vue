@@ -29,6 +29,7 @@ export interface NavigationCategoryConfig {
   breathingDuration?: number // Banner呼吸动画时长（单位：秒，默认4秒）
   thumbnail?: string // 分类缩略图URL（优先于icon显示）
   layout?: 'horizontal' | 'vertical' // 促销活动布局：水平排列或纵向排列（默认horizontal）
+  promotions?: any[] // 促销列表（由后端聚合接口返回）
 }
 
 // 横幅配置
@@ -54,7 +55,5 @@ export interface HomepageData {
   categoryPromotions: Record<string, any[]>
 }
 
-
-
-
-
+// 导出 Promotion 类型
+export type { Promotion } from './promotion'

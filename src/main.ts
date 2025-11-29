@@ -8,11 +8,12 @@ import { createPersistencePlugin, appPersistence } from './utils/persistence'
 import WebViewBridgePlugin from '@/plugins/webview-bridge'
 import { useWechatParams } from '@/composables/useWechatParams'
 import { useAuthStore } from '@/stores/auth'
+import { debugLog, errorLog } from '@/utils/logger'
 
 // 🔥 修复：在创建应用之前就同步提取和保存 URL 中的 token
 // 这样路由守卫执行时就能正确识别已登录状态
 const initializeAuthBeforeApp = () => {
-  console.log('🚀 在应用初始化之前提取 URL 中的认证信息...')
+  debugLog('🚀 在应用初始化之前提取 URL 中的认证信息...')
   
   try {
     // 解析 URL 参数
@@ -20,21 +21,21 @@ const initializeAuthBeforeApp = () => {
     const mallToken = urlParams.get('mall_token')
     const userId = urlParams.get('user_id')
     
-    console.log('📋 URL 参数解析（预检查）:')
-    console.log('  - mall_token:', mallToken ? '存在' : '不存在')
-    console.log('  - user_id:', userId || '不存在')
+    debugLog('📋 URL 参数解析（预检查）:')
+    debugLog('  - mall_token:', mallToken ? '存在' : '不存在')
+    debugLog('  - user_id:', userId || '不存在')
     
     if (mallToken) {
-      console.log('🔐 检测到 mall_token，立即保存到 localStorage')
-      console.log('📝 Token 值:', mallToken.substring(0, 20) + '...')
+      debugLog('🔐 检测到 mall_token，立即保存到 localStorage')
+      debugLog('📝 Token 值:', mallToken.substring(0, 20) + '...')
       
       // 直接保存到 localStorage，这样路由守卫就能立即读取
       localStorage.setItem('token', mallToken)
       
-      console.log('✅ Token 已同步保存到 localStorage')
+      debugLog('✅ Token 已同步保存到 localStorage')
     }
   } catch (error) {
-    console.error('❌ 预初始化认证状态失败:', error)
+    errorLog('❌ 预初始化认证状态失败:', error)
   }
 }
 
@@ -74,7 +75,7 @@ app.mount('#app')
 
 // 初始化 URL 参数和认证状态（在 Pinia 初始化后更新状态）
 const initializeAppAuth = async () => {
-  console.log('🚀 开始同步认证状态到 Pinia Store...')
+  debugLog('🚀 开始同步认证状态到 Pinia Store...')
   
   try {
     // 解析 URL 参数
@@ -83,8 +84,8 @@ const initializeAppAuth = async () => {
     const userId = urlParams.get('user_id')
     
     if (mallToken) {
-      console.log('🔐 检测到 mall_token，更新 Pinia Store 状态')
-      console.log('📝 Token 值:', mallToken.substring(0, 20) + '...')
+      debugLog('🔐 检测到 mall_token，更新 Pinia Store 状态')
+      debugLog('📝 Token 值:', mallToken.substring(0, 20) + '...')
       
       // 获取 auth store（此时 Pinia 已初始化）
       const authStore = useAuthStore()
@@ -95,11 +96,11 @@ const initializeAppAuth = async () => {
         refreshToken: '' // 小程序暂时不支持 refresh token
       })
       
-      console.log('✅ Token 已同步到 Pinia Store')
+      debugLog('✅ Token 已同步到 Pinia Store')
       
       // 🔥 关键修复：创建临时用户对象，包含从 URL 获取的用户 ID
       if (userId) {
-        console.log('👤 从 URL 获取用户 ID，创建临时用户对象')
+        debugLog('👤 从 URL 获取用户 ID，创建临时用户对象')
         authStore.setUser({
           id: userId,
           nickname: '',
@@ -107,9 +108,9 @@ const initializeAppAuth = async () => {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         } as any)
-        console.log('✅ 用户对象已创建，ID:', userId)
+        debugLog('✅ 用户对象已创建，ID:', userId)
       } else {
-        console.log('👤 用户信息将在访问需要该信息的页面时获取')
+        debugLog('👤 用户信息将在访问需要该信息的页面时获取')
       }
       
       // 清理 URL 中的认证参数，避免泄露
@@ -120,14 +121,14 @@ const initializeAppAuth = async () => {
       
       // 使用 replaceState 避免产生历史记录
       window.history.replaceState({}, '', url.toString())
-      console.log('✅ 已清理 URL 中的认证参数')
+      debugLog('✅ 已清理 URL 中的认证参数')
     } else {
-      console.log('⚠️  未检测到 mall_token，跳过 Pinia Store 更新')
+      debugLog('⚠️  未检测到 mall_token，跳过 Pinia Store 更新')
     }
     
-    console.log('🚀 认证状态同步完成')
+    debugLog('🚀 认证状态同步完成')
   } catch (error) {
-    console.error('❌ 认证状态同步失败:', error)
+    errorLog('❌ 认证状态同步失败:', error)
   }
 }
 

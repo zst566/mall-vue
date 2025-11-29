@@ -4,6 +4,7 @@
  */
 import { BaseApiService } from './api'
 import type { NavigationCategoryConfig, HomepageBannerConfig } from '@/types/homepage'
+import type { Promotion } from '@/types/promotion'
 
 export class HomepageService extends BaseApiService {
   private cache: Map<string, { data: any; timestamp: number }> = new Map()
@@ -103,15 +104,15 @@ export class HomepageService extends BaseApiService {
   /**
    * 获取分类促销列表
    */
-  async getCategoryPromotions(categoryId: string, limit: number = 3): Promise<any[]> {
+  async getCategoryPromotions(categoryId: string, limit: number = 3): Promise<Promotion[]> {
     const cacheKey = `category-promotions-${categoryId}-${limit}`
-    const cached = this.getCached<any[]>(cacheKey)
+    const cached = this.getCached<Promotion[]>(cacheKey)
     if (cached) {
       return cached
     }
 
     try {
-      const data = await this.get<any[]>('/homepage/category-promotions', {
+      const data = await this.get<Promotion[]>('/homepage/category-promotions', {
         params: {
           categoryId,
           limit,
@@ -139,13 +140,13 @@ export class HomepageService extends BaseApiService {
   async getHomepageData(): Promise<{
     banners: HomepageBannerConfig[]
     carouselConfig: { autoRotateInterval: number; bannerFullWidth: boolean }
-    navigationCategories: Array<NavigationCategoryConfig & { promotions: any[] }>
+    navigationCategories: Array<NavigationCategoryConfig & { promotions: Promotion[] }>
   }> {
     const cacheKey = 'homepage-data'
     const cached = this.getCached<{
       banners: HomepageBannerConfig[]
-      carouselConfig: { autoRotateInterval: number }
-      navigationCategories: Array<NavigationCategoryConfig & { promotions: any[] }>
+      carouselConfig: { autoRotateInterval: number; bannerFullWidth: boolean }
+      navigationCategories: Array<NavigationCategoryConfig & { promotions: Promotion[] }>
     }>(cacheKey)
 
     if (cached) {
@@ -156,7 +157,7 @@ export class HomepageService extends BaseApiService {
       const data = await this.get<{
         banners: HomepageBannerConfig[]
         carouselConfig: { autoRotateInterval: number; bannerFullWidth?: boolean }
-        navigationCategories: Array<NavigationCategoryConfig & { promotions: any[] }>
+        navigationCategories: Array<NavigationCategoryConfig & { promotions: Promotion[] }>
       }>('/homepage/data')
 
       const normalized = {

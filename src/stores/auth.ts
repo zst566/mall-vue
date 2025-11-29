@@ -4,6 +4,7 @@ import type { User, AuthResponse, UserRole } from '@/types'
 import type { LoginCredentials } from '@/types/user'
 import { authService } from '@/services/auth'
 import { usePermission } from '@/utils/permission'
+import { debugLog, debugWarn, errorLog } from '@/utils/logger'
 
 export const useAuthStore = defineStore('auth', () => {
   // 状态
@@ -18,25 +19,25 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 初始化时从localStorage恢复状态
   const initializeFromStorage = () => {
-    console.log('🔐 开始从LocalStorage初始化认证状态')
+    debugLog('🔐 开始从LocalStorage初始化认证状态')
     try {
       const savedToken = localStorage.getItem('token')
       const savedUser = localStorage.getItem('user')
       const savedRefreshToken = localStorage.getItem('refreshToken')
 
-      console.log('📦 LocalStorage中的数据:')
-      console.log('  - token:', savedToken ? '存在' : '不存在')
-      console.log('  - user:', savedUser ? '存在' : '不存在')
-      console.log('  - refreshToken:', savedRefreshToken ? '存在' : '不存在')
+      debugLog('📦 LocalStorage中的数据:')
+      debugLog('  - token:', savedToken ? '存在' : '不存在')
+      debugLog('  - user:', savedUser ? '存在' : '不存在')
+      debugLog('  - refreshToken:', savedRefreshToken ? '存在' : '不存在')
 
       if (savedToken) {
         token.value = savedToken
-        console.log('✅ Token已恢复')
+        debugLog('✅ Token已恢复')
       }
 
       if (savedRefreshToken) {
         refreshToken.value = savedRefreshToken
-        console.log('✅ RefreshToken已恢复')
+        debugLog('✅ RefreshToken已恢复')
       }
 
       if (savedUser) {
@@ -45,16 +46,16 @@ export const useAuthStore = defineStore('auth', () => {
         if (parsedUser && parsedUser.role) {
           userRole.value = parsedUser.role
         }
-        console.log('✅ 用户信息已恢复:', parsedUser)
+        debugLog('✅ 用户信息已恢复:', parsedUser)
       }
       
-      console.log('🔐 认证状态初始化完成')
-      console.log('📊 当前状态:')
-      console.log('  - hasToken:', !!token.value)
-      console.log('  - hasUser:', !!user.value)
-      console.log('  - userRole:', userRole.value)
+      debugLog('🔐 认证状态初始化完成')
+      debugLog('📊 当前状态:')
+      debugLog('  - hasToken:', !!token.value)
+      debugLog('  - hasUser:', !!user.value)
+      debugLog('  - userRole:', userRole.value)
     } catch (error) {
-      console.error('❌ 从LocalStorage初始化认证状态失败:', error)
+      errorLog('❌ 从LocalStorage初始化认证状态失败:', error)
       clearAuth()
     }
   }
