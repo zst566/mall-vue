@@ -97,17 +97,34 @@
       />
 
       <div class="promotion-meta">
-        <div class="meta-item">
+        <div class="meta-item meta-item-quantity">
           <span class="meta-label">剩余数量</span>
           <span class="meta-value">{{ leftQuantity }} 件</span>
         </div>
-        <div class="meta-item">
+        <div class="meta-item meta-item-quantity">
           <span class="meta-label">已售数量</span>
           <span class="meta-value">{{ selectedVariant?.soldQuantity || promotion.soldQuantity || 0 }} 件</span>
         </div>
-        <div class="meta-item">
+        <div class="meta-item meta-item-time">
           <span class="meta-label">活动时间</span>
           <span class="meta-value">{{ formatDateRange(promotion.startTime, promotion.endTime) }}</span>
+        </div>
+      </div>
+
+      <!-- 商铺信息 -->
+      <div class="shop-info" v-if="promotion.shop && (promotion.shop.shopCode || promotion.shop.floor)">
+        <div class="shop-info-header">
+          <van-icon name="shop-o" class="shop-icon" />
+          <span class="shop-info-title">商铺信息</span>
+        </div>
+        <div class="shop-info-content">
+          <div class="shop-info-item">
+            <span class="shop-info-label" v-if="promotion.shop.shopCode">商铺编号</span>
+            <span class="shop-info-value" v-if="promotion.shop.shopCode">{{ promotion.shop.shopCode }}</span>
+            <span class="shop-info-separator" v-if="promotion.shop.shopCode && promotion.shop.floor">·</span>
+            <span class="shop-info-label" v-if="promotion.shop.floor">楼层</span>
+            <span class="shop-info-value" v-if="promotion.shop.floor">{{ promotion.shop.floor }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -308,6 +325,7 @@
     settlementPrice: 0, // 结算价（积分兑换模式）
     pointsValue: 0, // 积分价值（积分兑换模式）
     variants: [] as any[], // 规格列表
+    shop: null as { id: string; shopCode: string; floor?: string | null; area?: string | null; tenantName?: string | null } | null, // 关联商铺信息
   })
 
   // 规格选择
@@ -912,6 +930,7 @@
         originalPrice: number
         promotionQuantity: number
         soldQuantity: number
+        shop?: { id: string; shopCode: string; floor?: string | null; area?: string | null; tenantName?: string | null } | null // 关联商铺信息
         startTime: string
         endTime: string
         images: any
@@ -952,6 +971,7 @@
         promotionMode: data.promotionMode || '',
         settlementPrice: data.settlementPrice || 0,
         pointsValue: data.pointsValue || 0,
+        shop: data.shop || null, // 关联商铺信息
       })
 
       // 初始化收藏状态
@@ -1353,7 +1373,7 @@
 
     .promotion-meta {
       display: flex;
-      gap: 16px;
+      gap: 12px;
       padding-top: 12px;
       border-top: 1px solid var(--van-border-color);
 
@@ -1361,6 +1381,7 @@
         display: flex;
         flex-direction: column;
         gap: 4px;
+        flex: 0 0 auto;
 
         .meta-label {
           font-size: 12px;
@@ -1371,6 +1392,76 @@
           font-size: 14px;
           font-weight: 600;
           color: var(--van-text-color);
+          word-break: keep-all;
+          white-space: nowrap;
+        }
+
+        &.meta-item-quantity {
+          flex: 0 0 80px;
+          min-width: 70px;
+        }
+
+        &.meta-item-time {
+          flex: 1 1 auto;
+          min-width: 0;
+        }
+      }
+    }
+
+    .shop-info {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--van-border-color);
+
+      .shop-info-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+
+        .shop-icon {
+          font-size: 18px;
+          color: var(--primary-color);
+        }
+
+        .shop-info-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--van-text-color);
+        }
+      }
+
+      .shop-info-content {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        .shop-info-item {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 8px;
+          padding: 10px 12px;
+          background-color: var(--van-background-color-light);
+          border-radius: 8px;
+
+          .shop-info-label {
+            font-size: 14px;
+            color: var(--van-text-color-2);
+            white-space: nowrap;
+          }
+
+          .shop-info-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--van-text-color);
+            white-space: nowrap;
+          }
+
+          .shop-info-separator {
+            font-size: 14px;
+            color: var(--van-text-color-3);
+            margin: 0 4px;
+          }
         }
       }
     }

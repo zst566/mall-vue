@@ -227,7 +227,22 @@
         <van-button type="default" block @click="cancelOrder">取消订单</van-button>
       </template>
       <template v-else-if="order.status === 'paid'">
-        <van-button type="danger" block @click="goToRefundRequest">申请退款</van-button>
+        <van-button 
+          type="danger" 
+          block 
+          :disabled="!canRefund"
+          @click="goToRefundRequest"
+        >
+          申请退款
+        </van-button>
+        <div v-if="!canRefund" class="refund-disabled-tip">
+          <van-notice-bar
+            color="#ff976a"
+            background="#fff7e6"
+            left-icon="info-o"
+            :text="refundDisabledReason"
+          />
+        </div>
         <van-button type="default" block @click="goToProducts">继续购物</van-button>
       </template>
       <template v-else-if="order.status === 'refund_requested'">
@@ -406,6 +421,45 @@
       return 0 // 已支付
     }
     return 0
+  })
+
+  // 检查是否允许退款
+  const canRefund = computed(() => {
+    // 如果订单状态不是已支付，不允许退款
+    if (order.value.status !== 'paid') {
+      return false
+    }
+
+    // 检查订单项中是否有促销活动，以及促销活动的退款规则
+    if (order.value.items && order.value.items.length > 0) {
+      for (const item of order.value.items) {
+        // 从订单项中获取促销活动信息（可能来自 item.promotion 或从后端返回的 useRules）
+        const promotion = (item as any).promotion
+        if (promotion && promotion.useRules) {
+          const useRules = promotion.useRules
+          // 如果 allowRefund 为 false，则不允许退款
+          if (useRules.allowRefund === false) {
+            return false
+          }
+        }
+      }
+    }
+
+    // 默认允许退款（向后兼容）
+    return true
+  })
+
+  // 退款被禁用的原因
+  const refundDisabledReason = computed(() => {
+    if (order.value.items && order.value.items.length > 0) {
+      for (const item of order.value.items) {
+        const promotion = (item as any).promotion
+        if (promotion && promotion.useRules && promotion.useRules.allowRefund === false) {
+          return '促销活动规则为不可退'
+        }
+      }
+    }
+    return '该订单不支持退款'
   })
 
   // 获取状态标签
@@ -664,6 +718,9 @@
       let promotionEndTime: string | null = null
       const itemsWithOriginalPrice = await Promise.all(
         (orderData.items || []).map(async (item: any) => {
+          // 优先使用订单项中已有的促销活动信息（包含 useRules）
+          const existingPromotion = item.promotion
+          
           try {
             // 尝试从促销活动API获取原价、结束时间和商家信息
             if (item.productId) {
@@ -671,6 +728,7 @@
                 originalPrice: number
                 salePrice: number
                 endTime: string
+                usageRules?: any
                 merchant?: {
                   name?: string
                   address?: string
@@ -701,7 +759,12 @@
                   quantity: item.quantity || 1,
                   merchantName,
                   merchantAddress,
-                  merchantFloor
+                  merchantFloor,
+                  // 保留促销活动信息，包括 useRules（优先使用订单项中的，否则使用API返回的）
+                  promotion: existingPromotion || {
+                    ...promotionData,
+                    useRules: promotionData.usageRules || existingPromotion?.useRules
+                  }
                 }
               }
             }
@@ -717,7 +780,9 @@
             quantity: item.quantity || 1,
             merchantName: '',
             merchantAddress: '',
-            merchantFloor: ''
+            merchantFloor: '',
+            // 保留订单项中已有的促销活动信息（如果存在）
+            promotion: existingPromotion || null
           }
         })
       )
