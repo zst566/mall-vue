@@ -69,7 +69,7 @@
     <div class="product-info" v-if="order.items && order.items.length > 0">
       <h3>促销活动信息</h3>
       <div class="product-item" v-for="item in order.items" :key="item.id" @click="goToProductDetail(item)">
-        <img :src="item.productImage || '/images/default-product.jpg'" :alt="item.productName" class="product-image" />
+        <img :src="getProductImageUrl(item.productImage)" :alt="item.productName" class="product-image" />
         <div class="product-details">
           <h4 class="product-name">{{ item.productName }}</h4>
           <div class="product-specs">
@@ -357,6 +357,26 @@
   import { orderService } from '@/services/orders'
   import { api } from '@/services/api'
 
+  // 获取促销商品图片URL（兼容相对路径和完整URL）
+  const getProductImageUrl = (url: string | undefined | null): string => {
+    if (!url) return '/images/default-product.jpg'
+    // 已经是完整URL，直接返回
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url
+    }
+    // 已经是 /api 开头，直接返回
+    if (url.startsWith('/api/')) {
+      return url
+    }
+    // 以 / 开头的相对路径，拼接 API 基础地址
+    if (url.startsWith('/')) {
+      const baseURL = import.meta.env.VITE_API_BASE_URL || '/api'
+      return `${baseURL}${url}`
+    }
+    // 其它情况，原样返回（例如 OSS 完整地址或兼容旧数据）
+    return url
+  }
+
   const router = useRouter()
   const route = useRoute()
 
@@ -640,21 +660,28 @@
 
   // 跳转到商品/促销活动详情页
   const goToProductDetail = (item: any) => {
-    // 优先使用 productId，如果没有则使用 productId 字段
+    // 优先使用订单上的 promotionId 或 订单项中附带的 promotion.id 作为促销活动 ID
+    const promotionIdFromOrder = (order.value as any).promotionId || (item as any).promotion?.id
+
+    // 商品维度的 productId（用于普通商品详情）
     const productId = item.productId || item.id
-    if (!productId) {
+
+    if (!promotionIdFromOrder && !productId) {
       showToast('商品信息不完整')
       return
     }
     
-    // 检查是否是促销活动（根据商品名称或类型判断，或者从订单备注中获取）
-    // 如果订单备注中包含"促销活动"，则跳转到促销活动详情页
-    const isPromotion = order.value.notes?.includes('促销活动') || item.productName?.includes('促销活动')
+    // 判断是否为促销活动订单
+    const isPromotion = !!promotionIdFromOrder || order.value.notes?.includes('促销活动') || item.productName?.includes('促销活动')
     
-    if (isPromotion) {
-      router.push({ name: 'PromotionDetail', params: { id: productId } })
-    } else {
+    if (isPromotion && promotionIdFromOrder) {
+      // 对于促销订单，使用促销活动 ID 跳转促销详情，避免错误地用 productId 当作促销 ID
+      router.push({ name: 'PromotionDetail', params: { id: String(promotionIdFromOrder) } })
+    } else if (productId) {
+      // 普通商品或没有促销 ID 的场景，仍然按商品详情跳转
       router.push({ name: 'ProductDetail', params: { id: productId } })
+    } else {
+      showToast('无法跳转到详情')
     }
   }
 
@@ -715,73 +742,39 @@
       }
       
       // 加载促销活动原价信息、结束时间和商家信息
+      // 暂时停用额外的 /promotions/{id} 请求，避免 404 干扰调试
+      // 后续如需重新启用，可在此处基于 promotionId 调用促销详情接口
       let promotionEndTime: string | null = null
       const itemsWithOriginalPrice = await Promise.all(
         (orderData.items || []).map(async (item: any) => {
-          // 优先使用订单项中已有的促销活动信息（包含 useRules）
           const existingPromotion = item.promotion
-          
-          try {
-            // 尝试从促销活动API获取原价、结束时间和商家信息
-            if (item.productId) {
-              const promotionData = await api.get<{
-                originalPrice: number
-                salePrice: number
-                endTime: string
-                usageRules?: any
-                merchant?: {
-                  name?: string
-                  address?: string
-                  floor?: string
-                }
-                merchantName?: string
-                merchantAddress?: string
-                merchantFloor?: string
-              }>(`/promotions/${item.productId}`).catch(() => null)
-              
-              if (promotionData) {
-                // 保存第一个促销活动的结束时间
-                if (!promotionEndTime && promotionData.endTime) {
-                  promotionEndTime = promotionData.endTime
-                }
-                
-                // 获取商家信息（优先使用直接字段，否则从merchant对象获取）
-                const merchantName = promotionData.merchantName || promotionData.merchant?.name || ''
-                const merchantAddress = promotionData.merchantAddress || promotionData.merchant?.address || ''
-                const merchantFloor = promotionData.merchantFloor || promotionData.merchant?.floor || ''
-                
-                return {
-                  ...item,
-                  originalPrice: typeof promotionData.originalPrice === 'string' 
-                    ? parseFloat(promotionData.originalPrice) 
-                    : (promotionData.originalPrice || 0),
-                  price: typeof item.price === 'string' ? parseFloat(item.price) : (item.price || 0),
-                  quantity: item.quantity || 1,
-                  merchantName,
-                  merchantAddress,
-                  merchantFloor,
-                  // 保留促销活动信息，包括 useRules（优先使用订单项中的，否则使用API返回的）
-                  promotion: existingPromotion || {
-                    ...promotionData,
-                    useRules: promotionData.usageRules || existingPromotion?.useRules
-                  }
-                }
-              }
-            }
-          } catch (err) {
-            console.warn('获取促销活动信息失败:', err)
+
+          // 如果订单项或订单本身已经带有促销信息，则优先使用其中的原价和结束时间
+          const originalPriceFromPromotion =
+            (existingPromotion as any)?.originalPrice ??
+            (item as any).originalPrice ??
+            item.price
+
+          const endTimeFromPromotion =
+            (existingPromotion as any)?.endTime ??
+            (orderData as any).expiryDate ??
+            null
+
+          if (!promotionEndTime && endTimeFromPromotion) {
+            promotionEndTime = endTimeFromPromotion
           }
-          
-          // 如果没有获取到原价，使用价格作为原价（兼容处理）
+
           return {
             ...item,
-            originalPrice: typeof item.price === 'string' ? parseFloat(item.price) : (item.price || 0),
-            price: typeof item.price === 'string' ? parseFloat(item.price) : (item.price || 0),
+            originalPrice:
+              typeof originalPriceFromPromotion === 'string'
+                ? parseFloat(originalPriceFromPromotion)
+                : originalPriceFromPromotion || 0,
+            price: typeof item.price === 'string' ? parseFloat(item.price) : item.price || 0,
             quantity: item.quantity || 1,
-            merchantName: '',
-            merchantAddress: '',
-            merchantFloor: '',
-            // 保留订单项中已有的促销活动信息（如果存在）
+            merchantName: (item as any).merchantName || '',
+            merchantAddress: (item as any).merchantAddress || '',
+            merchantFloor: (item as any).merchantFloor || '',
             promotion: existingPromotion || null
           }
         })
@@ -811,6 +804,8 @@
         contactName: (orderData as any).contactName || '',
         contactPhone: (orderData as any).contactPhone || '',
         notes: (orderData as any).notes || (orderData as any).remark || '',
+        // 促销活动 ID（如果有），用于前端跳转促销详情和查询促销信息
+        promotionId: (orderData as any).promotionId || null,
         items: itemsWithOriginalPrice
       }
       

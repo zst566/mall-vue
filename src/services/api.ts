@@ -72,9 +72,20 @@ export const createApiInstance = (): AxiosInstance => {
       const config = error.config
       const requestId = config?.headers?.['X-Request-ID']
 
+      // 工具方法：构造一个保留 response/config 的错误对象，方便重试逻辑识别状态码
+      const buildError = (message: string) => {
+        const customError: any = new Error(message)
+        customError.response = error.response
+        customError.config = error.config
+        return customError
+      }
+
       // 网络错误处理
       if (!error.response) {
-        console.error(`[${config?.method?.toUpperCase()}] ${config?.url} [${requestId}] - Network Error`, error.message)
+        console.error(
+          `[${config?.method?.toUpperCase()}] ${config?.url} [${requestId}] - Network Error`,
+          error.message
+        )
         throw new Error('网络连接失败，请检查网络设置')
       }
 
@@ -94,10 +105,7 @@ export const createApiInstance = (): AxiosInstance => {
         // 检查是否是"不是本商户的订单"错误（优先处理）
         if (data?.error?.includes('不是本商户的订单') || data?.message?.includes('不是本商户的订单')) {
           // 创建一个新的错误对象，保留 response 信息，确保重试逻辑能识别
-          const customError: any = new Error('不是本商户的订单！')
-          customError.response = error.response
-          customError.config = error.config
-          throw customError
+          throw buildError('不是本商户的订单！')
         }
         
         // 检查是否是商户权限问题
@@ -107,10 +115,7 @@ export const createApiInstance = (): AxiosInstance => {
           if (typeof window !== 'undefined') {
             window.location.href = '/customer/merchant-binding'
           }
-          const customError: any = new Error('商户权限已被取消')
-          customError.response = error.response
-          customError.config = error.config
-          throw customError
+          throw buildError('商户权限已被取消')
         }
       }
 
@@ -135,7 +140,7 @@ export const createApiInstance = (): AxiosInstance => {
         // 如果是容错接口，只记录错误，不触发重新登录或清除 token
         if (isTolerantEndpoint) {
           console.warn('⚠️ 容错接口返回 401，不触发重新登录:', config.url)
-          throw new Error('获取用户信息失败，请稍后重试')
+          throw buildError('获取用户信息失败，请稍后重试')
         }
         
         console.log('🔐 关键接口返回 401，尝试请求小程序重新登录')
@@ -169,7 +174,7 @@ export const createApiInstance = (): AxiosInstance => {
                   return instance.request(config)
                 }
               } catch (loginError) {
-                console.error('❌ 小程序重新登录失败:', loginError)
+            console.error('❌ 小程序重新登录失败:', loginError)
               }
             }
             
@@ -203,12 +208,12 @@ export const createApiInstance = (): AxiosInstance => {
 
       // 服务器错误处理
       if (status >= 500) {
-        throw new Error('服务器内部错误，请稍后重试')
+        throw buildError('服务器内部错误，请稍后重试')
       }
 
-      // 业务错误处理
+      // 业务错误处理（4xx）
       const errorMessage = data.message || data.error || '请求失败'
-      throw new Error(errorMessage)
+      throw buildError(errorMessage)
     }
   )
 

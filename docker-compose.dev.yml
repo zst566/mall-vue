@@ -2,7 +2,8 @@ version: '3'
 
 services:
   mall-vue:
-    image: node:18-alpine
+    # 开发环境使用本机架构的 Node 20 镜像
+    image: node:20-alpine-arm64
     container_name: mall-vue-dev
     working_dir: /app
     command: sh -c "npm install --legacy-peer-deps && npm run dev -- --host 0.0.0.0"
