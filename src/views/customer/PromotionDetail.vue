@@ -46,12 +46,27 @@
       <div class="price-section">
         <div class="current-price">
           <span class="price-symbol">¥</span>
-          <span class="price-value">{{ formatPrice(selectedVariant?.salePrice || promotion.salePrice) }}</span>
+          <span class="price-value">
+            {{ formatPrice(isMallSubsidy ? finalAmount : (selectedVariant?.salePrice || promotion.salePrice)) }}
+          </span>
         </div>
-        <div class="original-price" v-if="selectedVariant?.originalPrice && selectedVariant.originalPrice > selectedVariant.salePrice">
+        <!-- 商场补贴模式下：用补贴后实付价作为主价格，原售价作为划线价 -->
+        <div v-if="isMallSubsidy" class="subsidy-original-price">
+          <span class="original-symbol">¥</span>
+          <span class="original-value">
+            {{ formatPrice(selectedVariant?.salePrice || promotion.salePrice) }}
+          </span>
+        </div>
+        <!-- 非商场补贴模式下，展示原价和节省金额 -->
+        <div
+          class="original-price"
+          v-else-if="selectedVariant?.originalPrice && selectedVariant.originalPrice > selectedVariant.salePrice"
+        >
           <span class="original-symbol">¥</span>
           <span class="original-value">{{ formatPrice(selectedVariant.originalPrice) }}</span>
-          <span class="discount-text">省¥{{ formatPrice(selectedVariant.originalPrice - selectedVariant.salePrice) }}</span>
+          <span class="discount-text">
+            省¥{{ formatPrice(selectedVariant.originalPrice - selectedVariant.salePrice) }}
+          </span>
         </div>
       </div>
 
@@ -533,6 +548,27 @@
       return Math.max(0, (selectedVariant.value.promotionQuantity || 0) - (selectedVariant.value.soldQuantity || 0))
     }
     return Math.max(0, (promotion.promotionQuantity || 0) - (promotion.soldQuantity || 0))
+  })
+
+  // 判断是否为商场补贴模式
+  const isMallSubsidy = computed(() => {
+    const mode = selectedVariant.value?.promotionMode || promotion.promotionMode
+    const subsidy = selectedVariant.value?.subsidyAmount || 0
+    return mode === 'mall_subsidy' && subsidy > 0
+  })
+
+  // 获取补贴金额
+  const subsidyAmount = computed(() => {
+    if (!isMallSubsidy.value) return 0
+    return selectedVariant.value?.subsidyAmount || 0
+  })
+
+  // 计算实付金额（商场补贴模式下）
+  const finalAmount = computed(() => {
+    if (!isMallSubsidy.value) return 0
+    const salePrice = selectedVariant.value?.salePrice || promotion.salePrice
+    const subsidy = subsidyAmount.value
+    return Math.max(0, salePrice - subsidy) // 确保实付金额不为负数
   })
 
   // 判断活动是否处于有效期内
@@ -1234,8 +1270,8 @@
 
     .price-section {
       display: flex;
-      align-items: baseline;
-      gap: 12px;
+      flex-direction: column;
+      gap: 8px;
       margin-bottom: 12px;
 
       .current-price {
@@ -1253,6 +1289,25 @@
           font-weight: 800;
           color: var(--primary-dark);
           text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 0 4px rgba(0, 0, 0, 0.05);
+        }
+      }
+
+      // 商场补贴模式下的划线原价
+      .subsidy-original-price {
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+        margin-left: 2px;
+
+        .original-symbol {
+          font-size: 14px;
+          color: var(--van-text-color-3);
+        }
+
+        .original-value {
+          font-size: 16px;
+          color: var(--van-text-color-3);
+          text-decoration: line-through;
         }
       }
 

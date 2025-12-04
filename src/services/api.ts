@@ -1,5 +1,4 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios'
-import { useAuthStore } from '@/stores/auth'
 import type { ApiResponse, ApiError } from '@/types'
 import { webViewBridge } from '@/utils/webview-bridge'
 import { showToast } from 'vant'
@@ -9,6 +8,16 @@ import { showToast } from 'vant'
 const API_BASE_URL = '/api'
 const API_TIMEOUT = 10000
 const MAX_RETRIES = 3
+
+// 懒加载 useAuthStore，避免循环依赖
+let _authStoreModule: any = null
+const getAuthStore = async () => {
+  if (!_authStoreModule) {
+    // 使用动态导入避免循环依赖
+    _authStoreModule = await import('@/stores/auth')
+  }
+  return _authStoreModule.useAuthStore()
+}
 
 // 创建axios实例
 export const createApiInstance = (): AxiosInstance => {
@@ -24,7 +33,7 @@ export const createApiInstance = (): AxiosInstance => {
   // 请求拦截器
   instance.interceptors.request.use(
     async (config) => {
-      const authStore = useAuthStore()
+      const authStore = await getAuthStore()
 
       // 在发送请求前检查 token 是否有效（只检查是否过期）
       if (authStore.token) {
@@ -100,7 +109,7 @@ export const createApiInstance = (): AxiosInstance => {
       // 商户相关API的403错误处理（权限被取消）
       if (status === 403 && config.url?.includes('/merchant')) {
         console.log('🔐 商户API返回 403 权限不足')
-        const authStore = useAuthStore()
+        const authStore = await getAuthStore()
         
         // 检查是否是"不是本商户的订单"错误（优先处理）
         if (data?.error?.includes('不是本商户的订单') || data?.message?.includes('不是本商户的订单')) {
@@ -145,7 +154,7 @@ export const createApiInstance = (): AxiosInstance => {
         
         console.log('🔐 关键接口返回 401，尝试请求小程序重新登录')
         
-        const authStore = useAuthStore()
+        const authStore = await getAuthStore()
         
         // 如果不是刷新token的请求，尝试请求小程序重新登录
         if (!config.url?.includes('/auth/refresh') && !config.url?.includes('/auth/silent-login')) {
@@ -202,6 +211,7 @@ export const createApiInstance = (): AxiosInstance => {
           }
         } else {
           // 刷新token请求失败，清除认证信息
+          const authStore = await getAuthStore()
           authStore.clearAuth()
         }
       }
@@ -258,15 +268,29 @@ const retryRequest = async (fn: () => Promise<AxiosResponse>, retries: number = 
   }
 }
 
-// 通用API客户端
-export const apiClient = createApiInstance()
+// 🔥 修复循环依赖：延迟创建 apiClient，避免在 BaseApiService 定义时访问
+let _apiClient: AxiosInstance | null = null
+
+// 延迟获取 apiClient 的函数
+function getApiClient(): AxiosInstance {
+  if (!_apiClient) {
+    _apiClient = createApiInstance()
+  }
+  return _apiClient
+}
 
 // 基础API类
 export class BaseApiService {
   protected client: AxiosInstance
 
   constructor(client?: AxiosInstance) {
-    this.client = client || apiClient
+    // 延迟获取 apiClient，避免循环依赖
+    if (client) {
+      this.client = client
+    } else {
+      // 使用 getter 延迟访问 apiClient
+      this.client = getApiClient()
+    }
   }
 
   // GET请求
@@ -345,6 +369,9 @@ export class BaseApiService {
     return response.data.data
   }
 }
+
+// 通用API客户端（延迟创建，避免循环依赖）
+export const apiClient = getApiClient()
 
 // 生成请求ID
 function generateRequestId(): string {
