@@ -177,7 +177,11 @@ export class HomepageService extends BaseApiService {
         ...data,
         carouselConfig: {
           autoRotateInterval: data.carouselConfig?.autoRotateInterval ?? 3,
-          bannerFullWidth: data.carouselConfig?.bannerFullWidth ?? true,
+          // 只有当 bannerFullWidth 为 undefined 或 null 时才使用默认值 true
+          // 如果后端明确返回 false，应该使用 false
+          bannerFullWidth: data.carouselConfig?.bannerFullWidth !== undefined 
+            ? data.carouselConfig.bannerFullWidth 
+            : true,
         },
       }
 

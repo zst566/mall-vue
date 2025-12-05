@@ -1,23 +1,25 @@
 <template>
   <div class="banner-section">
-    <div 
-      v-if="mainImages && mainImages.length > 0"
-      v-for="(image, index) in mainImages" 
-      :key="image.id || index"
-      class="banner-image"
-      :style="{
-        '--banner-image-url': `url('${getImageUrl(image)}')`,
-        '--animation-duration': getAnimationDuration(image)
-      }"
+    <van-swipe 
+      v-if="mainImages && mainImages.length > 0" 
+      :autoplay="3000" 
+      indicator-color="white"
+      class="banner-swipe"
     >
-      <!-- 模糊背景层 -->
-      <div class="banner-background-blur"></div>
-      <!-- 主图片层 -->
-      <div 
-        class="banner-image-main"
-        :class="getAnimationClass(image)"
-      ></div>
-    </div>
+      <van-swipe-item v-for="(image, index) in mainImages" :key="index">
+        <div 
+          class="banner-image"
+          :style="{
+            '--banner-image-url': `url('${getImageUrl(image)}')`
+          }"
+        >
+          <!-- 模糊背景层 -->
+          <div class="banner-background-blur"></div>
+          <!-- 主图片层 -->
+          <div class="banner-image-main"></div>
+        </div>
+      </van-swipe-item>
+    </van-swipe>
     <PlaceholderImage 
       v-else 
       width="100%" 
@@ -28,38 +30,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch, onMounted } from 'vue'
 import PlaceholderImage from '@/components/common/PlaceholderImage.vue'
 import { usePromotionImages } from '@/composables/usePromotionImages'
 
 interface Props {
-  images?: any[] | null
-  fullWidth?: boolean
+  images: any[] | null
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  images: null,
-  fullWidth: true
-})
+const props = defineProps<Props>()
 
 // 使用 composable 处理图片
 const imagesRef = computed(() => props.images)
 const { mainImages, getImageUrl } = usePromotionImages(imagesRef)
-
-// 获取动画类名
-const getAnimationClass = (image: any): string => {
-  if (!image || typeof image !== 'object') return ''
-  const animationType = image.animationType || 'breathing'
-  if (animationType === 'none') return ''
-  return `banner-animation-${animationType}`
-}
-
-// 获取动画时长
-const getAnimationDuration = (image: any): string => {
-  if (!image || typeof image !== 'object') return '7s'
-  const duration = image.breathingDuration || 7
-  return `${duration}s`
-}
 </script>
 
 <style lang="scss" scoped>
@@ -70,6 +53,10 @@ const getAnimationDuration = (image: any): string => {
 .banner-section {
   width: 100%;
   @include glassmorphism-card(light);
+
+  .banner-swipe {
+    width: 100%;
+  }
 
   .banner-image {
     width: 100%;
@@ -116,58 +103,12 @@ const getAnimationDuration = (image: any): string => {
       transform: translateZ(0); // 启用GPU加速
       backface-visibility: hidden; // 优化渲染性能
       -webkit-backface-visibility: hidden; // Safari兼容
-      
-      // 微动态效果：呼吸放大
-      &.banner-animation-breathing {
-        animation: breathing var(--animation-duration, 7s) ease-in-out infinite;
-      }
-      
-      // 微动态效果：随机流光
-      &.banner-animation-shimmer {
-        overflow: hidden;
-        
-        &::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(
-            90deg,
-            transparent,
-            rgba(255, 255, 255, 0.3),
-            transparent
-          );
-          animation: shimmer 3s ease-in-out infinite;
-          z-index: 2;
-          pointer-events: none;
-        }
-      }
     }
   }
 
   .banner-placeholder {
     width: 100%;
     height: 400px;
-  }
-}
-
-@keyframes breathing {
-  0%, 100% {
-    transform: scale(1) translateZ(0);
-  }
-  50% {
-    transform: scale(1.02) translateZ(0);
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 100%;
   }
 }
 </style>

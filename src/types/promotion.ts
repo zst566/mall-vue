@@ -17,16 +17,37 @@ export interface PromotionMerchant {
   address?: string
 }
 
-// 促销活动规格（默认规格信息）
+// 促销活动规格（详情页完整版）
 export interface PromotionVariant {
-  id?: string
+  id: string
+  name: string
+  salePrice: number
+  originalPrice?: number
+  promotionQuantity: number
+  soldQuantity: number
   promotionMode?: 'mall_subsidy' | 'normal_split' | 'points_exchange'
   subsidyAmount?: number
-  salePrice?: number
-  originalPrice?: number | null
-  referencePrice?: number | null
+  settlementPrice?: number
+  pointsValue?: number
   isDefault?: boolean
+  sortOrder?: number
   [key: string]: any // 允许其他字段以保持向后兼容
+}
+
+// 服务特色标签
+export interface PromotionTag {
+  id: string
+  name: string
+  description?: string | null
+}
+
+// 商铺信息
+export interface PromotionShop {
+  id: string
+  shopCode: string
+  floor?: string | null
+  area?: string | null
+  tenantName?: string | null
 }
 
 // 促销活动基础信息（移动端首页展示用）
@@ -56,4 +77,24 @@ export interface Promotion {
   status?: string
   // 其他可选字段
   [key: string]: any // 允许其他字段以保持向后兼容
+}
+
+// 促销活动详情（详情页完整版）
+export interface PromotionDetail extends Promotion {
+  id: string
+  name: string
+  description?: string
+  salePrice: number
+  originalPrice: number
+  promotionQuantity: number
+  soldQuantity: number
+  startTime: string
+  endTime: string
+  images: any
+  promotionMode?: 'mall_subsidy' | 'normal_split' | 'points_exchange'
+  settlementPrice?: number
+  pointsValue?: number
+  variants?: PromotionVariant[]
+  tags?: PromotionTag[]
+  shop?: PromotionShop | null
 }

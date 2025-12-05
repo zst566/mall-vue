@@ -21,7 +21,7 @@
       <!-- 正常内容 -->
       <template v-else>
         <!-- 顶部横幅 -->
-        <PromotionBanner :banners="banners" :full-width="bannerFullWidth" />
+        <HomepageBannerCarousel :banners="banners" :carousel-config="carouselConfig" />
 
         <!-- 分类导航 -->
         <CategoryNavigation :categories="navigationCategories" />
@@ -49,7 +49,7 @@ import { ref, onMounted } from 'vue'
 import { homepageService } from '@/services/homepage'
 import type { HomepageBannerConfig, NavigationCategoryConfig } from '@/types/homepage'
 import type { Promotion } from '@/types/promotion'
-import PromotionBanner from '@/components/customer/PromotionBanner.vue'
+import HomepageBannerCarousel from '@/components/customer/HomepageBannerCarousel.vue'
 import CategoryNavigation from '@/components/customer/CategoryNavigation.vue'
 import CategoryPromotions from '@/components/customer/CategoryPromotions.vue'
 import { useAppStore } from '@/stores/app'
@@ -61,7 +61,7 @@ import { getThemeManager } from '@/utils/theme'
 const banners = ref<HomepageBannerConfig[]>([])
 const navigationCategories = ref<NavigationCategoryConfig[]>([])
 // 是否使用贯穿式展示首页 Banner（左右不留白）
-const bannerFullWidth = ref(true)
+const carouselConfig = ref({ autoRotateInterval: 3, bannerFullWidth: true })
 // 常量
 const MAX_RETRY = 3
 
@@ -84,7 +84,14 @@ const loadHomepageData = async (forceRefresh: boolean = false) => {
     // 解构数据并赋值
     banners.value = data.banners
     navigationCategories.value = data.navigationCategories
-    bannerFullWidth.value = data.carouselConfig?.bannerFullWidth ?? true
+    // 只有当 bannerFullWidth 为 undefined 或 null 时才使用默认值 true
+    // 如果后端明确返回 false，应该使用 false
+    carouselConfig.value = { 
+      autoRotateInterval: data.carouselConfig?.autoRotateInterval ?? 3, 
+      bannerFullWidth: data.carouselConfig?.bannerFullWidth !== undefined 
+        ? data.carouselConfig.bannerFullWidth 
+        : true 
+    }
 
 
     // 成功时重置重试计数
@@ -166,6 +173,9 @@ onMounted(() => {
 
 .home-page {
   padding-bottom: 24px;
+  // 确保左右对称，没有不对称的 padding
+  padding-left: 0;
+  padding-right: 0;
   // 使用主题颜色背景渐变，跟随系统配置
   background: var(--theme-bg-gradient, $glass-bg-gradient);
   background-attachment: fixed;

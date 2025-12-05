@@ -2,7 +2,7 @@
   <div class="promotion-detail-page">
     <!-- 导航栏 -->
     <van-nav-bar
-      :title="promotion?.value?.name || '促销活动详情'"
+      :title="promotion.value.name || '促销活动详情'"
       left-arrow
       @click-left="onClickLeft"
       fixed
@@ -12,11 +12,10 @@
     />
 
     <!-- Banner 主图 -->
-    <PromotionBanner :images="imagesRef" />
+    <PromotionBanner :images="promotion.value.images" />
 
     <!-- 促销活动基本信息 -->
     <PromotionInfo
-      v-if="promotion?.value"
       :promotion="promotion.value"
       :selected-variant="selectedVariant"
       :variants="variants"
@@ -82,8 +81,8 @@ const {
   loadPromotionDetail
 } = usePromotionDetail(promotionId)
 
-// 图片处理 - 直接使用 promotion.value.images 确保响应式更新
-const imagesRef = computed(() => promotion?.value?.images)
+// 图片处理
+const imagesRef = computed(() => promotion.value.images)
 const { mainImages, detailImages } = usePromotionImages(imagesRef)
 
 // 价格计算
@@ -114,7 +113,6 @@ const { isBottomBarVisible, bottomBarStyle } = useBottomBarScroll()
 
 // 活动状态
 const isActivityActiveValue = computed(() => {
-  if (!promotion?.value) return false
   return isActivityActive(promotion.value.startTime, promotion.value.endTime)
 })
 
