@@ -31,17 +31,15 @@
           >
             ¥
           </span>
-          <!-- 补贴模式：红字加粗，小数位缩小50% -->
-          <template v-if="isMallSubsidy(promotion)">
-            <span class="price-value-subsidy">
-              <span class="price-integer">{{ getPriceParts(promotion).integer }}</span>
-              <span v-if="getPriceParts(promotion).decimal" class="price-decimal">{{ getPriceParts(promotion).decimal }}</span>
-            </span>
-          </template>
-          <!-- 非补贴模式：原有样式 -->
-          <template v-else>
-            <span class="price-value">{{ formatPrice(getDisplayPrice(promotion)) }}</span>
-          </template>
+          <!-- 统一所有主要金额：拆分整数和小数部分，小数位缩小50% -->
+          <span 
+            class="price-value"
+            :class="{ 'price-value-subsidy': isMallSubsidy(promotion) }"
+          >
+            <span class="price-integer">{{ getPriceParts(promotion).integer }}</span>
+            <span v-if="getPriceParts(promotion).decimal" class="price-decimal">{{ getPriceParts(promotion).decimal }}</span>
+          </span>
+          <!-- 划线金额：保持原样，不应用角分位缩小规则 -->
           <span
             class="price-original"
             v-if="promotion.originalPrice && promotion.originalPrice > getDisplayPrice(promotion)"
@@ -286,17 +284,11 @@ const handlePromotionClick = (promotion: Promotion) => {
   }
 }
 
+// 统一所有主要金额样式：拆分整数和小数部分，小数位缩小50%
 .price-value {
   font-size: $font-size-lg;
   font-weight: 800;
   color: $primary;
-}
-
-// 补贴模式价格样式：红字加粗
-.price-value-subsidy {
-  font-size: $font-size-lg;
-  font-weight: 800;
-  color: #ee0a24; // 红色
   display: inline-flex;
   align-items: baseline;
   
@@ -307,9 +299,14 @@ const handlePromotionClick = (promotion: Promotion) => {
   }
   
   .price-decimal {
-    font-size: 50%; // 小数位字体缩小50%
+    font-size: 50%; // 角分位字体缩小50%
     font-weight: inherit;
     color: inherit;
+  }
+  
+  // 补贴模式：红字加粗
+  &.price-value-subsidy {
+    color: #ee0a24; // 红色
   }
 }
 

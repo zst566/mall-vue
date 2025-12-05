@@ -4,7 +4,8 @@
       <div class="current-price">
         <span class="price-symbol">¥</span>
         <span class="price-value">
-          {{ formatPrice(isMallSubsidy ? finalAmount : salePrice) }}
+          <span class="price-integer">{{ priceParts.integer }}</span>
+          <span class="price-decimal">.{{ priceParts.decimal }}</span>
         </span>
       </div>
       <!-- 商场补贴模式下：用补贴后实付价作为主价格，原售价作为划线价 -->
@@ -109,7 +110,7 @@ import VariantSelector from '@/components/customer/VariantSelector.vue'
 import { usePromotionTags } from '@/composables/usePromotionTags'
 import { formatDateRange } from '@/utils/promotionHelpers'
 import type { PromotionDetail, PromotionVariant, PromotionTag } from '@/types/promotion'
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 
 interface Props {
   promotion: PromotionDetail
@@ -153,6 +154,18 @@ const handleTagClick = (tagId: string) => {
 watch(() => props.tags, (newTags) => {
   tagsRef.value = newTags
 }, { deep: true })
+
+// 拆分主要金额为整数部分和角分部分
+const priceParts = computed(() => {
+  const price = props.isMallSubsidy ? props.finalAmount : props.salePrice
+  const priceStr = props.formatPrice(price)
+  // 处理可能包含千分位分隔符的情况，如 "1,234.56"
+  const parts = priceStr.replace(/,/g, '').split('.')
+  return {
+    integer: parts[0] || '0',
+    decimal: parts[1] || '00'
+  }
+})
 </script>
 
 <style lang="scss" scoped>
@@ -187,6 +200,18 @@ watch(() => props.tags, (newTags) => {
         font-weight: 800;
         color: var(--primary-dark);
         text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 0 4px rgba(0, 0, 0, 0.05);
+        display: inline-flex;
+        align-items: baseline;
+      }
+
+      .price-integer {
+        font-size: 32px;
+        font-weight: 800;
+      }
+
+      .price-decimal {
+        font-size: 16px; // 50% of 32px
+        font-weight: 800;
       }
     }
 
