@@ -25,8 +25,23 @@
           {{ getMerchantLocation(promotion) }}
         </p>
         <div class="promotion-price">
-          <span class="price-symbol">¥</span>
-          <span class="price-value">{{ formatPrice(promotion.salePrice || promotion.price) }}</span>
+          <span 
+            class="price-symbol"
+            :class="{ 'price-symbol-subsidy': isMallSubsidy(promotion) }"
+          >
+            ¥
+          </span>
+          <!-- 补贴模式：红字加粗，小数位缩小50% -->
+          <template v-if="isMallSubsidy(promotion)">
+            <span class="price-value-subsidy">
+              <span class="price-integer">{{ getPriceParts(promotion).integer }}</span>
+              <span v-if="getPriceParts(promotion).decimal" class="price-decimal">{{ getPriceParts(promotion).decimal }}</span>
+            </span>
+          </template>
+          <!-- 非补贴模式：原有样式 -->
+          <template v-else>
+            <span class="price-value">{{ formatPrice(promotion.salePrice || promotion.price) }}</span>
+          </template>
           <span
             class="price-original"
             v-if="promotion.originalPrice && promotion.originalPrice > ((promotion.salePrice ?? promotion.price ?? 0))"
@@ -78,12 +93,38 @@ const getMerchantLocation = (promotion: Promotion): string | undefined => {
   return undefined
 }
 
+// 判断是否为商场补贴模式
+const isMallSubsidy = (promotion: Promotion): boolean => {
+  const variant = promotion.defaultVariant
+  if (!variant) return false
+  return variant.promotionMode === 'mall_subsidy' && (variant.subsidyAmount || 0) > 0
+}
+
 // 格式化价格
 const formatPrice = (price: number | undefined | null): string => {
   if (price === null || price === undefined || (typeof price !== 'number') || isNaN(price)) {
     return formatMoney(0)
   }
   return formatMoney(price)
+}
+
+// 拆分价格为整数和小数部分（用于补贴模式显示）
+const getPriceParts = (promotion: Promotion): { integer: string; decimal: string } => {
+  const price = promotion.salePrice || promotion.price || 0
+  const formatted = formatMoney(price)
+  // 格式化的价格可能是 "1,234.56" 这样的格式
+  const parts = formatted.split('.')
+  if (parts.length === 2) {
+    return {
+      integer: parts[0], // "1,234"
+      decimal: '.' + parts[1] // ".56"
+    }
+  }
+  // 如果没有小数部分，返回整数部分
+  return {
+    integer: formatted,
+    decimal: ''
+  }
 }
 
 // 处理促销点击
@@ -225,12 +266,37 @@ const handlePromotionClick = (promotion: Promotion) => {
   font-size: $font-size-sm;
   font-weight: 700;
   color: $primary;
+  
+  &.price-symbol-subsidy {
+    color: #ee0a24; // 红色
+  }
 }
 
 .price-value {
   font-size: $font-size-lg;
   font-weight: 800;
   color: $primary;
+}
+
+// 补贴模式价格样式：红字加粗
+.price-value-subsidy {
+  font-size: $font-size-lg;
+  font-weight: 800;
+  color: #ee0a24; // 红色
+  display: inline-flex;
+  align-items: baseline;
+  
+  .price-integer {
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+  }
+  
+  .price-decimal {
+    font-size: 50%; // 小数位字体缩小50%
+    font-weight: inherit;
+    color: inherit;
+  }
 }
 
 .price-original {

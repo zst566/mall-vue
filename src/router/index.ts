@@ -121,6 +121,19 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
+    path: '/points-exchange/:id',
+    name: 'PointsExchange',
+    component: () => import('@/views/customer/PointsExchange.vue'),
+    meta: {
+      title: '积分兑换',
+      permission: 'customer' as Permission,
+      requiresAuth: true,
+      hideHeader: false,
+      hideFooter: false,
+      hideVersionSwitcher: false
+    }
+  },
+  {
     path: '/order/:id/refund-request',
     name: 'RefundRequest',
     component: () => import('@/views/customer/RefundRequest.vue'),

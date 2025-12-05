@@ -17,6 +17,18 @@ export interface PromotionMerchant {
   address?: string
 }
 
+// 促销活动规格（默认规格信息）
+export interface PromotionVariant {
+  id?: string
+  promotionMode?: 'mall_subsidy' | 'normal_split' | 'points_exchange'
+  subsidyAmount?: number
+  salePrice?: number
+  originalPrice?: number | null
+  referencePrice?: number | null
+  isDefault?: boolean
+  [key: string]: any // 允许其他字段以保持向后兼容
+}
+
 // 促销活动基础信息（移动端首页展示用）
 export interface Promotion {
   id: string
@@ -33,6 +45,8 @@ export interface Promotion {
   salePrice?: number
   price?: number // 兼容字段，优先使用 salePrice
   originalPrice?: number
+  // 默认规格信息（用于判断补贴模式等）
+  defaultVariant?: PromotionVariant | null
   // 图片（支持多种格式）
   images?: PromotionImage
   // 时间信息
