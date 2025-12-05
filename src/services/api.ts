@@ -2,22 +2,13 @@ import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse 
 import type { ApiResponse, ApiError } from '@/types'
 import { webViewBridge } from '@/utils/webview-bridge'
 import { showToast } from 'vant'
+import { useAuthStore } from '@/stores/auth'
 
 // 基础配置
 // 使用相对路径，由 Nginx 网关处理路由转发
 const API_BASE_URL = '/api'
 const API_TIMEOUT = 10000
 const MAX_RETRIES = 3
-
-// 懒加载 useAuthStore，避免循环依赖
-let _authStoreModule: any = null
-const getAuthStore = async () => {
-  if (!_authStoreModule) {
-    // 使用动态导入避免循环依赖
-    _authStoreModule = await import('@/stores/auth')
-  }
-  return _authStoreModule.useAuthStore()
-}
 
 // 创建axios实例
 export const createApiInstance = (): AxiosInstance => {
@@ -33,7 +24,7 @@ export const createApiInstance = (): AxiosInstance => {
   // 请求拦截器
   instance.interceptors.request.use(
     async (config) => {
-      const authStore = await getAuthStore()
+      const authStore = useAuthStore()
 
       // 在发送请求前检查 token 是否有效（只检查是否过期）
       if (authStore.token) {
@@ -109,7 +100,7 @@ export const createApiInstance = (): AxiosInstance => {
       // 商户相关API的403错误处理（权限被取消）
       if (status === 403 && config.url?.includes('/merchant')) {
         console.log('🔐 商户API返回 403 权限不足')
-        const authStore = await getAuthStore()
+        const authStore = useAuthStore()
         
         // 检查是否是"不是本商户的订单"错误（优先处理）
         if (data?.error?.includes('不是本商户的订单') || data?.message?.includes('不是本商户的订单')) {
@@ -154,7 +145,7 @@ export const createApiInstance = (): AxiosInstance => {
         
         console.log('🔐 关键接口返回 401，尝试请求小程序重新登录')
         
-        const authStore = await getAuthStore()
+        const authStore = useAuthStore()
         
         // 如果不是刷新token的请求，尝试请求小程序重新登录
         if (!config.url?.includes('/auth/refresh') && !config.url?.includes('/auth/silent-login')) {
@@ -211,7 +202,7 @@ export const createApiInstance = (): AxiosInstance => {
           }
         } else {
           // 刷新token请求失败，清除认证信息
-          const authStore = await getAuthStore()
+          const authStore = useAuthStore()
           authStore.clearAuth()
         }
       }

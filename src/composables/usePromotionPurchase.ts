@@ -10,7 +10,7 @@ import type { PromotionDetail, PromotionVariant } from '@/types/promotion'
 
 export interface UsePromotionPurchaseOptions {
   promotionId: string
-  promotion: Ref<PromotionDetail>
+  promotion: Ref<PromotionDetail | null>
   selectedVariant: Ref<PromotionVariant | null>
   variants: ComputedRef<PromotionVariant[]>
   leftQuantity: ComputedRef<number>
@@ -201,6 +201,10 @@ export function usePromotionPurchase(
     }
 
     // 使用选中规格的分账模式
+    if (!promotion.value) {
+      showToast('促销活动信息加载失败，请刷新重试')
+      return
+    }
     const promotionMode = selectedVariant.value?.promotionMode || promotion.value.promotionMode
 
     try {

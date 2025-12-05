@@ -2,7 +2,7 @@
   <div class="promotion-detail-page">
     <!-- 导航栏 -->
     <van-nav-bar
-      :title="promotion?.value?.name || '促销活动详情'"
+      :title="promotionData?.name || '促销活动详情'"
       left-arrow
       @click-left="onClickLeft"
       fixed
@@ -16,8 +16,8 @@
 
     <!-- 促销活动基本信息 -->
     <PromotionInfo
-      v-if="promotion?.value"
-      :promotion="promotion.value"
+      v-if="promotionData"
+      :promotion="promotionData"
       :selected-variant="selectedVariant"
       :variants="variants"
       :tags="tags"
@@ -51,7 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showToast } from 'vant'
 import PromotionBanner from '@/components/customer/PromotionBanner.vue'
@@ -81,6 +81,10 @@ const {
   tags,
   loadPromotionDetail
 } = usePromotionDetail(promotionId)
+
+// 使用 computed 包装 promotion.value，确保响应式传递
+// 这样可以避免在数据加载过程中组件被销毁和重新创建
+const promotionData = computed(() => promotion.value)
 
 // 图片处理 - 直接使用 promotion.value.images 确保响应式更新
 const imagesRef = computed(() => promotion?.value?.images)
@@ -114,8 +118,10 @@ const { isBottomBarVisible, bottomBarStyle } = useBottomBarScroll()
 
 // 活动状态
 const isActivityActiveValue = computed(() => {
-  if (!promotion?.value) return false
-  return isActivityActive(promotion.value.startTime, promotion.value.endTime)
+  if (!promotionData.value) {
+    return false
+  }
+  return isActivityActive(promotionData.value.startTime, promotionData.value.endTime)
 })
 
 // 标签点击处理
@@ -138,12 +144,15 @@ const handlePageActivated = () => {
   const now = Date.now()
   // 避免过于频繁的刷新
   if (now - lastRefreshTime < REFRESH_INTERVAL) {
-    console.log('页面激活刷新被节流，跳过')
     return
   }
-  lastRefreshTime = now
-  console.log('页面激活，刷新促销详情数据')
-  loadPromotionDetail()
+  // 只有在数据不存在时才刷新，避免覆盖已有数据
+  if (!promotion.value) {
+    lastRefreshTime = now
+    loadPromotionDetail()
+  } else {
+    // 数据已存在，跳过刷新
+  }
 }
 
 // 页面激活事件处理器

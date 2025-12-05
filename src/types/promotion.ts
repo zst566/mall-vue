@@ -29,6 +29,7 @@ export interface PromotionVariant {
   subsidyAmount?: number
   settlementPrice?: number
   pointsValue?: number
+  finalAmount?: number // 最终价格（后端计算：mall_subsidy 模式下为 salePrice - subsidyAmount，其他模式下等于 salePrice）
   isDefault?: boolean
   sortOrder?: number
   [key: string]: any // 允许其他字段以保持向后兼容

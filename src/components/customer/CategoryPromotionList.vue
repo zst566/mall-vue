@@ -40,11 +40,11 @@
           </template>
           <!-- 非补贴模式：原有样式 -->
           <template v-else>
-            <span class="price-value">{{ formatPrice(promotion.salePrice || promotion.price) }}</span>
+            <span class="price-value">{{ formatPrice(getDisplayPrice(promotion)) }}</span>
           </template>
           <span
             class="price-original"
-            v-if="promotion.originalPrice && promotion.originalPrice > ((promotion.salePrice ?? promotion.price ?? 0))"
+            v-if="promotion.originalPrice && promotion.originalPrice > getDisplayPrice(promotion)"
           >
             ¥{{ formatPrice(promotion.originalPrice) }}
           </span>
@@ -108,9 +108,23 @@ const formatPrice = (price: number | undefined | null): string => {
   return formatMoney(price)
 }
 
+// 获取显示价格（优先使用 finalAmount）
+const getDisplayPrice = (promotion: Promotion): number => {
+  // 优先使用 defaultVariant 的 finalAmount
+  if (promotion.defaultVariant?.finalAmount != null) {
+    return promotion.defaultVariant.finalAmount
+  }
+  // 其次使用 promotion 的 salePrice（后端已计算好）
+  if (promotion.salePrice != null) {
+    return promotion.salePrice
+  }
+  // 最后使用兼容字段 price
+  return promotion.price || 0
+}
+
 // 拆分价格为整数和小数部分（用于补贴模式显示）
 const getPriceParts = (promotion: Promotion): { integer: string; decimal: string } => {
-  const price = promotion.salePrice || promotion.price || 0
+  const price = getDisplayPrice(promotion)
   const formatted = formatMoney(price)
   // 格式化的价格可能是 "1,234.56" 这样的格式
   const parts = formatted.split('.')

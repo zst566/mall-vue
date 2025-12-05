@@ -6,7 +6,7 @@ import { formatMoney } from '@/utils/format'
 import type { PromotionDetail, PromotionVariant } from '@/types/promotion'
 
 export interface UsePromotionPriceOptions {
-  promotion: Ref<PromotionDetail>
+  promotion: Ref<PromotionDetail | null>
   selectedVariant: Ref<PromotionVariant | null>
 }
 
@@ -30,6 +30,7 @@ export function usePromotionPrice(
 
   // 判断是否为商场补贴模式
   const isMallSubsidy = computed(() => {
+    if (!promotion.value) return false
     const mode = selectedVariant.value?.promotionMode || promotion.value.promotionMode
     const subsidy = selectedVariant.value?.subsidyAmount || 0
     return mode === 'mall_subsidy' && subsidy > 0
@@ -43,7 +44,7 @@ export function usePromotionPrice(
 
   // 计算实付金额（商场补贴模式下）
   const finalAmount = computed(() => {
-    if (!isMallSubsidy.value) return 0
+    if (!isMallSubsidy.value || !promotion.value) return 0
     const salePrice = selectedVariant.value?.salePrice || promotion.value.salePrice
     const subsidy = subsidyAmount.value
     return Math.max(0, salePrice - subsidy) // 确保实付金额不为负数
@@ -51,11 +52,13 @@ export function usePromotionPrice(
 
   // 当前售价
   const salePrice = computed(() => {
+    if (!promotion.value) return 0
     return selectedVariant.value?.salePrice || promotion.value.salePrice
   })
 
   // 原价
   const originalPrice = computed(() => {
+    if (!promotion.value) return 0
     return selectedVariant.value?.originalPrice || promotion.value.originalPrice || 0
   })
 
@@ -66,6 +69,7 @@ export function usePromotionPrice(
         (selectedVariant.value.promotionQuantity || 0) - (selectedVariant.value.soldQuantity || 0)
       )
     }
+    if (!promotion.value) return 0
     return Math.max(0, 
       (promotion.value.promotionQuantity || 0) - (promotion.value.soldQuantity || 0)
     )

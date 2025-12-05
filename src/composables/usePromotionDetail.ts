@@ -1,7 +1,7 @@
 /**
  * 促销活动详情数据管理 Composable
  */
-import { ref, reactive, computed, toRef, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, type Ref, type ComputedRef } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast, showLoadingToast, closeToast } from 'vant'
 import { api } from '@/services/api'
@@ -11,7 +11,7 @@ import type { PromotionDetail, PromotionVariant, PromotionTag } from '@/types/pr
 
 export interface UsePromotionDetailReturn {
   // 状态
-  promotion: Ref<PromotionDetail>
+  promotion: Ref<PromotionDetail | null>
   loading: Ref<boolean>
   variants: ComputedRef<PromotionVariant[]>
   selectedVariant: Ref<PromotionVariant | null>
@@ -28,27 +28,11 @@ export function usePromotionDetail(promotionId: string): UsePromotionDetailRetur
   const authStore = useAuthStore()
   const loading = ref(false)
 
-  const promotion = reactive<PromotionDetail>({
-    id: promotionId,
-    name: '',
-    description: '',
-    salePrice: 0,
-    originalPrice: 0,
-    promotionQuantity: 0,
-    soldQuantity: 0,
-    startTime: '',
-    endTime: '',
-    images: null,
-    promotionMode: '',
-    settlementPrice: 0,
-    pointsValue: 0,
-    variants: [],
-    tags: [],
-    shop: null,
-  })
+  // 使用 ref 而不是 reactive，初始值为 null，便于条件判断
+  const promotion = ref<PromotionDetail | null>(null)
 
   // 规格选择
-  const variants = computed(() => promotion.variants || [])
+  const variants = computed(() => promotion.value?.variants || [])
   const selectedVariant = ref<PromotionVariant | null>(null)
   const tags = ref<PromotionTag[]>([])
 
@@ -73,6 +57,7 @@ export function usePromotionDetail(promotionId: string): UsePromotionDetailRetur
 
   // 加载促销活动详情
   const loadPromotionDetail = async () => {
+    console.log('🔍 [usePromotionDetail] 开始加载促销详情, promotionId:', promotionId)
     loading.value = true
     showLoadingToast({
       message: '加载中...',
@@ -81,6 +66,7 @@ export function usePromotionDetail(promotionId: string): UsePromotionDetailRetur
     })
 
     try {
+      console.log('🔍 [usePromotionDetail] 准备调用 API...')
       const data = await api.get<{
         id: string
         name: string
@@ -101,6 +87,26 @@ export function usePromotionDetail(promotionId: string): UsePromotionDetailRetur
         variants?: PromotionVariant[]
         tags?: PromotionTag[]
       }>(`/promotions/${promotionId}`)
+
+      console.log('🔍 [usePromotionDetail] API 返回原始数据:', JSON.stringify({
+        id: data.id,
+        name: data.name,
+        hasShop: !!data.shop,
+        shop: data.shop,
+        shopKeys: data.shop ? Object.keys(data.shop) : [],
+        shopCode: data.shop?.shopCode,
+        floor: data.shop?.floor,
+        hasTags: !!data.tags,
+        tagsCount: data.tags?.length || 0,
+        hasVariants: !!data.variants,
+        variantsCount: data.variants?.length || 0,
+        salePrice: data.salePrice,
+        originalPrice: data.originalPrice,
+        promotionQuantity: data.promotionQuantity,
+        soldQuantity: data.soldQuantity,
+        description: data.description,
+      }, null, 2))
+      console.log('🔍 [usePromotionDetail] API 返回完整 shop 对象:', JSON.stringify(data.shop, null, 2))
       
       // 处理图片数据：如果有 mainImage，优先使用；否则使用 images 数组
       let processedImages = data.images || null
@@ -140,29 +146,70 @@ export function usePromotionDetail(promotionId: string): UsePromotionDetailRetur
         }
       }
       
-      // 直接更新 reactive 对象的属性，确保响应式更新
-      promotion.id = data.id
-      promotion.name = data.name
-      promotion.description = data.description || ''
-      promotion.salePrice = data.salePrice || 0
-      promotion.originalPrice = data.originalPrice || 0
-      promotion.variants = data.variants || []
-      promotion.promotionQuantity = data.promotionQuantity || 0
-      promotion.soldQuantity = data.soldQuantity || 0
-      promotion.startTime = data.startTime || ''
-      promotion.endTime = data.endTime || ''
-      promotion.images = processedImages // 直接赋值，确保响应式更新
-      promotion.promotionMode = data.promotionMode || ''
-      promotion.settlementPrice = data.settlementPrice || 0
-      promotion.pointsValue = data.pointsValue || 0
-      promotion.shop = data.shop || null
+      // 使用整体赋值，确保响应式更新
+      const newPromotionData = {
+        id: data.id,
+        name: data.name,
+        description: data.description || '',
+        salePrice: data.salePrice || 0,
+        originalPrice: data.originalPrice || 0,
+        promotionQuantity: data.promotionQuantity || 0,
+        soldQuantity: data.soldQuantity || 0,
+        startTime: data.startTime || '',
+        endTime: data.endTime || '',
+        images: processedImages,
+        promotionMode: data.promotionMode,
+        settlementPrice: data.settlementPrice || 0,
+        pointsValue: data.pointsValue || 0,
+        variants: data.variants || [],
+        tags: data.tags || [],
+        shop: data.shop || null,
+      }
+
+      console.log('🔍 [usePromotionDetail] 准备赋值 promotion.value, 赋值前:', JSON.stringify({
+        'promotion 是否为 ref': promotion && typeof promotion === 'object' && 'value' in promotion,
+        'promotion.value 当前值': promotion.value,
+      }, null, 2))
+
+      promotion.value = newPromotionData
+
+      console.log('🔍 [usePromotionDetail] 赋值后立即检查:', JSON.stringify({
+        'promotion.value 存在': !!promotion.value,
+        'promotion.value.id': promotion.value?.id,
+        'promotion.value.name': promotion.value?.name,
+        'promotion.value.shop': promotion.value?.shop,
+        'promotion.value.shopCode': promotion.value?.shop?.shopCode,
+        'promotion.value.floor': promotion.value?.shop?.floor,
+        'promotion.value.tags': promotion.value?.tags,
+        'promotion.value.variants': promotion.value?.variants,
+      }, null, 2))
+
+      // 调试日志：确认数据已加载
+      console.log('✅ 促销活动数据已加载:', JSON.stringify({
+        id: promotion.value.id,
+        name: promotion.value.name,
+        hasShop: !!promotion.value.shop,
+        shopCode: promotion.value.shop?.shopCode,
+        floor: promotion.value.shop?.floor,
+        tenantName: promotion.value.shop?.tenantName,
+        hasTags: promotion.value.tags?.length > 0,
+        tagsCount: promotion.value.tags?.length || 0,
+        hasVariants: promotion.value.variants?.length > 0,
+        variantsCount: promotion.value.variants?.length || 0,
+        salePrice: promotion.value.salePrice,
+        originalPrice: promotion.value.originalPrice,
+        promotionQuantity: promotion.value.promotionQuantity,
+        soldQuantity: promotion.value.soldQuantity,
+        description: promotion.value.description,
+      }, null, 2))
+      console.log('✅ promotion.value.shop 完整对象:', JSON.stringify(promotion.value.shop, null, 2))
 
       // 设置服务特色标签
       tags.value = data.tags || []
 
       // 初始化规格选择
-      if (promotion.variants && promotion.variants.length > 0) {
-        const defaultVariant = promotion.variants.find((v) => v.isDefault) || promotion.variants[0]
+      if (promotion.value.variants && promotion.value.variants.length > 0) {
+        const defaultVariant = promotion.value.variants.find((v) => v.isDefault) || promotion.value.variants[0]
         if (defaultVariant) {
           selectedVariant.value = defaultVariant
         }
@@ -184,7 +231,7 @@ export function usePromotionDetail(promotionId: string): UsePromotionDetailRetur
   }
 
   return {
-    promotion: computed(() => promotion) as Ref<PromotionDetail>,
+    promotion,
     loading,
     variants,
     selectedVariant,

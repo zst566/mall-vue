@@ -1,1080 +1,323 @@
 <template>
   <div class="promotion-detail-page">
-    <!-- 顶部Banner主图 -->
-    <div class="banner-section">
-      <van-swipe 
-        v-if="mainImages && mainImages.length > 0" 
-        :autoplay="3000" 
-        indicator-color="white"
-        class="banner-swipe"
-      >
-        <van-swipe-item v-for="(image, index) in mainImages" :key="index">
-          <img 
-            :src="getImageUrl(image)" 
-            :alt="`促销活动主图 ${index + 1}`"
-            class="banner-image"
-            @error="handleImageError"
-          />
-        </van-swipe-item>
-      </van-swipe>
-      <PlaceholderImage 
-        v-else 
-        width="100%" 
-        height="400px" 
-        class="banner-placeholder"
-      />
-    </div>
+    <!-- 导航栏 -->
+    <van-nav-bar
+      :title="promotion?.value?.name || '促销活动详情'"
+      left-arrow
+      @click-left="onClickLeft"
+      fixed
+      placeholder
+      z-index="100"
+      class="detail-nav-bar"
+    />
+
+    <!-- Banner 主图 -->
+    <PromotionBanner :images="imagesRef" />
 
     <!-- 促销活动基本信息 -->
-    <div class="promotion-info">
-      <div class="price-section">
-        <div class="current-price">
-          <span class="price-symbol">¥</span>
-          <span class="price-value">{{ formatPrice(selectedVariant?.salePrice || promotion.salePrice) }}</span>
-        </div>
-        <div class="original-price" v-if="selectedVariant?.originalPrice && selectedVariant.originalPrice > selectedVariant.salePrice">
-          <span class="original-symbol">¥</span>
-          <span class="original-value">{{ formatPrice(selectedVariant.originalPrice) }}</span>
-          <span class="discount-text">省¥{{ formatPrice(selectedVariant.originalPrice - selectedVariant.salePrice) }}</span>
-        </div>
+    <!-- 调试：检查条件判断 - 修复语法错误 -->
+    <div style="background: #fff3cd; padding: 12px; margin: 16px; border: 2px solid #ffc107; font-family: monospace; font-size: 12px;">
+      <div style="font-weight: bold; color: #856404; margin-bottom: 8px;">
+        🔍 [PromotionDetail] 调试信息 ({{ new Date().toLocaleTimeString() }}):
       </div>
-
-      <h2 class="promotion-name">{{ promotion.name }}</h2>
-      
-      <!-- 服务特色标签（标题下方、价格上方） -->
-      <div class="service-tags" v-if="tags && tags.length > 0">
-        <van-popover
-          v-for="tag in tags"
-          :key="tag.id"
-          v-model:show="tagPopoverVisible[tag.id]"
-          :actions="[]"
-          placement="top"
-          theme="dark"
-        >
-          <template #reference>
-            <span class="service-tag" @click.stop="showTagDescription(tag.id)">
-              {{ tag.name }}
-            </span>
-          </template>
-          <div class="tag-popover-content">
-            <div class="tag-name">{{ tag.name }}</div>
-            <div class="tag-description" v-if="tag.description">{{ tag.description }}</div>
-            <div class="tag-description" v-else>暂无说明</div>
-          </div>
-        </van-popover>
+      <div>promotion ref 存在: {{ !!promotion }}</div>
+      <div :style="{ fontWeight: 'bold', color: !!promotion?.value ? 'green' : 'red' }">
+        promotion.value 存在: {{ !!promotion?.value }}
       </div>
-
-      <p class="promotion-desc" v-if="promotion.description">{{ promotion.description }}</p>
-
-      <!-- 规格选择（多规格时显示） -->
-      <div class="variant-selector" v-if="variants.length > 1">
-        <div class="selector-label">选择规格：</div>
-        <div class="variant-options">
-          <div
-            v-for="variant in variants"
-            :key="variant.id"
-            class="variant-option"
-            :class="{ active: selectedVariantId === variant.id }"
-            @click="selectVariant(variant.id)"
-          >
-            <div class="variant-name">{{ variant.name }}</div>
-            <div class="variant-price">¥{{ formatPrice(variant.salePrice) }}</div>
-            <div class="variant-stock" v-if="getVariantLeftQuantity(variant) <= 0">
-              <span class="stock-out">已售罄</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="promotion-meta">
-        <div class="meta-item">
-          <span class="meta-label">剩余数量</span>
-          <span class="meta-value">{{ leftQuantity }} 件</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">已售数量</span>
-          <span class="meta-value">{{ selectedVariant?.soldQuantity || promotion.soldQuantity || 0 }} 件</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">活动时间</span>
-          <span class="meta-value">{{ formatDateRange(promotion.startTime, promotion.endTime) }}</span>
+      <div>promotion.value?.id: {{ promotion?.value?.id }}</div>
+      <div>promotion.value?.name: {{ promotion?.value?.name }}</div>
+      <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ffc107;">
+        <div style="font-weight: bold; margin-bottom: 4px;">shop 数据详情:</div>
+        <div>hasShop: {{ !!promotion?.value?.shop }}</div>
+        <div>shopCode: {{ promotion?.value?.shop?.shopCode }}</div>
+        <div>floor: {{ promotion?.value?.shop?.floor }}</div>
+        <div>tenantName: {{ promotion?.value?.shop?.tenantName }}</div>
+        <div :style="{
+          color: (promotion?.value?.shop && (promotion?.value?.shop?.shopCode || promotion?.value?.shop?.floor)) ? 'green' : 'red',
+          fontWeight: 'bold',
+          marginTop: '8px'
+        }">
+          ⭐ v-if 条件结果 (应该显示商铺信息): {{ !!(promotion?.value?.shop && (promotion?.value?.shop?.shopCode || promotion?.value?.shop?.floor)) }}
         </div>
       </div>
     </div>
+    <PromotionInfo
+      v-if="promotion?.value"
+      :promotion="promotion.value"
+      :selected-variant="selectedVariant"
+      :variants="variants"
+      :tags="tags"
+      :is-activity-active="isActivityActiveValue"
+      :left-quantity="leftQuantity"
+      :is-mall-subsidy="isMallSubsidy"
+      :final-amount="finalAmount"
+      :sale-price="salePrice"
+      :original-price="originalPrice"
+      :format-price="formatPrice"
+      @update:selected-variant="selectedVariant = $event"
+      @tag-click="handleTagClick"
+    />
 
-    <!-- 促销活动详情图片 -->
-    <div class="detail-section" v-if="detailImages && detailImages.length > 0">
-      <div class="section-header">
-        <h3>活动详情</h3>
-      </div>
-      <div class="detail-content">
-        <div class="detail-images">
-          <div 
-            v-for="(image, index) in detailImages" 
-            :key="image.id || index"
-            class="detail-image-item"
-          >
-            <img 
-              :src="getImageUrl(image)" 
-              :alt="`活动详情图片 ${index + 1}`"
-              class="detail-image"
-              @error="handleImageError"
-              :loading="index === 0 ? 'eager' : 'lazy'"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- 详情图片 -->
+    <PromotionDetailImages :images="detailImages" />
 
     <!-- 底部操作栏 -->
-    <div class="bottom-bar" :class="{ 'hidden': !isBottomBarVisible }">
-      <div class="left-buttons">
-        <div class="action-item" @click="goToHome">
-          <van-icon name="home-o" />
-          <span>首页</span>
-        </div>
-        <div class="action-item" @click="toggleFavorite">
-          <van-icon :name="isFavorite ? 'star' : 'star-o'" :class="{ active: isFavorite }" />
-          <span>收藏</span>
-        </div>
-        <div class="action-item" @click="contactService">
-          <van-icon name="service-o" />
-          <span>客服</span>
-        </div>
-      </div>
-      <div class="right-buttons">
-        <van-button 
-          type="danger" 
-          size="large" 
-          @click.stop="handlePurchase"
-          @touchstart.stop
-          :disabled="leftQuantity <= 0"
-          style="position: relative; z-index: 102; pointer-events: auto;"
-        >
-          {{ leftQuantity > 0 ? '立即购买' : '已售罄' }}
-        </van-button>
-      </div>
-    </div>
+    <PromotionBottomBar
+      :is-favorite="isFavorite"
+      :can-purchase="canPurchase"
+      :purchase-button-text="purchaseButtonText"
+      :is-visible="isBottomBarVisible"
+      :bottom-bar-style="bottomBarStyle"
+      @home="goToHome"
+      @favorite="toggleFavorite"
+      @service="contactService"
+      @purchase="handlePurchase"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
-  import { useRouter, useRoute } from 'vue-router'
-  import { showToast, showLoadingToast, closeToast, showConfirmDialog, showDialog } from 'vant'
-  import PlaceholderImage from '@/components/common/PlaceholderImage.vue'
-  import { api } from '@/services/api'
-  import { orderService } from '@/services/orders'
-  import { PointsService } from '@/services/points'
-  import { useAuthStore } from '@/stores/auth'
-  import webViewBridge from '@/utils/webview-bridge'
-  import { formatMoney } from '@/utils/format'
+import { computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { showToast } from 'vant'
+import PromotionBanner from '@/components/customer/PromotionBanner.vue'
+import PromotionInfo from '@/components/customer/PromotionInfo.vue'
+import PromotionDetailImages from '@/components/customer/PromotionDetailImages.vue'
+import PromotionBottomBar from '@/components/customer/PromotionBottomBar.vue'
+import { usePromotionDetail } from '@/composables/usePromotionDetail'
+import { usePromotionPurchase } from '@/composables/usePromotionPurchase'
+import { usePromotionFavorite } from '@/composables/usePromotionFavorite'
+import { usePromotionImages } from '@/composables/usePromotionImages'
+import { usePromotionPrice } from '@/composables/usePromotionPrice'
+import { usePromotionTags } from '@/composables/usePromotionTags'
+import { useBottomBarScroll } from '@/composables/useBottomBarScroll'
+import { isActivityActive } from '@/utils/promotionHelpers'
+import webViewBridge from '@/utils/webview-bridge'
 
-  const router = useRouter()
-  const route = useRoute()
-  const authStore = useAuthStore()
-  const pointsService = new PointsService()
+const router = useRouter()
+const route = useRoute()
+const promotionId = route.params.id as string
 
-  // 收藏状态
-  const isFavorite = ref(false)
+// 数据加载
+const {
+  promotion,
+  loading,
+  variants,
+  selectedVariant,
+  tags,
+  loadPromotionDetail
+} = usePromotionDetail(promotionId)
 
-  // 底部导航显示/隐藏状态
-  const isBottomBarVisible = ref(true)
-  const lastScrollTop = ref(0)
-  const scrollTimer = ref<number | null>(null)
+// 调试：检查 promotion 的类型和值
+console.log('🔍 [PromotionDetail.vue] promotion 初始化:', {
+  'promotion 类型': typeof promotion,
+  '是否为 ref': promotion && typeof promotion === 'object' && 'value' in promotion,
+  'promotion.value 初始值': promotion?.value,
+  'promotion 对象': promotion,
+})
 
-  // 服务特色标签
-  const tags = ref<Array<{ id: string; name: string; description?: string | null }>>([])
-  const tagPopoverVisible = ref<Record<string, boolean>>({})
-
-  // 促销活动信息
-  const promotionId = route.params.id as string
-  const loading = ref(false)
-  const promotion = reactive({
-    id: promotionId,
-    name: '',
-    description: '',
-    salePrice: 0,
-    originalPrice: 0,
-    promotionQuantity: 0,
-    soldQuantity: 0,
-    startTime: '',
-    endTime: '',
-    images: null as any,
-    promotionMode: '' as 'mall_subsidy' | 'normal_split' | 'points_exchange' | '', // 分账模式
-    settlementPrice: 0, // 结算价（积分兑换模式）
-    pointsValue: 0, // 积分价值（积分兑换模式）
-    variants: [] as any[], // 规格列表
-  })
-
-  // 规格选择
-  const variants = computed(() => promotion.variants || [])
-  const selectedVariantId = ref<string | null>(null)
-  const selectedVariant = computed(() => {
-    if (selectedVariantId.value) {
-      return variants.value.find(v => v.id === selectedVariantId.value)
-    }
-    // 如果没有选择，使用默认规格或第一个规格
-    return variants.value.find(v => v.isDefault) || variants.value[0]
-  })
-
-  // 选择规格
-  const selectVariant = (variantId: string) => {
-    selectedVariantId.value = variantId
-  }
-
-  // 显示标签说明
-  const showTagDescription = (tagId: string) => {
-    tagPopoverVisible.value[tagId] = !tagPopoverVisible.value[tagId]
-  }
-
-  // 获取规格剩余数量
-  const getVariantLeftQuantity = (variant: any) => {
-    return Math.max(0, (variant.promotionQuantity || 0) - (variant.soldQuantity || 0))
-  }
-
-  // 主图列表（用于顶部banner）- 只显示主图，如无主图标记则显示第1张图
-  const mainImages = computed(() => {
-    if (!promotion.images) return []
-    
-    // 处理图片数据，支持多种格式
-    let images: any[] = []
-    
-    if (Array.isArray(promotion.images)) {
-      images = promotion.images
-    } else if (typeof promotion.images === 'object' && promotion.images !== null) {
-      // 如果是对象，尝试提取url
-      if ('url' in promotion.images) {
-        images = [promotion.images]
-      }
-    }
-    
-    if (images.length === 0) return []
-    
-    // 获取主图（isMain为true的图片）
-    const mainImage = images.find((img: any) => {
-      if (typeof img === 'string') return false
-      return img.isMain === true
-    })
-    
-    // 如果有主图，返回主图；否则返回第1张图
-    return mainImage ? [mainImage] : [images[0]]
-  })
-
-  // 详情图片列表（显示所有图片，按排序逐个显示）
-  const detailImages = computed(() => {
-    if (!promotion.images) return []
-    
-    let images: any[] = []
-    
-    if (Array.isArray(promotion.images)) {
-      images = promotion.images
-    } else if (typeof promotion.images === 'object' && promotion.images !== null) {
-      if ('url' in promotion.images) {
-        images = [promotion.images]
-      }
-    }
-    
-    if (images.length === 0) return []
-    
-    // 处理图片数据，统一格式并提取排序字段
-    const processedImages = images.map((img: any, index: number) => {
-      if (typeof img === 'string') {
-        return {
-          url: img,
-          position: index,
-          id: '',
-          isMain: false
-        }
-      }
-      return {
-        url: img.url || img.src || '',
-        position: img.position ?? img.sortOrder ?? index,
-        id: img.id || img.key || '',
-        isMain: img.isMain === true,
-        ...img // 保留其他字段
-      }
-    })
-    
-    // 按position/sortOrder排序，如果相同则保持原顺序
-    return processedImages.sort((a: any, b: any) => {
-      return (a.position ?? 0) - (b.position ?? 0)
-    })
-  })
-
-  // 剩余数量（使用选中规格的库存）
-  const leftQuantity = computed(() => {
-    if (selectedVariant.value) {
-      return getVariantLeftQuantity(selectedVariant.value)
-    }
-    return Math.max(0, (promotion.promotionQuantity || 0) - (promotion.soldQuantity || 0))
-  })
-
-  // 获取图片URL
-  const getImageUrl = (image: any): string => {
-    if (typeof image === 'string') {
-      return image
-    }
-    if (image && typeof image === 'object') {
-      return image.url || image.src || ''
-    }
-    return ''
-  }
-
-  // 格式化价格（统一使用 formatMoney，包含千分位分隔符）
-  const formatPrice = formatMoney
-
-  // 格式化日期范围
-  const formatDateRange = (start: string, end: string): string => {
-    if (!start || !end) return ''
-    const startDate = new Date(start)
-    const endDate = new Date(end)
-    const formatDate = (date: Date) => {
-      const month = (date.getMonth() + 1).toString().padStart(2, '0')
-      const day = date.getDate().toString().padStart(2, '0')
-      return `${month}-${day}`
-    }
-    return `${formatDate(startDate)} 至 ${formatDate(endDate)}`
-  }
-
-  // 图片加载错误处理
-  const handleImageError = (event: Event) => {
-    const img = event.target as HTMLImageElement
-    img.src = '/placeholder-product.png'
-  }
-
-  // 返回首页
-  const goToHome = () => {
-    router.push({ name: 'Home' })
-  }
-
-  // 切换收藏
-  const toggleFavorite = () => {
-    isFavorite.value = !isFavorite.value
-    showToast(isFavorite.value ? '已添加到收藏' : '已取消收藏')
-  }
-
-  // 联系客服
-  const contactService = () => {
-    showToast('正在跳转到客服聊天...')
-  }
-
-  // 立即购买
-  const handlePurchase = async (event?: Event) => {
-    // 阻止事件冒泡和默认行为
-    if (event) {
-      event.preventDefault()
-      event.stopPropagation()
-    }
-    
-    if (leftQuantity.value <= 0) {
-      showToast('该促销活动已售罄')
-      return
-    }
-
-    // 检查用户是否登录
-    if (!authStore.isAuthenticated || !authStore.user) {
-      showToast('请先登录')
-      router.push({ name: 'Login' })
-      return
-    }
-
-    const userId = authStore.user.id
-    // 使用选中规格的分账模式
-    const promotionMode = selectedVariant.value?.promotionMode || promotion.promotionMode
-    const variantId = selectedVariant.value?.id
-
-    try {
-      showLoadingToast({
-        message: '跳转中...',
-        forbidClick: true,
-        duration: 0
-      })
-
-      // 根据分账模式处理
-      if (promotionMode === 'points_exchange') {
-        // 积分兑换模式
-        await handlePointsExchangePurchase(userId)
-      } else {
-        // 商场补贴/普通分账模式
-        await handlePaymentPurchase(userId)
-      }
-    } catch (error: any) {
-      closeToast()
-      showToast(error.message || '购买失败，请稍后重试')
-    }
-  }
-
-  // 积分兑换模式购买
-  const handlePointsExchangePurchase = async (userId: string) => {
-    // 使用选中规格的结算价和积分价值
-    const settlementPrice = selectedVariant.value?.settlementPrice || promotion.settlementPrice || 0
-    const pointsValue = selectedVariant.value?.pointsValue || promotion.pointsValue || 20
-    const requiredPoints = Math.round(settlementPrice * pointsValue)
-
-    // 先验证积分
-    const currentPoints = await pointsService.getUserPoints(userId)
-    
-    if (currentPoints < requiredPoints) {
-      closeToast()
-      showToast(`积分不足，当前积分：${currentPoints}，所需积分：${requiredPoints}`)
-      return
-    }
-
-    // 确认购买
-    try {
-      await showConfirmDialog({
-        title: '确认兑换',
-        message: `使用 ${requiredPoints} 积分兑换此促销活动？`,
-        confirmButtonText: '确认兑换',
-        cancelButtonText: '取消'
-      })
-    } catch {
-      // 用户取消
-      closeToast()
-      return
-    }
-
-    // 创建订单（后端会扣减积分）
-    const variantId = selectedVariant.value?.id
-    const result = await orderService.createPromotionOrder(promotionId, 1, variantId)
-    
-    closeToast()
-    showToast('兑换成功！')
-    
-    // 跳转到订单详情
-    setTimeout(() => {
-      router.push({ name: 'OrderDetail', params: { id: result.order.id } })
-    }, 1500)
-  }
-
-  // 等待 wx 对象注入（微信小程序 webview 会在页面加载后异步注入）
-  const waitForWxObject = (maxAttempts = 10, interval = 200): Promise<boolean> => {
-    return new Promise((resolve) => {
-      let attempts = 0
-      const checkWx = () => {
-        attempts++
-        const hasWx = typeof window !== 'undefined' && !!window.wx?.miniProgram
-        
-        if (hasWx) {
-          resolve(true)
-          return
-        }
-        
-        if (attempts >= maxAttempts) {
-          resolve(false)
-          return
-        }
-        
-        setTimeout(checkWx, interval)
-      }
-      checkWx()
-    })
-  }
-
-  // 商场补贴/普通分账模式购买（需要微信支付）
-  const handlePaymentPurchase = async (userId: string) => {
-    // 先等待 wx 对象注入（微信小程序 webview 会在页面加载后异步注入）
-    const wxReady = await waitForWxObject(15, 200) // 最多等待 3 秒（15 * 200ms）
-    
-    // 检查是否在小程序环境中
-    // 优先检查 navigateTo 是否存在，因为这是最直接的判断方式
-    const miniProgram = (window.wx?.miniProgram as any) || null
-    const hasNavigateTo = typeof miniProgram?.navigateTo === 'function'
-    const hasPostMessage = typeof miniProgram?.postMessage === 'function'
-    const hasGetEnv = typeof miniProgram?.getEnv === 'function'
-    
-    // 如果 navigateTo 存在，说明一定在小程序环境中
-    // 如果只有 postMessage 或 getEnv，也可以认为在小程序环境中
-    const isInMiniProgramEnv = hasNavigateTo || hasPostMessage || hasGetEnv || webViewBridge.isInMiniProgram
-    
-    // 直接跳转到小程序原生支付页面，传递 promotionId
-    // 小程序会从后端获取促销活动详情，显示给用户确认，然后创建订单并支付
-    const paymentUrl = `/pages/payment/payment?promotionId=${encodeURIComponent(promotionId)}`
-    
-    // 尝试多种方式跳转
-    try {
-      // 方式1: 使用 navigateTo（推荐）
-      if (hasNavigateTo) {
-        miniProgram.navigateTo({
-          url: paymentUrl,
-          success: () => {
-            // 跳转成功，保持loading直到页面切换
-            // loading会在页面切换时自动关闭
-          },
-          fail: (error: any) => {
-            closeToast()
-            // 尝试使用 postMessage 方式
-            tryPostMessageFallback(paymentUrl, error)
-          }
-        })
-        return
-      }
-      
-      // 方式2: 使用 postMessage（备用）
-      if (hasPostMessage) {
-        tryPostMessageFallback(paymentUrl)
-        return
-      }
-      
-      // 方式3: 都不存在，提示用户
-      closeToast()
-      showToast('请在微信小程序中打开')
-    } catch (error: any) {
-      closeToast()
-      showToast(error.message || '跳转失败，请稍后重试')
-    }
-  }
+// 监听 promotion.value 的变化
+watch(() => promotion?.value, (newValue, oldValue) => {
+  console.log('🔍 [PromotionDetail.vue] promotion.value 变化:', JSON.stringify({
+    'oldValue': oldValue,
+    'newValue存在': !!newValue,
+    'newValue.id': newValue?.id,
+    'newValue.name': newValue?.name,
+    'newValue.shop存在': !!newValue?.shop,
+    'newValue.shopCode': newValue?.shop?.shopCode,
+    'newValue.floor': newValue?.shop?.floor,
+  }, null, 2))
   
-  // 使用 postMessage 作为备用跳转方式
-  const tryPostMessageFallback = (paymentUrl: string, previousError?: any) => {
-    try {
-      const miniProgram = window.wx?.miniProgram as any
-      if (miniProgram?.postMessage) {
-        miniProgram.postMessage({
-          data: {
-            type: 'navigate',
-            url: paymentUrl
-          }
-        })
-      } else {
-        throw new Error('postMessage 不可用')
-      }
-    } catch (error: any) {
-      closeToast()
-      showToast(previousError?.errMsg || error.message || '跳转失败，请稍后重试')
-    }
-  }
-
-  // 处理微信支付（跳转到小程序支付页面）
-  const handleWechatPayment = async (orderId: string, amount: number, order?: any) => {
-    try {
-      const miniProgram = window.wx?.miniProgram as any
-
-      // 检查是否在小程序环境中
-      if (!webViewBridge.isInMiniProgram || !miniProgram?.navigateTo) {
-        closeToast()
-        showToast('请在微信小程序中打开')
-        return
-      }
-
-      // 直接使用 wx.miniProgram.navigateTo 跳转到小程序原生支付页面
-      // 传递 promotionId，让小程序从后端获取促销活动详情（价格、分账模式等）
-      const paymentUrl = `/pages/payment/payment?promotionId=${encodeURIComponent(promotionId)}`
-      
-      miniProgram.navigateTo({
-        url: paymentUrl,
-        success: () => {
-          // 跳转成功，保持loading直到页面切换
-        },
-        fail: (error: any) => {
-          closeToast()
-          showToast(error.errMsg || '跳转失败，请稍后重试')
-        }
-      })
-      
-      // 注意：支付结果会在支付页面完成后处理
-      // 如果用户取消支付或支付失败，会返回到当前页面
-      // 如果支付成功，支付页面会自动处理跳转
-    } catch (error: any) {
-      closeToast()
-      showToast(error.message || '跳转到支付页面失败，请稍后重试')
-    }
-  }
-
-  // 加载促销活动详情
-  const loadPromotionDetail = async () => {
-    loading.value = true
-    showLoadingToast({
-      message: '加载中...',
-      forbidClick: true,
-      duration: 0
-    })
-
-    try {
-      const data = await api.get<{
-        id: string
-        name: string
-        description?: string
-        salePrice: number
-        originalPrice: number
-        promotionQuantity: number
-        soldQuantity: number
-        startTime: string
-        endTime: string
-        images: any
-        promotionMode?: 'mall_subsidy' | 'normal_split' | 'points_exchange'
-        settlementPrice?: number
-        pointsValue?: number
-        variants?: any[] // 规格列表
-        tags?: Array<{ id: string; name: string; description?: string | null }> // 服务特色标签
-      }>(`/promotions/${promotionId}`)
-      
-      Object.assign(promotion, {
-        id: data.id,
-        name: data.name,
-        description: data.description || '',
-        salePrice: data.salePrice || 0,
-        originalPrice: data.originalPrice || 0,
-        variants: data.variants || [], // 规格列表
-      })
-
-      // 设置服务特色标签
-      tags.value = data.tags || []
-
-      // 初始化规格选择（如果有规格，选择默认规格或第一个规格）
-      if (promotion.variants && promotion.variants.length > 0) {
-        const defaultVariant = promotion.variants.find((v: any) => v.isDefault) || promotion.variants[0]
-        if (defaultVariant) {
-          selectedVariantId.value = defaultVariant.id
-        }
-      }
-
-      Object.assign(promotion, {
-        promotionQuantity: data.promotionQuantity || 0,
-        soldQuantity: data.soldQuantity || 0,
-        startTime: data.startTime || '',
-        endTime: data.endTime || '',
-        images: data.images || null,
-        promotionMode: data.promotionMode || '',
-        settlementPrice: data.settlementPrice || 0,
-        pointsValue: data.pointsValue || 0,
-      })
-    } catch (error: any) {
-      console.error('加载促销活动详情失败:', error)
-      showToast(error.message || '加载促销活动详情失败，请稍后重试')
-      
-      setTimeout(() => {
-        router.back()
-      }, 1500)
-    } finally {
-      loading.value = false
-      closeToast()
-    }
-  }
-
-  // 处理滚动事件
-  const handleScroll = (event?: Event) => {
-    // 获取滚动位置（优先使用.app-main容器，如果没有则使用window）
-    const appMain = document.querySelector('.app-main') as HTMLElement
-    const currentScrollTop = appMain 
-      ? appMain.scrollTop
-      : (window.pageYOffset || document.documentElement.scrollTop)
-    
-    // 向下滚动时隐藏底部导航（需要滚动超过50px才隐藏）
-    if (currentScrollTop > lastScrollTop.value && currentScrollTop > 50) {
-      isBottomBarVisible.value = false
-    } else if (currentScrollTop < lastScrollTop.value) {
-      // 向上滚动时立即显示底部导航
-      isBottomBarVisible.value = true
-    }
-    
-    lastScrollTop.value = currentScrollTop
-    
-    // 清除之前的定时器
-    if (scrollTimer.value !== null) {
-      clearTimeout(scrollTimer.value)
-    }
-    
-    // 停止滚动1秒后显示底部导航
-    scrollTimer.value = window.setTimeout(() => {
-      isBottomBarVisible.value = true
-      scrollTimer.value = null
-    }, 1000)
-  }
-
-  // 处理支付结果消息
-  const handlePaymentResult = (result: any) => {
-    console.log('收到支付结果消息:', result)
-    if (result && result.success) {
-      // 支付成功，刷新促销详情数据
-      console.log('支付成功，刷新促销详情数据')
-      loadPromotionDetail()
-      showToast('支付成功！')
-    }
-  }
-
-  // 页面激活时刷新数据（从收银台返回时）
-  let lastRefreshTime = 0
-  const REFRESH_INTERVAL = 2000 // 2秒内不重复刷新
-  const handlePageActivated = () => {
-    const now = Date.now()
-    // 避免过于频繁的刷新
-    if (now - lastRefreshTime < REFRESH_INTERVAL) {
-      console.log('页面激活刷新被节流，跳过')
-      return
-    }
-    lastRefreshTime = now
-    console.log('页面激活，刷新促销详情数据')
-    loadPromotionDetail()
-  }
-
-  // 页面激活事件处理器
-  let handleVisibilityChange: (() => void) | null = null
-  let handlePageShow: ((event: PageTransitionEvent) => void) | null = null
-
-  // 初始化
-  onMounted(() => {
-    loadPromotionDetail()
-    
-    // 监听支付结果消息
-    webViewBridge.on('paymentResult', handlePaymentResult)
-    
-    // 监听页面激活事件（从其他页面返回时）
-    // 使用 visibilitychange 事件检测页面是否可见
-    handleVisibilityChange = () => {
-      if (!document.hidden) {
-        // 页面变为可见时，刷新数据
-        handlePageActivated()
-      }
-    }
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    
-    // 使用 pageshow 事件检测页面显示（包括从缓存恢复）
-    handlePageShow = (event: PageTransitionEvent) => {
-      // 如果是从缓存恢复的页面，刷新数据
-      if (event.persisted) {
-        handlePageActivated()
-      }
-    }
-    window.addEventListener('pageshow', handlePageShow)
-    
-    // 等待DOM渲染完成后添加滚动监听
-    setTimeout(() => {
-      // 优先监听.app-main容器（这是实际的滚动容器）
-      const appMain = document.querySelector('.app-main') as HTMLElement
-      if (appMain) {
-        appMain.addEventListener('scroll', handleScroll, { passive: true })
-      } else {
-        // 如果没有.app-main，则监听window
-        window.addEventListener('scroll', handleScroll, { passive: true })
-      }
-    }, 100)
+  // 检查模板中的 promotion 引用
+  console.log('🔍 [PromotionDetail.vue] 检查 promotion 引用:', {
+    'promotion 是否为 ref': promotion && typeof promotion === 'object' && 'value' in promotion,
+    'promotion.value 当前值': promotion?.value,
+    'promotion.value 类型': typeof promotion?.value,
+    'promotion.value === null': promotion?.value === null,
+    'promotion.value === undefined': promotion?.value === undefined,
   })
+}, { immediate: true, deep: true })
 
-  // 清理
-  onUnmounted(() => {
-    // 移除支付结果监听
-    webViewBridge.off('paymentResult', handlePaymentResult)
-    
-    // 移除页面激活监听
-    if (handleVisibilityChange) {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
-    if (handlePageShow) {
-      window.removeEventListener('pageshow', handlePageShow)
-    }
-    
-    // 移除滚动监听
-    const appMain = document.querySelector('.app-main') as HTMLElement
-    if (appMain) {
-      appMain.removeEventListener('scroll', handleScroll)
-    } else {
-      window.removeEventListener('scroll', handleScroll)
-    }
-    
-    // 清除定时器
-    if (scrollTimer.value !== null) {
-      clearTimeout(scrollTimer.value)
-    }
+// 图片处理 - 直接使用 promotion.value.images 确保响应式更新
+const imagesRef = computed(() => promotion?.value?.images)
+const { mainImages, detailImages } = usePromotionImages(imagesRef)
+
+// 价格计算
+const { isMallSubsidy, finalAmount, salePrice, originalPrice, leftQuantity, formatPrice } = usePromotionPrice({
+  promotion,
+  selectedVariant,
+})
+
+// 标签管理
+const tagsRef = computed(() => tags.value)
+const { showTagDescription, handleDocumentClick } = usePromotionTags(tagsRef)
+
+// 收藏管理
+const { isFavorite, toggleFavorite, initFavoriteStatus } = usePromotionFavorite(promotionId)
+
+// 购买逻辑
+const leftQuantityRef = computed(() => leftQuantity.value)
+const { canPurchase, purchaseButtonText, handlePurchase } = usePromotionPurchase({
+  promotionId,
+  promotion,
+  selectedVariant,
+  variants,
+  leftQuantity: leftQuantityRef,
+})
+
+// 底部栏滚动控制
+const { isBottomBarVisible, bottomBarStyle } = useBottomBarScroll()
+
+// 活动状态
+const isActivityActiveValue = computed(() => {
+  if (!promotion?.value) {
+    console.log('⚠️ isActivityActiveValue: promotion.value 为空')
+    return false
+  }
+  const result = isActivityActive(promotion.value.startTime, promotion.value.endTime)
+  console.log('✅ isActivityActiveValue:', result, {
+    startTime: promotion.value.startTime,
+    endTime: promotion.value.endTime,
   })
+  return result
+})
+
+// 调试：检查 promotion 状态
+const promotionDebug = computed(() => {
+  console.log('🔍 promotion 调试信息:', {
+    hasPromotion: !!promotion,
+    hasValue: !!promotion?.value,
+    valueId: promotion?.value?.id,
+    valueName: promotion?.value?.name,
+  })
+  return promotion?.value
+})
+
+// 标签点击处理
+const handleTagClick = (tagId: string) => {
+  showTagDescription(tagId)
+}
+
+// 支付结果处理
+const handlePaymentResult = (result: any) => {
+  if (result?.success) {
+    loadPromotionDetail()
+    showToast('支付成功！')
+  }
+}
+
+// 页面激活刷新
+let lastRefreshTime = 0
+const REFRESH_INTERVAL = 2000 // 2秒内不重复刷新
+const handlePageActivated = () => {
+  const now = Date.now()
+  // 避免过于频繁的刷新
+  if (now - lastRefreshTime < REFRESH_INTERVAL) {
+    console.log('页面激活刷新被节流，跳过')
+    return
+  }
+  lastRefreshTime = now
+  console.log('页面激活，刷新促销详情数据')
+  loadPromotionDetail()
+}
+
+// 页面激活事件处理器
+let handleVisibilityChange: (() => void) | null = null
+let handlePageShow: ((event: PageTransitionEvent) => void) | null = null
+
+// 返回首页
+const goToHome = () => {
+  router.push({ name: 'Home' })
+}
+
+// 返回上一页
+const onClickLeft = () => {
+  router.back()
+}
+
+// 联系客服
+const contactService = () => {
+  showToast('正在跳转到客服聊天...')
+}
+
+// 生命周期
+onMounted(() => {
+  loadPromotionDetail()
+  
+  // 监听支付结果消息
+  webViewBridge.on('paymentResult', handlePaymentResult)
+  
+  // 监听页面点击事件，点击外部时关闭提示框
+  document.addEventListener('click', handleDocumentClick, true)
+  
+  // 监听页面激活事件（从其他页面返回时）
+  // 使用 visibilitychange 事件检测页面是否可见
+  handleVisibilityChange = () => {
+    if (!document.hidden) {
+      // 页面变为可见时，刷新数据
+      handlePageActivated()
+    }
+  }
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  
+  // 使用 pageshow 事件检测页面显示（包括从缓存恢复）
+  handlePageShow = (event: PageTransitionEvent) => {
+    // 如果是从缓存恢复的页面，刷新数据
+    if (event.persisted) {
+      handlePageActivated()
+    }
+  }
+  window.addEventListener('pageshow', handlePageShow)
+})
+
+onUnmounted(() => {
+  // 移除支付结果监听
+  webViewBridge.off('paymentResult', handlePaymentResult)
+  
+  // 移除页面点击监听
+  document.removeEventListener('click', handleDocumentClick, true)
+  
+  // 移除页面激活监听
+  if (handleVisibilityChange) {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }
+  if (handlePageShow) {
+    window.removeEventListener('pageshow', handlePageShow)
+  }
+})
 </script>
 
 <style lang="scss" scoped>
-  .promotion-detail-page {
-    min-height: 100vh;
-    padding-bottom: 80px; // 为底部操作栏留出空间
-    background-color: #f5f5f5;
-  }
+@use '@/styles/variables.scss' as *;
+@use '@/styles/mixins.scss' as *;
 
-  // 顶部Banner主图区域
-  .banner-section {
-    width: 100%;
-    background-color: #fff;
+.promotion-detail-page {
+  min-height: 100vh;
+  padding-bottom: 80px; // 为底部操作栏留出空间
+  background: var(--theme-bg-gradient, $glass-bg-gradient);
+  background-attachment: fixed;
+  background-size: cover;
 
-    .banner-swipe {
-      width: 100%;
+  // 导航栏样式 - 透明背景与 banner 融合
+  :deep(.detail-nav-bar) {
+    background: transparent;
+    
+    .van-nav-bar__content {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
-
-    .banner-image {
-      width: 100%;
-      height: auto;
-      min-height: 300px;
-      max-height: 500px;
-      object-fit: contain; // 使用 contain 确保图片完整显示，不被裁剪
-      display: block;
-      background-color: #f5f5f5;
+    
+    .van-nav-bar__title {
+      color: white;
+      font-weight: 600;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     }
-
-    .banner-placeholder {
-      width: 100%;
-      height: 400px;
-    }
-  }
-
-  // 促销活动基本信息
-  .promotion-info {
-    background-color: #fff;
-    padding: 16px;
-    margin-bottom: 12px;
-
-    .price-section {
-      display: flex;
-      align-items: baseline;
-      gap: 12px;
-      margin-bottom: 12px;
-
-      .current-price {
-        display: flex;
-        align-items: baseline;
-
-        .price-symbol {
-          font-size: 18px;
-          font-weight: 600;
-          color: var(--van-danger-color);
-        }
-
-        .price-value {
-          font-size: 32px;
-          font-weight: 800;
-          color: var(--van-danger-color);
-        }
-      }
-
-      .original-price {
-        display: flex;
-        align-items: baseline;
-        gap: 8px;
-
-        .original-symbol {
-          font-size: 14px;
-          color: var(--van-text-color-3);
-        }
-
-        .original-value {
-          font-size: 18px;
-          color: var(--van-text-color-3);
-          text-decoration: line-through;
-        }
-
-        .discount-text {
-          font-size: 12px;
-          color: var(--van-success-color);
-          background-color: rgba(7, 193, 96, 0.1);
-          padding: 2px 6px;
-          border-radius: 4px;
-        }
-      }
-    }
-
-    .service-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 12px 0;
-}
-
-.service-tag {
-  display: inline-block;
-  padding: 4px 12px;
-  background-color: #f0f0f0;
-  border-radius: 12px;
-  font-size: 12px;
-  color: #333;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.service-tag:hover {
-  background-color: #e0e0e0;
-}
-
-.service-tag:active {
-  background-color: #d0d0d0;
-}
-
-.tag-popover-content {
-  padding: 8px;
-  min-width: 120px;
-}
-
-.tag-name {
-  font-weight: bold;
-  margin-bottom: 4px;
-  color: #fff;
-}
-
-.tag-description {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.9);
-  line-height: 1.4;
-}
-
-.promotion-name {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--van-text-color);
-      margin: 0 0 8px 0;
-      line-height: 1.4;
-    }
-
-    .promotion-desc {
-      font-size: 14px;
-      color: var(--van-text-color-2);
-      line-height: 1.6;
-      margin: 0 0 16px 0;
-    }
-
-    .promotion-meta {
-      display: flex;
-      gap: 16px;
-      padding-top: 12px;
-      border-top: 1px solid var(--van-border-color);
-
-      .meta-item {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-
-        .meta-label {
-          font-size: 12px;
-          color: var(--van-text-color-3);
-        }
-
-        .meta-value {
-          font-size: 14px;
-          font-weight: 600;
-          color: var(--van-text-color);
-        }
-      }
+    
+    .van-nav-bar__arrow {
+      color: white;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     }
   }
-
-  // 详情区域
-  .detail-section {
-    background-color: #fff;
-    margin-bottom: 12px;
-
-    .section-header {
-      padding: 16px;
-      border-bottom: 1px solid var(--van-border-color);
-
-      h3 {
-        font-size: 18px;
-        font-weight: 700;
-        color: var(--van-text-color);
-        margin: 0;
-      }
-    }
-
-    .detail-content {
-      padding: 16px;
-
-      .detail-images {
-        display: flex;
-        flex-direction: column;
-        gap: 0;
-
-        .detail-image-item {
-          width: 100%;
-          border-radius: 8px;
-          overflow: visible; // 改为 visible，不裁剪图片
-          background-color: #f5f5f5;
-
-          .detail-image {
-            width: 100%;
-            height: auto; // 使用 auto 保持原始宽高比
-            min-height: 200px;
-            object-fit: contain; // 使用 contain 确保图片完整显示，不被裁剪
-            display: block;
-            transition: opacity 0.3s ease;
-
-            &[loading="lazy"] {
-              opacity: 0;
-              animation: fadeIn 0.3s ease forwards;
-            }
-
-            @keyframes fadeIn {
-              to {
-                opacity: 1;
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // 底部操作栏
-  .bottom-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 16px;
-    background-color: #fff;
-    border-top: 1px solid var(--van-border-color);
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-    z-index: 100;
-    gap: 12px;
-    transition: transform 0.3s ease-in-out;
-    transform: translateY(0);
-
-    &.hidden {
-      transform: translateY(100%);
-    }
-
-    .left-buttons {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex: 1;
-
-      .action-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 4px;
-        padding: 4px 8px;
-        cursor: pointer;
-        transition: opacity 0.2s;
-
-        &:active {
-          opacity: 0.6;
-        }
-
-        .van-icon {
-          font-size: 20px;
-          color: var(--van-text-color-2);
-
-          &.active {
-            color: var(--van-warning-color);
-          }
-        }
-
-        span {
-          font-size: 12px;
-          color: var(--van-text-color-2);
-        }
-      }
-    }
-
-    .right-buttons {
-      flex-shrink: 0;
-      position: relative;
-      z-index: 101; // 确保按钮在最上层
-
-      .van-button {
-        min-width: 120px;
-        position: relative;
-        z-index: 102; // 确保按钮在最上层
-        pointer-events: auto; // 确保可以点击
-      }
-    }
-  }
+}
 </style>
-

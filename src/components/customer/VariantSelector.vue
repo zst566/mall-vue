@@ -16,7 +16,7 @@
       >
         <div class="variant-content">
           <span class="variant-name" :title="variant.name">{{ truncateName(variant.name) }}</span>
-          <span class="variant-price">¥{{ formatPrice(variant.salePrice) }}</span>
+          <span class="variant-price">¥{{ formatPrice(variant.finalAmount ?? variant.salePrice) }}</span>
         </div>
         <span v-if="isSoldOut(variant)" class="sold-out-tag">已售罄</span>
       </button>
@@ -41,6 +41,7 @@ interface PromotionVariant {
   promotionMode?: 'mall_subsidy' | 'normal_split' | 'points_exchange'
   settlementPrice?: number
   pointsValue?: number
+  finalAmount?: number // 最终价格（后端计算）
   isDefault?: boolean
   sortOrder?: number
 }
