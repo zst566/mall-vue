@@ -15,336 +15,59 @@
     
     <!-- 订单内容 -->
     <template v-else>
-    <!-- 订单头部信息 -->
-    <div class="order-header">
-      <div class="order-status">
-        <h2>订单详情</h2>
-        <div class="status-badge" :class="order.status">
-          {{ getStatusLabel(order.status) }}
-        </div>
-      </div>
-      <div class="order-meta">
-        <div class="order-no">订单号：{{ order.orderNo }}</div>
-        <div class="order-time">下单时间：{{ formatDate(order.createdAt) }}</div>
-        <div class="order-expiry" v-if="order.expiryDate">
-          <span class="expiry-label">有效期至：</span>
-          <span class="expiry-date">{{ formatDateOnly(order.expiryDate) }}</span>
-          <span class="expiry-days" :class="getExpiryDaysClass(order.expiryDate)">
-            {{ getExpiryDaysText(order.expiryDate) }}
-          </span>
-        </div>
-      </div>
-    </div>
+      <!-- 订单头部信息 -->
+      <OrderHeader :order="order" />
 
-    <!-- 订单状态进度 -->
-    <div class="order-timeline" v-if="order.paidAt || order.verifiedAt">
-      <van-steps :active="getTimelineActiveStep" direction="vertical">
-        <van-step v-if="order.paidAt">
-          <span>订单已支付</span>
-          <div class="step-time">{{ order.paidAt }}</div>
-        </van-step>
-        <van-step v-if="order.verifiedAt">
-          <span>订单已核销</span>
-          <div class="step-time">{{ order.verifiedAt }}</div>
-        </van-step>
-      </van-steps>
-    </div>
+      <!-- 二维码和支付信息 -->
+      <QRCodePayment
+        :order="order"
+        :qr-code-data="qrCodeData"
+        :qr-code-loading="qrCodeLoading"
+        :qr-code-error="qrCodeError"
+        :qr-code-verified="qrCodeVerified"
+        @qrcode-click="handleQRCodeClick"
+        @retry-load="loadQRCode"
+      />
 
-    <!-- 收货信息 -->
-    <div class="shipping-info" v-if="order.shippingAddress || order.contactName">
-      <h3>收货信息</h3>
-      <div class="info-content">
-        <div class="contact-info">
-          <div class="contact-name">{{ order.shippingAddress?.name || order.contactName || '' }}</div>
-          <div class="contact-phone">{{ order.contactPhone || '' }}</div>
-        </div>
-        <div class="address-info" v-if="order.shippingAddress">
-          {{ (order.shippingAddress.province || '') }} {{ (order.shippingAddress.city || '') }}
-          {{ (order.shippingAddress.district || '') }} {{ (order.shippingAddress.detail || '') }}
-        </div>
-      </div>
-    </div>
+      <!-- 促销活动信息 -->
+      <ProductInfo
+        v-if="order.items && order.items.length > 0"
+        :items="order.items"
+        @product-click="goToProductDetail"
+      />
 
-    <!-- 促销活动信息 -->
-    <div class="product-info" v-if="order.items && order.items.length > 0">
-      <h3>促销活动信息</h3>
-      <div class="product-item" v-for="item in order.items" :key="item.id" @click="goToProductDetail(item)">
-        <img :src="getProductImageUrl(item.productImage)" :alt="item.productName" class="product-image" />
-        <div class="product-details">
-          <h4 class="product-name">{{ item.productName }}</h4>
-          <div class="product-specs">
-            <span>数量：{{ item.quantity }}</span>
-            <span>原价：¥{{ formatMoney((item as any).originalPrice || 0) }}</span>
-          </div>
-          <div class="merchant-info" v-if="(item as any).merchantName || (item as any).merchantAddress || (item as any).merchantFloor">
-            <div class="merchant-name" v-if="(item as any).merchantName">
-              <van-icon name="shop-o" class="merchant-icon" />
-              <span>{{ (item as any).merchantName }}</span>
-            </div>
-            <div class="merchant-location" v-if="(item as any).merchantAddress || (item as any).merchantFloor">
-              <van-icon name="location-o" class="location-icon" />
-              <span v-if="(item as any).merchantAddress">{{ (item as any).merchantAddress }}</span>
-              <span v-if="(item as any).merchantFloor" class="floor-text">{{ (item as any).merchantFloor }}</span>
-            </div>
-          </div>
-        </div>
-        <div class="product-price">¥{{ formatMoney(item.price * item.quantity) }}</div>
-      </div>
-    </div>
+      <!-- 退款申请详情 -->
+      <RefundRequestInfo
+        v-if="order.status === 'refund_requested' && refundRequestDetail"
+        :refund-request-detail="refundRequestDetail"
+        @image-preview="previewImage"
+      />
 
-    <!-- 二维码和支付信息（合并显示） -->
-    <div class="qrcode-payment-container" v-if="order.status === 'paid' || order.status === 'verified'">
-      <!-- 二维码区域（40%） -->
-      <div class="qrcode-area">
-        <div 
-          class="qrcode-wrapper" 
-          :class="{ 'verified': qrCodeVerified, 'clickable': qrCodeData && !qrCodeLoading && !qrCodeError && !qrCodeVerified }"
-          @click="handleQRCodeClick"
-        >
-          <!-- 加载状态 -->
-          <div v-if="qrCodeLoading" class="qrcode-loading">
-            <van-loading type="spinner" size="24px">加载中...</van-loading>
-          </div>
-          <!-- 二维码图片 -->
-          <img
-            v-else-if="qrCodeData"
-            :src="qrCodeData"
-            alt="订单二维码"
-            class="qrcode-image"
-          />
-          <!-- 错误状态 -->
-          <div v-else-if="qrCodeError" class="qrcode-error">
-            <van-icon name="warning-o" size="48" color="#ee0a24" />
-            <p class="error-message">{{ qrCodeError }}</p>
-            <van-button type="primary" size="small" @click="loadQRCode">重试</van-button>
-          </div>
-          <!-- 已核销状态 -->
-          <div v-if="qrCodeVerified" class="verified-overlay">
-            <van-icon name="success" size="80" color="#07c160" />
-            <div class="verified-text">已核销</div>
-          </div>
-        </div>
-      </div>
-      <!-- 支付信息区域（60%） -->
-      <div class="payment-info">
-        <h3>支付信息</h3>
-        <div class="payment-details">
-          <div class="payment-row">
-            <span>商品金额</span>
-            <span>¥{{ formatMoney(order.originalAmount || 0) }}</span>
-          </div>
-          <div class="payment-row" v-if="order.shippingFee && order.shippingFee > 0">
-            <span>运费</span>
-            <span>¥{{ formatMoney(order.shippingFee) }}</span>
-          </div>
-          <div class="payment-row total">
-            <span>实付金额</span>
-            <span class="total-amount">¥{{ formatMoney(order.totalAmount) }}</span>
-          </div>
-          <div class="payment-row">
-            <span>支付方式</span>
-            <span>{{ getPaymentMethodLabel(order.paymentMethod) }}</span>
-          </div>
-          <div class="payment-row" v-if="order.paidAt">
-            <span>支付时间</span>
-            <span>{{ order.paidAt }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 支付信息（当订单状态不是paid或verified时单独显示） -->
-    <div class="payment-info" v-if="order.status !== 'paid' && order.status !== 'verified'">
-      <h3>支付信息</h3>
-      <div class="payment-details">
-        <div class="payment-row">
-          <span>商品金额</span>
-          <span>¥{{ formatMoney(order.originalAmount || 0) }}</span>
-        </div>
-        <div class="payment-row" v-if="order.shippingFee && order.shippingFee > 0">
-          <span>运费</span>
-          <span>¥{{ formatMoney(order.shippingFee) }}</span>
-        </div>
-        <div class="payment-row total">
-          <span>实付金额</span>
-          <span class="total-amount">¥{{ formatMoney(order.totalAmount) }}</span>
-        </div>
-        <div class="payment-row">
-          <span>支付方式</span>
-          <span>{{ getPaymentMethodLabel(order.paymentMethod) }}</span>
-        </div>
-        <div class="payment-row" v-if="order.paidAt">
-          <span>支付时间</span>
-          <span>{{ order.paidAt }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 退款申请详情（申请退款中状态时显示） -->
-    <div v-if="order.status === 'refund_requested' && refundRequestDetail" class="refund-request-info">
-      <h3>退款申请信息</h3>
-      <div class="refund-info-content">
-        <div class="info-row">
-          <span class="info-label">退款原因：</span>
-          <span class="info-value">{{ refundRequestDetail.refundReason?.name || '-' }}</span>
-        </div>
-        <div class="info-row" v-if="refundRequestDetail.requestedAmount">
-          <span class="info-label">申请金额：</span>
-          <span class="info-value">¥{{ formatMoney(refundRequestDetail.requestedAmount) }}</span>
-        </div>
-        <div class="info-row" v-if="refundRequestDetail.description">
-          <span class="info-label">申请说明：</span>
-          <span class="info-value">{{ refundRequestDetail.description }}</span>
-        </div>
-        <div class="info-row" v-if="refundRequestDetail.images && refundRequestDetail.images.length > 0">
-          <span class="info-label">图片凭证：</span>
-          <div class="info-images">
-            <img
-              v-for="(img, index) in refundRequestDetail.images"
-              :key="index"
-              :src="img"
-              alt="退款凭证"
-              @click="previewImage(img, refundRequestDetail.images || [])"
-              class="refund-image"
-            />
-          </div>
-        </div>
-        <div class="info-row" v-if="refundRequestDetail.contactPhone">
-          <span class="info-label">联系电话：</span>
-          <span class="info-value">{{ refundRequestDetail.contactPhone }}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">申请时间：</span>
-          <span class="info-value">{{ formatDate(refundRequestDetail.createdAt) }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 操作按钮 -->
-    <div class="order-actions">
-      <template v-if="order.status === 'pending'">
-        <van-button type="primary" block @click="goToPayment">立即支付</van-button>
-        <van-button type="default" block @click="cancelOrder">取消订单</van-button>
-      </template>
-      <template v-else-if="order.status === 'paid'">
-        <van-button 
-          type="danger" 
-          block 
-          :disabled="!canRefund"
-          @click="goToRefundRequest"
-        >
-          申请退款
-        </van-button>
-        <div v-if="!canRefund" class="refund-disabled-tip">
-          <van-notice-bar
-            color="#ff976a"
-            background="#fff7e6"
-            left-icon="info-o"
-            :text="refundDisabledReason"
-          />
-        </div>
-        <van-button type="default" block @click="goToProducts">继续购物</van-button>
-      </template>
-      <template v-else-if="order.status === 'refund_requested'">
-        <van-button type="default" block @click="handleCancelRefundRequest">撤销退款申请</van-button>
-        <van-button type="default" block @click="goToProducts">继续购物</van-button>
-      </template>
-      <template v-else-if="order.status === 'verified'">
-        <van-button type="primary" block @click="reviewProduct">评价商品</van-button>
-        <van-button type="default" block @click="buyAgain">再次购买</van-button>
-      </template>
-      <van-button v-if="order.status !== 'paid' && order.status !== 'refund_requested'" type="default" block @click="goToProducts">继续购物</van-button>
-    </div>
-
+      <!-- 操作按钮 -->
+      <OrderActions
+        :order="order"
+        :can-refund="canRefund"
+        :refund-disabled-reason="refundDisabledReason"
+        @payment="goToPayment"
+        @cancel="cancelOrder"
+        @refund="goToRefundRequest"
+        @review="reviewProduct"
+        @buy-again="buyAgain"
+        @continue-shopping="goToProducts"
+        @cancel-refund="handleCancelRefundRequest"
+      />
     </template>
 
-    <!-- 全屏遮罩层（使用Teleport渲染到body，确保在最顶层） -->
-    <Teleport to="body">
-      <div v-if="showQRCodeFullscreen" class="fullscreen-overlay" @click="closeQRCodeFullscreen">
-        <div class="fullscreen-content" @click.stop>
-          <img
-            v-if="qrCodeData"
-            :src="qrCodeData"
-            alt="订单二维码"
-            class="fullscreen-qrcode-image"
-          />
-          <p class="fullscreen-hint">点击任意位置关闭</p>
-        </div>
-      </div>
-    </Teleport>
-
-    <!-- 确认对话框：取消订单 -->
-    <van-dialog
-      v-model:show="showCancelOrderDialog"
-      title=""
-      :show-cancel-button="true"
-      :confirm-button-text="'确定'"
-      :cancel-button-text="'取消'"
-      @confirm="confirmCancelOrder"
-      @cancel="showCancelOrderDialog = false"
-      :close-on-click-overlay="false"
-      class="standard-confirm-dialog"
-      :width="320"
-    >
-      <div class="dialog-content">
-        <div class="dialog-icon">
-          <van-icon name="warning-o" size="48" />
-        </div>
-        <h3 class="dialog-title">取消订单</h3>
-        <p class="dialog-message">
-          确定要取消此订单吗？
-        </p>
-      </div>
-    </van-dialog>
-
-    <!-- 确认对话框：确认收货 -->
-    <van-dialog
-      v-model:show="showConfirmReceiveDialog"
-      title=""
-      :show-cancel-button="true"
-      :confirm-button-text="'确认收货'"
-      :cancel-button-text="'再想想'"
-      @confirm="confirmReceiveOrder"
-      @cancel="showConfirmReceiveDialog = false"
-      :close-on-click-overlay="false"
-      class="standard-confirm-dialog"
-      :width="320"
-    >
-      <div class="dialog-content">
-        <div class="dialog-icon">
-          <van-icon name="success" size="48" />
-        </div>
-        <h3 class="dialog-title">确认收货</h3>
-        <p class="dialog-message">
-          确认已收到商品吗？
-        </p>
-      </div>
-    </van-dialog>
-
-    <!-- 确认对话框：撤销退款申请 -->
-    <van-dialog
-      v-model:show="showCancelRefundDialog"
-      title=""
-      :show-cancel-button="true"
-      :confirm-button-text="'确定撤销'"
-      :cancel-button-text="'取消'"
-      @confirm="confirmCancelRefund"
-      @cancel="showCancelRefundDialog = false"
-      :close-on-click-overlay="false"
-      class="standard-confirm-dialog"
-      :width="320"
-    >
-      <div class="dialog-content">
-        <div class="dialog-icon">
-          <van-icon name="warning-o" size="48" />
-        </div>
-        <h3 class="dialog-title">撤销退款申请</h3>
-        <p class="dialog-message">
-          确定要撤销退款申请吗？<br />
-          撤销后订单将恢复为"已支付（待使用）"状态。
-        </p>
-      </div>
-    </van-dialog>
+    <!-- 确认对话框 -->
+    <OrderDialogs
+      v-model:show-cancel-order="showCancelOrderDialog"
+      v-model:show-confirm-receive="showConfirmReceiveDialog"
+      v-model:show-cancel-refund="showCancelRefundDialog"
+      @confirm-cancel-order="confirmCancelOrder"
+      @confirm-receive="confirmReceiveOrder"
+      @confirm-cancel-refund="confirmCancelRefund"
+      @cancel="handleDialogCancel"
+    />
   </div>
 </template>
 
@@ -356,26 +79,13 @@
   import { formatMoney } from '@/utils/format'
   import { orderService } from '@/services/orders'
   import { api } from '@/services/api'
+  import OrderHeader from '@/components/customer/OrderHeader.vue'
+  import QRCodePayment from '@/components/customer/QRCodePayment.vue'
+  import ProductInfo from '@/components/customer/ProductInfo.vue'
+  import RefundRequestInfo from '@/components/customer/RefundRequestInfo.vue'
+  import OrderActions from '@/components/customer/OrderActions.vue'
+  import OrderDialogs from '@/components/customer/OrderDialogs.vue'
 
-  // 获取促销商品图片URL（兼容相对路径和完整URL）
-  const getProductImageUrl = (url: string | undefined | null): string => {
-    if (!url) return '/images/default-product.jpg'
-    // 已经是完整URL，直接返回
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url
-    }
-    // 已经是 /api 开头，直接返回
-    if (url.startsWith('/api/')) {
-      return url
-    }
-    // 以 / 开头的相对路径，拼接 API 基础地址
-    if (url.startsWith('/')) {
-      const baseURL = import.meta.env.VITE_API_BASE_URL || '/api'
-      return `${baseURL}${url}`
-    }
-    // 其它情况，原样返回（例如 OSS 完整地址或兼容旧数据）
-    return url
-  }
 
   const router = useRouter()
   const route = useRoute()
@@ -413,35 +123,7 @@
   const qrCodeLoading = ref(false)
   const qrCodeError = ref<string>('')
   const qrCodeVerified = ref(false)
-  const showQRCodeFullscreen = ref(false)
 
-  // 订单状态配置
-  const orderStatusMap = {
-    pending: { label: '待支付', color: '#ff976a' },
-    paid: { label: '已支付（待使用）', color: '#1989fa' },
-    verified: { label: '已核销（已使用）', color: '#07c160' },
-    cancelled: { label: '已取消', color: '#969799' },
-    refunded: { label: '已退款', color: '#969799' },
-    refund_requested: { label: '申请退款中', color: '#ff976a' }
-  }
-
-  // 支付方式配置
-  const paymentMethodMap = {
-    wechat: '微信支付',
-    alipay: '支付宝',
-    cash: '现金支付',
-    other: '其他'
-  }
-
-  // 计算时间轴步骤
-  const getTimelineActiveStep = computed(() => {
-    if (order.value.verifiedAt) {
-      return 1 // 已核销
-    } else if (order.value.paidAt) {
-      return 0 // 已支付
-    }
-    return 0
-  })
 
   // 检查是否允许退款
   const canRefund = computed(() => {
@@ -482,17 +164,7 @@
     return '该订单不支持退款'
   })
 
-  // 获取状态标签
-  const getStatusLabel = (status: string) => {
-    return orderStatusMap[status as keyof typeof orderStatusMap]?.label || status
-  }
-
-  // 获取支付方式标签
-  const getPaymentMethodLabel = (method: string) => {
-    return paymentMethodMap[method as keyof typeof paymentMethodMap] || method
-  }
-
-  // 格式化日期（包含时间）
+  // 格式化日期（包含时间）- 用于退款申请详情
   const formatDate = (dateStr: string) => {
     if (!dateStr) return ''
     const date = new Date(dateStr)
@@ -504,56 +176,6 @@
       hour: '2-digit',
       minute: '2-digit'
     })
-  }
-
-  // 格式化日期（仅年月日）
-  const formatDateOnly = (dateStr: string) => {
-    if (!dateStr) return ''
-    const date = new Date(dateStr)
-    if (isNaN(date.getTime())) return ''
-    return date.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    })
-  }
-
-  // 计算剩余天数
-  const getExpiryDays = (endTime: string): number => {
-    if (!endTime) return -1
-    const endDate = new Date(endTime)
-    const now = new Date()
-    const diffTime = endDate.getTime() - now.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays
-  }
-
-  // 获取有效期文本
-  const getExpiryDaysText = (endTime: string): string => {
-    const days = getExpiryDays(endTime)
-    if (days < 0) {
-      return '已过期'
-    } else if (days === 0) {
-      return '今天到期'
-    } else if (days === 1) {
-      return '明天到期'
-    } else {
-      return `还有${days}天到期`
-    }
-  }
-
-  // 获取有效期样式类
-  const getExpiryDaysClass = (endTime: string): string => {
-    const days = getExpiryDays(endTime)
-    if (days < 0) {
-      return 'expired'
-    } else if (days <= 3) {
-      return 'urgent'
-    } else if (days <= 7) {
-      return 'warning'
-    } else {
-      return 'normal'
-    }
   }
 
   // 去支付
@@ -611,13 +233,9 @@
     router.push({ name: 'RefundRequest', params: { id: order.value.id } })
   }
 
-  // 预览图片
+  // 预览图片（由 RefundRequestInfo 组件内部处理）
   const previewImage = (url: string, images: string[]) => {
-    showImagePreview({
-      images: images,
-      startPosition: images.indexOf(url),
-      closeable: true
-    })
+    // 图片预览逻辑已移至 RefundRequestInfo 组件内部
   }
 
   // 撤销退款申请
@@ -856,18 +474,9 @@
     }
   }
 
-  // 处理二维码点击
+  // 处理二维码点击（由 QRCodePayment 组件内部处理全屏显示）
   const handleQRCodeClick = () => {
-    if (qrCodeData.value && !qrCodeLoading.value && !qrCodeError.value && !qrCodeVerified.value) {
-      showQRCodeFullscreen.value = true
-      document.body.style.overflow = 'hidden'
-    }
-  }
-
-  // 关闭全屏
-  const closeQRCodeFullscreen = () => {
-    showQRCodeFullscreen.value = false
-    document.body.style.overflow = ''
+    // 全屏显示逻辑已移至 QRCodePayment 组件内部
   }
 
   // 监听订单状态变化，更新二维码状态
@@ -884,6 +493,13 @@
     loadOrderDetail()
   })
 
+  // 处理对话框取消
+  const handleDialogCancel = () => {
+    showCancelOrderDialog.value = false
+    showConfirmReceiveDialog.value = false
+    showCancelRefundDialog.value = false
+  }
+
   onUnmounted(() => {
     // 确保恢复body滚动
     document.body.style.overflow = ''
@@ -893,16 +509,13 @@
 <style lang="scss" scoped>
   @use '@/styles/variables.scss' as *;
   @use '@/styles/mixins.scss' as *;
-  @use '@/styles/dialog-mixin.scss' as *;
-  @use '@/styles/variables.scss' as *;
-  @use '@/styles/mixins.scss' as *;
 
   .order-detail-page {
     min-height: 100vh;
     background: var(--theme-bg-gradient, $glass-bg-gradient);
     background-attachment: fixed;
     background-size: cover;
-    padding-bottom: 100px;
+    padding-bottom: 20px;
 
     // 导航栏样式
     :deep(.van-nav-bar) {
@@ -917,607 +530,6 @@
       
       .van-nav-bar__arrow {
         color: $text-color-primary;
-      }
-    }
-  }
-
-  .order-header {
-    @include glassmorphism-card(base);
-    padding: 24px 20px;
-    margin: 16px;
-    margin-bottom: 12px;
-
-    .order-status {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-
-      h2 {
-        font-size: 20px;
-        font-weight: 600;
-        color: #323233;
-        margin: 0;
-      }
-
-      .status-badge {
-        padding: 6px 14px;
-        border-radius: 16px;
-        font-size: 13px;
-        font-weight: 500;
-
-        &.pending {
-          background: var(--primary-color-alpha-10, rgba(25, 137, 250, 0.1));
-          color: var(--primary-color);
-        }
-
-        &.paid {
-          background: var(--primary-color-alpha-10, rgba(25, 137, 250, 0.1));
-          color: var(--primary-color);
-        }
-
-        &.verified {
-          background: var(--primary-color-alpha-10, rgba(25, 137, 250, 0.1));
-          color: var(--primary-color);
-        }
-
-        &.cancelled {
-          background: rgba(150, 151, 153, 0.1);
-          color: var(--van-text-color-3);
-        }
-
-        &.refund_requested {
-          background: var(--primary-color-alpha-10, rgba(25, 137, 250, 0.1));
-          color: var(--primary-color);
-        }
-      }
-    }
-
-    .order-meta {
-      .order-no,
-      .order-time {
-        font-size: 13px;
-        color: #969799;
-        margin-bottom: 6px;
-        line-height: 1.5;
-      }
-
-      .order-expiry {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-top: 8px;
-        padding-top: 8px;
-        border-top: 1px solid #ebedf0;
-        font-size: 13px;
-        flex-wrap: wrap;
-
-        .expiry-label {
-          color: #646566;
-        }
-
-        .expiry-date {
-          color: #323233;
-          font-weight: 500;
-        }
-
-        .expiry-days {
-          padding: 2px 8px;
-          border-radius: 12px;
-          font-size: 12px;
-          font-weight: 500;
-
-          &.normal {
-            background: var(--primary-color-alpha-10, rgba(25, 137, 250, 0.1));
-            color: var(--primary-color);
-          }
-
-          &.warning {
-            background: rgba(255, 151, 106, 0.1);
-            color: #ff976a;
-          }
-
-          &.urgent {
-            background: rgba(238, 10, 36, 0.1);
-            color: #ee0a24;
-          }
-
-          &.expired {
-            background: rgba(150, 151, 153, 0.1);
-            color: #969799;
-          }
-        }
-      }
-    }
-  }
-
-  .order-timeline {
-    @include glassmorphism-card(base);
-    padding: 20px;
-    margin: 16px;
-    margin-bottom: 12px;
-    border-radius: 0;
-
-    .step-time {
-      font-size: 12px;
-      color: #969799;
-      margin-top: 6px;
-    }
-  }
-
-  .qrcode-payment-container {
-    @include glassmorphism-card(base);
-    padding: 20px;
-    margin: 16px;
-    margin-bottom: 12px;
-    border-radius: 0;
-    display: flex;
-    gap: 20px;
-    align-items: stretch; // 改为stretch，让子元素填充高度
-    position: relative;
-
-    // 二维码区域（40%）
-    .qrcode-area {
-      width: 40%;
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center; // 垂直居中
-      padding: 0;
-      padding-top: 16px; // 向下偏移，与支付信息内容区域对齐（标题高度的一半）
-      position: relative;
-      height: 100%; // 与支付信息区域高度一致
-
-      .qrcode-wrapper {
-        position: relative;
-        // 高度与支付信息区域一致（通过父容器height: 100%）
-        height: 100%; // 高度与支付信息区域一致
-        // 宽度自适应，保持正方形（取高度和宽度的较小值）
-        width: min(100%, 100%); // 宽度不超过容器，但保持正方形
-        aspect-ratio: 1; // 保持正方形
-        // 如果高度更小，则按高度调整宽度
-        max-width: 100%;
-        max-height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #f7f8fa;
-        border-radius: 8px;
-        border: 2px solid #ebedf0;
-        overflow: hidden;
-        transition: all 0.2s;
-        margin: 0 auto; // 水平居中
-        box-sizing: border-box; // 确保border包含在宽度内
-
-        &.verified {
-          border-color: #07c160;
-        }
-
-        &.clickable {
-          cursor: pointer;
-
-          &:active {
-            transform: scale(0.98);
-          }
-        }
-      }
-
-      .qrcode-image {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-      }
-
-      .qrcode-loading {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 12px;
-        color: #969799;
-      }
-
-      .qrcode-error {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 12px;
-        padding: 20px;
-        text-align: center;
-
-        .error-message {
-          font-size: 12px;
-          color: #ee0a24;
-          margin: 0;
-        }
-      }
-
-      .verified-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background: rgba(255, 255, 255, 0.95);
-        z-index: 10;
-
-        .verified-text {
-          font-size: 14px;
-          font-weight: bold;
-          color: #07c160;
-          margin-top: 8px;
-        }
-      }
-
-    }
-
-    // 支付信息区域（60%）
-    .payment-info {
-      width: 60%;
-      flex: 1;
-      margin: 0;
-      padding: 16px;
-      background: rgba(255, 255, 255, 0.5);
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-      min-width: 0;
-
-      h3 {
-        font-size: 16px;
-        font-weight: 600;
-        color: #323233;
-        margin: 0 0 16px 0;
-      }
-    }
-
-    // 移动端也保持左右布局，但调整间距和尺寸
-    @media (max-width: 767px) {
-      gap: 12px;
-      padding: 16px;
-      align-items: stretch; // 让子元素填充高度
-
-      .qrcode-area {
-        width: 40%;
-        align-items: center;
-        padding-top: 12px; // 移动端向下偏移，与支付信息内容对齐
-
-        .qrcode-wrapper {
-          max-width: 180px; // 移动端适当增大
-        }
-      }
-
-      .payment-info {
-        width: 60%;
-        padding: 12px;
-        border-radius: 8px;
-      }
-    }
-  }
-
-  .shipping-info,
-  .product-info,
-  .payment-info,
-  .refund-request-info {
-    @include glassmorphism-card(base);
-    padding: 20px;
-    margin: 16px;
-    margin-bottom: 12px;
-    border-radius: 0;
-
-    h3 {
-      font-size: 16px;
-      font-weight: 600;
-      color: #323233;
-      margin: 0 0 16px 0;
-    }
-  }
-
-  .refund-request-info {
-    .refund-info-content {
-      .info-row {
-        display: flex;
-        margin-bottom: 12px;
-        font-size: 14px;
-        line-height: 1.5;
-
-        .info-label {
-          color: #969799;
-          min-width: 80px;
-          flex-shrink: 0;
-        }
-
-        .info-value {
-          color: #323233;
-          flex: 1;
-          word-break: break-all;
-        }
-
-        .info-images {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          margin-top: 4px;
-
-          .refund-image {
-            width: 80px;
-            height: 80px;
-            border-radius: 4px;
-            object-fit: cover;
-            cursor: pointer;
-            border: 1px solid #ebedf0;
-          }
-        }
-      }
-    }
-
-    .info-content {
-      .contact-info {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        margin-bottom: 12px;
-
-        .contact-name {
-          font-size: 16px;
-          color: var(--van-text-color);
-          font-weight: 500;
-        }
-
-        .contact-phone {
-          font-size: 14px;
-          color: var(--van-text-color-3);
-        }
-      }
-
-      .address-info {
-        font-size: 14px;
-        color: var(--van-text-color-2);
-        line-height: 1.5;
-      }
-    }
-  }
-
-  .product-item {
-    cursor: pointer;
-    transition: all 0.2s;
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 8px;
-    
-    &:active {
-      background-color: #f7f8fa;
-    }
-    
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    .product-image {
-      width: 72px;
-      height: 72px;
-      border-radius: 8px;
-      object-fit: cover;
-      flex-shrink: 0;
-    }
-
-    .product-details {
-      flex: 1;
-      min-width: 0;
-
-      .product-name {
-        font-size: 15px;
-        color: #323233;
-        margin-bottom: 8px;
-        line-height: 1.4;
-        font-weight: 500;
-      }
-
-      .product-specs {
-        display: flex;
-        gap: 16px;
-        font-size: 13px;
-        color: #969799;
-        line-height: 1.5;
-        margin-bottom: 8px;
-      }
-
-      .merchant-info {
-        margin-top: 8px;
-        padding-top: 8px;
-        border-top: 1px solid #ebedf0;
-
-        .merchant-name {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 13px;
-          color: #323233;
-          margin-bottom: 4px;
-          font-weight: 500;
-
-          .merchant-icon {
-            font-size: 14px;
-            color: var(--primary-color);
-          }
-        }
-
-        .merchant-location {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 12px;
-          color: #646566;
-          flex-wrap: wrap;
-
-          .location-icon {
-            font-size: 13px;
-            color: #969799;
-            flex-shrink: 0;
-          }
-
-          .floor-text {
-            margin-left: 4px;
-            padding: 1px 6px;
-            background: var(--primary-color-alpha-10, rgba(25, 137, 250, 0.1));
-            color: var(--primary-color);
-            border-radius: 8px;
-            font-size: 11px;
-          }
-        }
-      }
-    }
-
-    .product-price {
-      font-size: 17px;
-      font-weight: 600;
-      color: #ee0a24;
-      flex-shrink: 0;
-    }
-  }
-
-  .payment-details {
-    .payment-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 14px;
-      color: var(--van-text-color-2);
-      margin-bottom: 8px;
-
-      &.total {
-        font-size: 16px;
-        font-weight: 600;
-        color: var(--van-text-color);
-
-        .total-amount {
-          color: var(--van-danger-color);
-        }
-      }
-    }
-  }
-
-  .order-actions {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--van-background-2);
-    padding: 16px;
-    border-top: 1px solid var(--van-border-color);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-
-    .van-button {
-      margin: 0;
-    }
-  }
-
-  // 暗色模式支持
-  @media (prefers-color-scheme: dark) {
-    .order-detail-page {
-      background-color: #1a1a1a;
-    }
-
-    .order-header,
-    .order-timeline,
-    .shipping-info,
-    .product-info,
-    .payment-info,
-    .order-actions {
-      background: #2a2a2a;
-    }
-
-    .order-status h2,
-    .shipping-info h3,
-    .product-info h3,
-    .payment-info h3 {
-      color: #fff;
-    }
-
-    .contact-info .contact-name {
-      color: #fff;
-    }
-
-    .product-details .product-name {
-      color: #fff;
-    }
-
-    .payment-row.total {
-      color: #fff;
-
-      .total-amount {
-        color: #ff6b6b;
-      }
-    }
-  }
-
-  // 统一对话框样式
-  .standard-confirm-dialog {
-    @include standard-dialog;
-  }
-
-  .dialog-content {
-    @include dialog-content;
-  }
-
-  .dialog-icon {
-    @include dialog-icon(#ff6b6b);
-  }
-
-  .dialog-title {
-    @include dialog-title;
-  }
-
-  .dialog-message {
-    @include dialog-message;
-  }
-</style>
-
-<!-- 全屏遮罩层样式（全局样式，因为Teleport渲染到body） -->
-<style lang="scss">
-  .fullscreen-overlay {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    background: rgba(0, 0, 0, 0.85) !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    z-index: 99999 !important;
-    cursor: pointer !important;
-
-    .fullscreen-content {
-      display: flex !important;
-      flex-direction: column !important;
-      align-items: center !important;
-      gap: 24px !important;
-      cursor: default !important;
-
-      .fullscreen-qrcode-image {
-        width: 300px !important;
-        height: 300px !important;
-        object-fit: contain !important;
-        background: #fff !important;
-        border-radius: 12px !important;
-        padding: 20px !important;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
-      }
-
-      .fullscreen-hint {
-        color: #fff !important;
-        font-size: 14px !important;
-        margin: 0 !important;
-        text-align: center !important;
-        opacity: 0.9 !important;
       }
     }
   }
