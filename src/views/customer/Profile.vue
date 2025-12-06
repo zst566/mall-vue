@@ -424,7 +424,12 @@
 
   const merchantStatus = computed(() => {
     if (!merchantBindingStatus.value?.hasBinding) return null
-    return merchantBindingStatus.value.merchantUser?.approvalStatus
+    const merchantUser = merchantBindingStatus.value.merchantUser
+    // 🔥 优化：如果权限被取消（isActive 为 false 或 approvalStatus 不是 APPROVED），返回 null 使入口显示为申请状态
+    if (!merchantUser?.isActive || merchantUser?.approvalStatus !== 'APPROVED') {
+      return null
+    }
+    return merchantUser.approvalStatus
   })
 
   const merchantStatusText = computed(() => {
@@ -658,8 +663,29 @@
       // 获取商户绑定状态（非关键操作，失败不影响）
       try {
         const statusResult = await merchantOperatorService.getMyStatus()
-        merchantBindingStatus.value = statusResult
         console.log('✅ 商户绑定状态已更新:', JSON.stringify(statusResult, null, 2))
+        
+        // 🔥 优化：如果用户已被商户取消权限，将入口重置为申请状态
+        if (statusResult.hasBinding && statusResult.merchantUser) {
+          const merchantUser = statusResult.merchantUser
+          // 检查是否被取消权限：审核状态不是 APPROVED 或 isActive 为 false
+          if (merchantUser.approvalStatus !== 'APPROVED' || !merchantUser.isActive) {
+            console.warn('⚠️ 检测到用户已被商户取消权限，重置为申请状态:', {
+              approvalStatus: merchantUser.approvalStatus,
+              isActive: merchantUser.isActive
+            })
+            // 重置为未绑定状态，使入口显示为"申请绑定商户操作员"
+            merchantBindingStatus.value = {
+              hasBinding: false
+            }
+          } else {
+            // 权限正常，保持原状态
+            merchantBindingStatus.value = statusResult
+          }
+        } else {
+          // 未绑定或没有商户用户信息，直接使用原状态
+          merchantBindingStatus.value = statusResult
+        }
         console.log('📊 商户绑定状态详情:', {
           hasBinding: statusResult.hasBinding,
           merchantUser: statusResult.merchantUser ? {
