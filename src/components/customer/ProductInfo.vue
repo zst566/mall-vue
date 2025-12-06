@@ -21,7 +21,7 @@
           </div>
         </div>
       </div>
-      <div class="product-price">¥{{ formatMoney(item.price * item.quantity) }}</div>
+      <div class="product-price">¥{{ formatMoney(((item as any).finalPrice ?? item.price) * item.quantity) }}</div>
     </div>
   </div>
 </template>
@@ -35,6 +35,7 @@ interface OrderItem {
   productImage?: string | null
   quantity: number
   price: number
+  finalPrice?: number // 实付单价（补贴后的单价）
   originalPrice?: number
   merchantName?: string
   merchantAddress?: string

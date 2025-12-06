@@ -45,7 +45,7 @@
         </div>
         <div class="payment-row total">
           <span>实付金额</span>
-          <span class="total-amount">¥{{ formatMoney(order.totalAmount) }}</span>
+          <span class="total-amount">¥{{ formatMoney(order.finalAmount ?? order.totalAmount) }}</span>
         </div>
         <div class="payment-row">
           <span>支付方式</span>
@@ -73,7 +73,7 @@
       </div>
       <div class="payment-row total">
         <span>实付金额</span>
-        <span class="total-amount">¥{{ formatMoney(order.totalAmount) }}</span>
+        <span class="total-amount">¥{{ formatMoney(order.finalAmount ?? order.totalAmount) }}</span>
       </div>
       <div class="payment-row">
         <span>支付方式</span>
@@ -113,6 +113,7 @@ interface Props {
     originalAmount?: number
     shippingFee?: number
     totalAmount: number
+    finalAmount?: number // 实付金额（补贴后的金额）
     paymentMethod: string
     paidAt?: string
   }

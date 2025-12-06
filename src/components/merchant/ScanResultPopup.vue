@@ -3,12 +3,13 @@
     v-model:show="isVisible"
     position="bottom" 
     round 
-    :style="{ height: '70%', zIndex: 2000 }"
+    :style="{ height: '75%', zIndex: 2000 }"
     :close-on-click-overlay="false"
     :close-on-popstate="true"
-    :overlay-style="{ backgroundColor: 'rgba(0, 0, 0, 0.4)', zIndex: 1999 }"
+    :overlay-style="overlayStyle"
     :z-index="2000"
     @close="handleClose"
+    class="glassmorphism-popup"
   >
     <div class="result-popup" @click.stop @mousedown.stop @touchstart.stop>
       <div class="popup-header" @click.stop @mousedown.stop @touchstart.stop>
@@ -74,6 +75,8 @@
 import { computed, watch, ref } from 'vue'
 import type { ScanResult } from '@/types/scan'
 import { getResultIcon, formatTime } from '@/utils/scanHelpers'
+import '@/styles/mixins.scss'
+import '@/styles/variables.scss'
 
 const props = defineProps<{
   modelValue: boolean
@@ -119,6 +122,14 @@ const isDev = computed(() => {
   return import.meta.env.DEV || import.meta.env.MODE === 'development'
 })
 
+// 遮罩样式（玻璃拟态效果）
+const overlayStyle = computed(() => ({
+  backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  backdropFilter: 'blur(8px)',
+  WebkitBackdropFilter: 'blur(8px)',
+  zIndex: 1999
+}))
+
 // 处理核销按钮点击
 const handleVerify = (event: Event) => {
   // 阻止事件冒泡，防止触发遮罩层关闭
@@ -151,106 +162,185 @@ const canVerify = (status: string | undefined): boolean => {
 </script>
 
 <style lang="scss" scoped>
-// 确保弹窗内容在最上层
+@use '@/styles/variables.scss' as *;
+@use '@/styles/mixins.scss' as *;
+
+// 弹窗容器玻璃拟态效果
 :deep(.van-popup) {
   z-index: 2000 !important;
+  border-radius: 24px 24px 0 0 !important;
+  overflow: hidden !important;
 }
 
 :deep(.van-overlay) {
   z-index: 1999 !important;
-  background-color: rgba(0, 0, 0, 0.4) !important;
+  background: rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
 }
 
 .result-popup {
-  background: #ffffff;
   min-height: 100%;
   display: flex;
   flex-direction: column;
   position: relative;
   z-index: 2001 !important;
+  @include glassmorphism-card(strong);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 20px 60px rgba(31, 38, 135, 0.4);
 
   .popup-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px;
-    border-bottom: 1px solid var(--van-border-color);
-    background: #ffffff;
+    padding: 20px 24px;
     flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+
+    // 顶部光效
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.5) 50%, 
+        transparent 100%
+      );
+    }
 
     h3 {
       margin: 0;
-      font-size: 18px;
-      font-weight: 600;
-      color: #323233;
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
     }
 
     .van-icon {
       cursor: pointer;
-      font-size: 20px;
-      color: #646566;
+      font-size: 22px;
+      color: rgba(102, 126, 234, 0.8);
+      transition: all 0.3s ease;
+      padding: 4px;
+      border-radius: 50%;
       
       &:hover {
-        color: #323233;
+        color: #667eea;
+        background: rgba(102, 126, 234, 0.1);
+        transform: rotate(90deg);
       }
     }
   }
 
   .popup-content {
-    padding: 16px;
+    padding: 24px;
     flex: 1;
     overflow-y: auto;
-    background: #ffffff;
+    background: transparent;
 
     .result-info {
       .result-type {
         display: flex;
         align-items: center;
-        gap: 8px;
-        margin-bottom: 16px;
-        padding: 12px;
-        background: #f7f8fa;
-        border-radius: 8px;
+        gap: 12px;
+        margin-bottom: 24px;
+        padding: 16px 20px;
+        @include glassmorphism-card(light);
+        background: rgba(102, 126, 234, 0.1);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(102, 126, 234, 0.2);
+        border-radius: 16px;
+        position: relative;
+        overflow: hidden;
+
+        // 渐变光效
+        &::before {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+          animation: shimmer 3s ease-in-out infinite;
+        }
 
         .van-icon {
-          color: var(--van-primary-color);
-          font-size: 20px;
+          color: #667eea;
+          font-size: 24px;
+          position: relative;
+          z-index: 1;
+          filter: drop-shadow(0 2px 4px rgba(102, 126, 234, 0.3));
         }
 
         .type-text {
-          font-size: 16px;
-          font-weight: 600;
-          color: #323233;
+          font-size: 18px;
+          font-weight: 700;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          position: relative;
+          z-index: 1;
         }
       }
 
       .result-details {
-        margin-bottom: 20px;
+        margin-bottom: 24px;
         
         :deep(.van-cell-group) {
-          background: #ffffff;
+          @include glassmorphism-card(light);
+          background: rgba(255, 255, 255, 0.6);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          border-radius: 16px;
+          overflow: hidden;
         }
         
         :deep(.van-cell) {
-          background: #ffffff;
+          background: transparent;
           color: #323233;
+          padding: 16px 20px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+          
+          &:last-child {
+            border-bottom: none;
+          }
           
           .van-cell__title {
-            color: #646566;
-            font-weight: 500;
+            color: rgba(102, 126, 234, 0.8);
+            font-weight: 600;
+            font-size: 14px;
           }
           
           .van-cell__value {
             color: #323233;
-            font-weight: 500;
+            font-weight: 600;
+            font-size: 15px;
           }
         }
       }
 
       .result-actions {
-        margin-top: 20px;
-        padding-top: 16px;
-        border-top: 1px solid #ebedf0;
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.3);
         position: relative;
         z-index: 2010 !important;
         
@@ -258,6 +348,57 @@ const canVerify = (status: string | undefined): boolean => {
           position: relative;
           z-index: 2011 !important;
           pointer-events: auto !important;
+          height: 52px !important;
+          border-radius: 16px !important;
+          font-size: 16px !important;
+          font-weight: 700 !important;
+          border: none !important;
+          overflow: hidden;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        
+        // 玻璃拟态按钮效果 - primary
+        :deep(.van-button--primary) {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+          box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4) !important;
+          
+          &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+              transparent, 
+              rgba(255, 255, 255, 0.3), 
+              transparent
+            );
+            transition: left 0.5s ease;
+          }
+          
+          &:hover::before {
+            left: 100%;
+          }
+          
+          &:active {
+            transform: scale(0.98) !important;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important;
+          }
+        }
+        
+        // 玻璃拟态按钮效果 - default
+        :deep(.van-button--default) {
+          @include glassmorphism-card(light);
+          background: rgba(255, 255, 255, 0.5) !important;
+          backdrop-filter: blur(10px) !important;
+          -webkit-backdrop-filter: blur(10px) !important;
+          color: #667eea !important;
+          border: 1px solid rgba(102, 126, 234, 0.2) !important;
+          
+          &:active {
+            transform: scale(0.98) !important;
+          }
         }
       }
     }
@@ -271,46 +412,93 @@ const canVerify = (status: string | undefined): boolean => {
   }
 }
 
+// 光效动画
+@keyframes shimmer {
+  0%, 100% {
+    transform: translate(-50%, -50%) rotate(0deg);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate(-50%, -50%) rotate(180deg);
+    opacity: 0.6;
+  }
+}
+
+// 弹窗进入动画
+:deep(.van-popup) {
+  animation: slideUpFade 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUpFade {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   .result-popup {
-    background: #1a1a1a;
+    background: rgba(26, 26, 26, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     
     .popup-header {
-      background: #1a1a1a;
-      border-bottom-color: #3a3a3a;
+      background: rgba(26, 26, 26, 0.5);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-bottom-color: rgba(255, 255, 255, 0.1);
       
       h3 {
-        color: #ffffff;
+        background: linear-gradient(135deg, #a8b5ff 0%, #c084fc 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
       
       .van-icon {
-        color: #cccccc;
+        color: rgba(168, 181, 255, 0.8);
+        
+        &:hover {
+          color: #a8b5ff;
+          background: rgba(168, 181, 255, 0.1);
+        }
       }
     }
     
     .popup-content {
-      background: #1a1a1a;
+      background: transparent;
       
       .result-info {
         .result-type {
-          background: #2a2a2a;
+          background: rgba(102, 126, 234, 0.15);
+          border-color: rgba(102, 126, 234, 0.3);
           
           .type-text {
-            color: #ffffff;
+            background: linear-gradient(135deg, #a8b5ff 0%, #c084fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
           }
         }
         
         .result-details {
           :deep(.van-cell-group) {
-            background: #1a1a1a;
+            background: rgba(26, 26, 26, 0.6);
+            border-color: rgba(255, 255, 255, 0.1);
           }
           
           :deep(.van-cell) {
-            background: #1a1a1a;
+            background: transparent;
             color: #ffffff;
+            border-bottom-color: rgba(255, 255, 255, 0.1);
             
             .van-cell__title {
-              color: #cccccc;
+              color: rgba(168, 181, 255, 0.8);
             }
             
             .van-cell__value {
@@ -320,7 +508,13 @@ const canVerify = (status: string | undefined): boolean => {
         }
         
         .result-actions {
-          border-top-color: #3a3a3a;
+          border-top-color: rgba(255, 255, 255, 0.1);
+          
+          :deep(.van-button--default) {
+            background: rgba(26, 26, 26, 0.5) !important;
+            color: #a8b5ff !important;
+            border-color: rgba(168, 181, 255, 0.2) !important;
+          }
         }
       }
     }

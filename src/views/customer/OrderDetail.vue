@@ -100,6 +100,7 @@
     id: '',
     orderNo: '',
     totalAmount: 0,
+    finalAmount: 0, // 实付金额（补贴后的金额）
     originalAmount: 0, // 商品原价总额
     shippingFee: 0, // 运费
     status: 'pending' as OrderStatus,
@@ -341,6 +342,12 @@
         ? parseFloat(orderData.totalAmount) 
         : (orderData.totalAmount || 0)
       
+      // 获取实付金额（finalAmount），如果不存在则使用totalAmount
+      const finalAmount = typeof (orderData as any).finalAmount === 'string'
+        ? parseFloat((orderData as any).finalAmount)
+        : ((orderData as any).finalAmount !== undefined && (orderData as any).finalAmount !== null
+          ? (orderData as any).finalAmount
+          : totalAmount)
       // 转换日期格式
       const formatDate = (dateStr: string | null | undefined): string => {
         if (!dateStr) return ''
@@ -403,11 +410,28 @@
         return sum + (item.originalPrice * item.quantity)
       }, 0)
       
+      // 计算每个订单项的实付价格（对于商场补贴模式，需要按比例计算）
+      const itemsWithFinalPrice = itemsWithOriginalPrice.map((item: any) => {
+        let finalPrice = item.price // 默认使用原价
+        
+        // 如果订单有finalAmount且与原价不同，说明有补贴或折扣
+        if (finalAmount !== totalAmount && totalAmount > 0) {
+          // 按原价比例计算每个订单项的实付价格
+          const itemOriginalTotal = item.price * item.quantity
+          finalPrice = (itemOriginalTotal / totalAmount) * finalAmount / item.quantity
+        }
+        
+        return {
+          ...item,
+          finalPrice: finalPrice // 实付单价
+        }
+      })
       // 转换订单数据格式
       order.value = {
         id: orderData.id,
         orderNo: orderData.orderNo || '',
         totalAmount: totalAmount,
+        finalAmount: finalAmount, // 实付金额（补贴后的金额）
         originalAmount: originalAmount, // 商品原价总额
         shippingFee: typeof (orderData as any).shippingFee === 'string' 
           ? parseFloat((orderData as any).shippingFee) 
@@ -424,7 +448,7 @@
         notes: (orderData as any).notes || (orderData as any).remark || '',
         // 促销活动 ID（如果有），用于前端跳转促销详情和查询促销信息
         promotionId: (orderData as any).promotionId || null,
-        items: itemsWithOriginalPrice
+        items: itemsWithFinalPrice
       }
       
       console.log('订单数据加载成功:', order.value)
