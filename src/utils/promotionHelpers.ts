@@ -87,3 +87,4 @@ export function invertColor(hex: string): string {
     return `rgb(255, 255, 255)`
   }
 }
+

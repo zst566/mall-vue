@@ -445,3 +445,4 @@ const priceParts = computed(() => {
   }
 }
 </style>
+

@@ -4,7 +4,7 @@
       <van-cell title="订单实收金额" :value="formatAmount(settlementResult.actualAmount)" />
       <van-cell title="支付手续费" :value="formatAmount(settlementResult.paymentFee)" />
       <van-cell title="手续费率" :value="`${settlementResult.feeRate}%`" />
-      <van-cell title="待结算金额" :value="formatAmount(settlementResult.settlementAmount)" />
+      <van-cell title="订单待结算金额" :value="formatAmount(settlementResult.settlementAmount)" />
     </van-cell-group>
 
     <van-cell-group title="分账明细" v-if="settlementResult">
@@ -31,7 +31,7 @@
             settlementResult.feeRate
           }}%）
         </p>
-        <p>待结算金额：{{ formatAmount(settlementResult.settlementAmount) }}元</p>
+        <p>订单待结算金额：{{ formatAmount(settlementResult.settlementAmount) }}元</p>
         <p>商铺分账：{{ formatAmount(settlementResult.merchantAmount) }}元</p>
         <p>商场分账：{{ formatAmount(settlementResult.mallAmount) }}元</p>
       </div>

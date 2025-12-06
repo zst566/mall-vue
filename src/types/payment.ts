@@ -55,7 +55,7 @@ export interface OrderSettlementResult {
   actualAmount: number
   /** 支付手续费（分） */
   paymentFee: number
-  /** 待结算金额（分） */
+  /** 订单待结算金额（分） */
   settlementAmount: number
   /** 商铺分账金额（分） */
   merchantAmount: number

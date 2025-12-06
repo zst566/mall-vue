@@ -100,7 +100,7 @@ export class OrderSettlementService {
     // 2. 计算支付手续费
     const paymentFee = this.calculatePaymentFee(totalAmount, paymentConfig)
     
-    // 3. 计算待结算金额（扣除手续费后）
+    // 3. 计算订单待结算金额（扣除手续费后）
     const settlementAmount = totalAmount - paymentFee
 
     // 4. 根据分账模式计算分账
@@ -164,7 +164,7 @@ export class OrderSettlementService {
   /**
    * 计算分账明细
    * @param settlementMode 分账模式
-   * @param settlementAmount 待结算金额
+   * @param settlementAmount 订单待结算金额
    * @param totalAmount 订单总金额
    * @param splitRatio 分成比例
    * @param subsidyAmount 补贴金额
@@ -185,7 +185,7 @@ export class OrderSettlementService {
 
     switch (settlementMode) {
       case 'normal_split':
-        // 普通分账模式：基于待结算金额进行分账
+        // 普通分账模式：基于订单待结算金额进行分账
         const merchantAmount = Math.round(settlementAmount * splitRatio)
         const mallAmount = settlementAmount - merchantAmount
         
@@ -205,15 +205,15 @@ export class OrderSettlementService {
         break
 
       case 'mall_subsidy':
-        // 商场补贴模式：商场承担补贴，商铺获得待结算金额+补贴
+        // 商场补贴模式：商场承担补贴，商铺获得订单待结算金额+补贴
         const mallSubsidyAmount = -subsidyAmount * quantity
-        const merchantSubsidyAmount = settlementAmount - mallSubsidyAmount // 待结算金额 - 商场分账（负数）
+        const merchantSubsidyAmount = settlementAmount - mallSubsidyAmount // 订单待结算金额 - 商场分账（负数）
         
         details.push({
           type: 'merchant',
           amount: merchantSubsidyAmount,
           ratio: 1,
-          description: `商铺分账：待结算金额+商场补贴`
+          description: `商铺分账：订单待结算金额+商场补贴`
         })
         
         details.push({
@@ -262,14 +262,14 @@ export class OrderSettlementService {
     // 验证金额一致性
     const calculatedSettlementAmount = actualAmount - paymentFee
     if (calculatedSettlementAmount !== settlementAmount) {
-      console.error('待结算金额计算错误')
+      console.error('订单待结算金额计算错误')
       return false
     }
 
     // 验证分账金额一致性
     const calculatedTotalSettlement = merchantAmount + mallAmount
     if (Math.abs(calculatedTotalSettlement - settlementAmount) > 1) { // 允许1分的误差
-      console.error('分账金额总和与待结算金额不一致')
+      console.error('分账金额总和与订单待结算金额不一致')
       return false
     }
 
@@ -297,7 +297,7 @@ export class OrderSettlementService {
 订单结算摘要：
 - 订单实收：${this.formatAmount(actualAmount)}元
 - 支付手续费：${this.formatAmount(paymentFee)}元（费率：${feeRate}%）
-- 待结算金额：${this.formatAmount(settlementAmount)}元
+- 订单待结算金额：${this.formatAmount(settlementAmount)}元
 - 商铺分账：${this.formatAmount(merchantAmount)}元
 - 商场分账：${this.formatAmount(mallAmount)}元
     `.trim()

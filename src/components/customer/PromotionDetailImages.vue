@@ -98,3 +98,4 @@ const { detailImages, getImageUrl, handleImageError } = usePromotionImages(image
   }
 }
 </style>
+

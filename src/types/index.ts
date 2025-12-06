@@ -152,7 +152,7 @@ export interface Order {
   subsidyAmount?: number // 补贴金额（商场补贴模式，分）
   settlementPrice?: number // 结算价（积分兑换模式，分）
   paymentFee?: number // 支付手续费（分）
-  settlementAmount?: number // 待结算金额（分）
+  settlementAmount?: number // 订单待结算金额（分）
   merchantAmount?: number // 商铺分账金额（分）
   mallAmount?: number // 商场分账金额（分）
   settlementStatus?: 'pending' | 'calculated' | 'settled' // 结算状态
