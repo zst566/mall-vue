@@ -44,7 +44,7 @@
 
     <!-- 扫描结果弹窗 -->
     <ScanResultPopup
-      v-model:show="showResultPopup"
+      v-model="showResultPopup"
       :scan-result="scanResult"
       :is-verifying="isVerifying"
       @verify="handleVerifyOrder"
@@ -52,7 +52,7 @@
 
     <!-- 权限提示 -->
     <CameraPermissionDialog
-      v-model:show="showPermissionDialog"
+      v-model="showPermissionDialog"
       @go-to-settings="goToSettings"
     />
   </div>
@@ -260,7 +260,7 @@ const handleScanResult = (result: ScanResult) => {
     id: Date.now().toString(),
     type: result.type,
     title: result.title,
-    description: result.data.productName || result.data.title || '商品',
+    description: result.data.productName || '商品',
     scannedAt: new Date().toISOString(),
     status: 'success' as const,
     data: result.data

@@ -199,6 +199,20 @@
         </div>
       </div>
 
+      <!-- 解除绑定 -->
+      <div class="settings-section">
+        <h3 class="section-title">账户管理</h3>
+        <div class="settings-list">
+          <div class="setting-item danger-item" @click="handleUnbindMerchant">
+            <div class="setting-info">
+              <div class="setting-title">解除商户绑定</div>
+              <div class="setting-desc">解除后您将无法使用商户管理功能，可重新申请绑定</div>
+            </div>
+            <van-icon name="arrow" />
+          </div>
+        </div>
+      </div>
+
       <!-- 退出商户管理 -->
       <div class="logout-section">
         <van-button
@@ -308,6 +322,32 @@
         </p>
       </div>
     </van-dialog>
+
+    <!-- 解除绑定确认对话框 -->
+    <van-dialog
+      v-model:show="showUnbindDialog"
+      title=""
+      :show-cancel-button="true"
+      :confirm-button-text="'确定解除'"
+      :cancel-button-text="'取消'"
+      @confirm="confirmUnbindMerchant"
+      @cancel="showUnbindDialog = false"
+      :close-on-click-overlay="false"
+      class="unbind-merchant-dialog"
+      :width="320"
+    >
+      <div class="unbind-dialog-content">
+        <div class="unbind-dialog-icon">
+          <van-icon name="warning-o" size="48" />
+        </div>
+        <h3 class="unbind-dialog-title">解除商户绑定</h3>
+        <p class="unbind-dialog-message">
+          确定要解除与当前商户的绑定关系吗？<br />
+          解除后您将无法使用商户管理功能，<br />
+          如需使用可重新申请绑定。
+        </p>
+      </div>
+    </van-dialog>
   </div>
 </template>
 
@@ -315,6 +355,7 @@
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import { showToast, showLoadingToast } from 'vant'
 import { merchantService } from '@/services/merchant'
+import { merchantOperatorService } from '@/services/merchantOperator'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
 import router from '@/router'
@@ -346,6 +387,10 @@ const editForm = reactive({
 
 // 退出商户管理对话框
 const showExitDialog = ref(false)
+
+// 解除绑定对话框
+const showUnbindDialog = ref(false)
+const isUnbinding = ref(false)
 
 // 安全设置
 const securitySettings = reactive({
@@ -524,6 +569,56 @@ const confirmExitMerchant = async () => {
   }
 }
 
+// 解除商户绑定
+const handleUnbindMerchant = () => {
+  showUnbindDialog.value = true
+}
+
+// 确认解除绑定
+const confirmUnbindMerchant = async () => {
+  try {
+    showUnbindDialog.value = false
+    isUnbinding.value = true
+
+    // 等待对话框关闭动画完成
+    await nextTick()
+    await new Promise(resolve => setTimeout(resolve, 200))
+
+    // 调用解除绑定API
+    await merchantOperatorService.unbindMerchant()
+
+    // 显示成功提示
+    showToast({
+      message: '已成功解除商户绑定',
+      type: 'success',
+      duration: 2000
+    })
+
+    // 切换到客户端模式
+    const appStore = useAppStore()
+    appStore.switchToCustomer()
+
+    // 等待状态更新完成
+    await nextTick()
+
+    // 延迟跳转到个人中心，让用户看到状态变化
+    setTimeout(() => {
+      router.push('/customer/profile').catch((error) => {
+        console.warn('路由跳转失败，尝试使用 window.location:', error)
+        window.location.href = '/customer/profile'
+      })
+    }, 500)
+  } catch (error: any) {
+    console.error('解除绑定失败:', error)
+    showToast({
+      message: error.message || '解除绑定失败，请重试',
+      type: 'fail'
+    })
+  } finally {
+    isUnbinding.value = false
+  }
+}
+
 // 退出登录
 const handleLogout = () => {
   showLoadingToast({
@@ -619,6 +714,22 @@ onMounted(() => {
 
 .setting-item:last-child {
   border-bottom: none;
+}
+
+.danger-item {
+  color: var(--van-danger-color, #ee0a24);
+  
+  .setting-title {
+    color: var(--van-danger-color, #ee0a24);
+  }
+  
+  .setting-desc {
+    color: rgba(238, 10, 36, 0.7);
+  }
+  
+  &:active {
+    background-color: rgba(238, 10, 36, 0.05);
+  }
 }
 
 .setting-info {
@@ -803,6 +914,106 @@ onMounted(() => {
 }
 
 .exit-dialog-message {
+  font-size: 15px;
+  color: $text-color-secondary;
+  line-height: 1.8;
+  margin: 0;
+  padding: 0 8px;
+}
+
+// 解除绑定对话框样式
+.unbind-merchant-dialog {
+  :deep(.van-dialog) {
+    @include glassmorphism-card(strong);
+    border-radius: 20px !important;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+  }
+
+  :deep(.van-dialog__header) {
+    display: none !important;
+  }
+
+  :deep(.van-dialog__content) {
+    padding: 0 !important;
+  }
+
+  :deep(.van-dialog__footer) {
+    padding: 0 !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+    background: transparent !important;
+  }
+
+  :deep(.van-dialog__confirm),
+  :deep(.van-dialog__cancel) {
+    height: 56px !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    line-height: 56px !important;
+  }
+
+  :deep(.van-dialog__confirm) {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%) !important;
+    color: white !important;
+    order: 2;
+    
+    &:active {
+      background: linear-gradient(135deg, #ee5a6f 0%, #dc4a5f 100%) !important;
+      transform: scale(0.98);
+    }
+  }
+
+  :deep(.van-dialog__cancel) {
+    background: rgba(0, 0, 0, 0.03) !important;
+    color: $text-color-primary !important;
+    order: 1;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    
+    &:active {
+      background: rgba(0, 0, 0, 0.06) !important;
+    }
+  }
+}
+
+.unbind-dialog-content {
+  padding: 32px 24px 24px;
+  text-align: center;
+  background: transparent;
+}
+
+.unbind-dialog-icon {
+  margin-bottom: 20px;
+  color: var(--van-danger-color, $danger);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
+  :deep(.van-icon) {
+    filter: drop-shadow(0 4px 12px rgba(255, 107, 107, 0.4));
+    animation: pulse 2s ease-in-out infinite;
+  }
+}
+
+.unbind-dialog-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: $text-color-primary;
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+  letter-spacing: 0.5px;
+}
+
+.unbind-dialog-message {
   font-size: 15px;
   color: $text-color-secondary;
   line-height: 1.8;

@@ -189,6 +189,29 @@ export class MerchantOperatorService extends BaseApiService {
   }
 
   /**
+   * 解除商户绑定（用户主动申请）
+   */
+  async unbindMerchant(): Promise<void> {
+    try {
+      const response = await this.client.post<{
+        success: boolean
+        message: string
+        data?: {
+          merchantUserId: string
+          merchantId: string
+        }
+      }>('/merchant-operators/unbind')
+      
+      if (!response.data.success) {
+        throw new Error(response.data.message || '解除绑定失败')
+      }
+    } catch (error: any) {
+      const errorMessage = ApiErrorHandler.handleApiError(error)
+      throw new Error(errorMessage)
+    }
+  }
+
+  /**
    * 获取核销记录列表
    */
   async getVerifications(params?: {
