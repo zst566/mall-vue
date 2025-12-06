@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/stores/auth'
+import { useAppStore } from '@/stores/app'
 import { useWechatParams } from '@/composables/useWechatParams'
 import { showToast, showLoadingToast } from 'vant'
 import router from '@/router'
@@ -242,7 +243,6 @@ export function setupRouteGuards(routerInstance: any) {
         console.log('🔐 [路由守卫] 检查商户路由权限:', to.path)
         
         // 切换到商户模式
-        const { useAppStore } = await import('@/stores/app')
         const appStore = useAppStore()
         appStore.switchToMerchant()
         
@@ -289,7 +289,6 @@ export function setupRouteGuards(routerInstance: any) {
         sessionStorage.removeItem(redirectKey)
       } catch (error) {
         console.error('❌ [路由守卫] 检查商户绑定状态失败:', error)
-        const { useAppStore } = await import('@/stores/app')
         const appStore = useAppStore()
         appStore.switchToCustomer() // 切换回客户模式
         
@@ -328,7 +327,6 @@ export function setupRouteGuards(routerInstance: any) {
         
         if (status.hasBinding && status.merchantUser?.approvalStatus === 'APPROVED' && status.merchantUser?.isActive) {
           console.log('✅ [路由守卫] 已审核通过，自动跳转到商户管理页面')
-          const { useAppStore } = await import('@/stores/app')
           const appStore = useAppStore()
           appStore.switchToMerchant()
           
@@ -344,7 +342,6 @@ export function setupRouteGuards(routerInstance: any) {
       }
     } else if (requiredPermission !== 'merchant' && from.path.startsWith('/merchant')) {
       // 离开商户路由时，切换回客户模式
-      const { useAppStore } = await import('@/stores/app')
       const appStore = useAppStore()
       appStore.switchToCustomer()
     }

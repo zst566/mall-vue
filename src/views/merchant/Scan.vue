@@ -236,11 +236,19 @@ const handleQueryOrder = async () => {
   }
 
   try {
+    console.log('🔍 [查询] 开始查询订单，订单号:', manualOrderNo.value.trim())
     const result = await queryOrderByNo(manualOrderNo.value.trim())
+    console.log('🔍 [查询] 查询结果:', result)
+    
     if (result) {
+      console.log('✅ [查询] 查询成功，准备显示弹窗')
       handleScanResult(result)
+    } else {
+      console.error('❌ [查询] 查询结果为空')
+      showToast({ type: 'fail', message: '未找到订单信息' })
     }
   } catch (error: any) {
+    console.error('❌ [查询] 查询订单失败:', error)
     const errorMessage = error.message || '查询订单失败，请检查订单号是否正确'
     showToast({ 
       type: 'fail', 
@@ -252,8 +260,20 @@ const handleQueryOrder = async () => {
 
 // 处理扫描结果
 const handleScanResult = (result: ScanResult) => {
+  console.log('📋 [扫描] 处理扫描结果:', result)
+  console.log('📋 [扫描] 订单状态:', result.data.status)
+  console.log('📋 [扫描] 是否可以核销:', result.data.status === 'pending' || result.data.status === 'paid' || result.data.status === 'PAID')
+  
+  // 先设置数据，再打开弹窗，确保弹窗打开时数据已准备好
   scanResult.value = result
-  showResultPopup.value = true
+  
+  // 使用 nextTick 确保数据已更新后再显示弹窗
+  nextTick(() => {
+    console.log('📋 [扫描] 准备显示弹窗，showResultPopup:', showResultPopup.value)
+    console.log('📋 [扫描] scanResult 值:', scanResult.value)
+    showResultPopup.value = true
+    console.log('📋 [扫描] 弹窗状态已更新，showResultPopup:', showResultPopup.value)
+  })
 
   // 添加到历史记录
   const newRecord = {
@@ -276,11 +296,17 @@ const handleScanResult = (result: ScanResult) => {
 
 // 确认核销
 const handleVerifyOrder = async () => {
-  if (!scanResult.value) return
+  if (!scanResult.value) {
+    console.warn('⚠️ [核销] 扫描结果为空，无法核销')
+    return
+  }
+
+  console.log('🚀 [核销] 开始核销订单:', scanResult.value)
 
   // 先检查权限
   const hasPermission = await checkPermission()
   if (!hasPermission) {
+    console.warn('⚠️ [核销] 权限检查失败')
     return
   }
 
@@ -288,27 +314,64 @@ const handleVerifyOrder = async () => {
     const orderId = scanResult.value.data.orderId || scanResult.value.data.id
     const orderNo = scanResult.value.data.orderNo
 
-    await verifyOrderApi(orderId || '', orderNo, {
+    console.log('📋 [核销] 核销参数:', { orderId, orderNo })
+
+    if (!orderId) {
+      showToast({ type: 'fail', message: '订单ID不存在，无法核销' })
+      return
+    }
+
+    await verifyOrderApi(orderId, orderNo, {
       operatorName: '操作员',
       notes: manualOrderNo.value ? '手动核销' : '扫码核销'
     })
+
+    console.log('✅ [核销] 核销成功')
 
     // 更新扫描结果
     scanResult.value.data.status = 'verified'
     scanResult.value.data.verifiedAt = new Date().toISOString()
 
+    // 添加到历史记录（立即更新，不等待重新加载）
+    const verifiedRecord = {
+      id: Date.now().toString(),
+      type: scanResult.value.type,
+      title: scanResult.value.title,
+      description: scanResult.value.data.productName || '商品',
+      scannedAt: new Date().toISOString(),
+      status: 'success' as const,
+      data: {
+        ...scanResult.value.data,
+        status: 'verified',
+        verifiedAt: new Date().toISOString()
+      }
+    }
+
+    // 将核销记录添加到历史记录顶部
+    scanHistory.value.unshift(verifiedRecord)
+    if (scanHistory.value.length > 5) {
+      scanHistory.value = scanHistory.value.slice(0, 5)
+    }
+
+    console.log('✅ [核销] 历史记录已更新:', scanHistory.value.length, '条记录')
+
     // 清空输入框
     manualOrderNo.value = ''
 
-    // 重新加载最近核销记录
-    await loadRecentVerifications()
+    // 重新加载最近核销记录（异步，不阻塞）
+    loadRecentVerifications().catch(err => {
+      console.warn('⚠️ [核销] 重新加载历史记录失败:', err)
+    })
 
-    // 延迟关闭弹窗，让用户看到成功提示
+    // 延迟关闭弹窗，让用户看到成功提示（延长到2秒）
     setTimeout(() => {
+      console.log('📋 [核销] 准备关闭弹窗')
       closeResultPopup()
-    }, 1500)
-  } catch (error) {
-    // 错误已在 composable 中处理
+    }, 2000)
+  } catch (error: any) {
+    console.error('❌ [核销] 核销失败:', error)
+    // 错误已在 composable 中处理，这里只记录日志
+    // 不关闭弹窗，让用户可以重试
   }
 }
 
@@ -320,11 +383,33 @@ const closeResultPopup = () => {
 
 // 查看扫描详情
 const viewScanDetail = (record: any) => {
-  scanResult.value = {
-    type: record.type,
-    title: record.title,
-    data: record.data
+  console.log('📋 [扫描] 查看历史记录详情:', record)
+  
+  // 确保数据格式正确
+  if (!record || !record.data) {
+    console.error('❌ [扫描] 历史记录数据格式错误:', record)
+    showToast({ type: 'fail', message: '历史记录数据格式错误' })
+    return
   }
+
+  // 构建扫描结果，确保包含所有必需字段
+  scanResult.value = {
+    type: record.type || 'order',
+    title: record.title || '订单核销',
+    data: {
+      id: record.data.id || record.data.orderId || '',
+      orderId: record.data.orderId || record.data.id || '',
+      orderNo: record.data.orderNo || '',
+      productName: record.data.productName || record.description || '商品',
+      quantity: record.data.quantity || 1,
+      amount: record.data.amount || 0,
+      status: record.data.status || 'verified',
+      purchasedAt: record.data.purchasedAt || record.scannedAt || new Date().toISOString(),
+      verifiedAt: record.data.verifiedAt
+    }
+  }
+  
+  console.log('✅ [扫描] 历史记录详情已加载:', scanResult.value)
   showResultPopup.value = true
 }
 

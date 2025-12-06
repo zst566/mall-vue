@@ -56,6 +56,12 @@ export function useOrderQuery(): UseOrderQueryReturn {
       const orderDetail = await merchantService.getMerchantOrderDetail(orderId)
       
       console.log('✅ [查询] 订单详情获取成功:', orderDetail)
+      console.log('📋 [查询] 订单状态字段检查:', {
+        hasStatus: 'status' in orderDetail,
+        statusValue: orderDetail.status,
+        statusType: typeof orderDetail.status,
+        allKeys: Object.keys(orderDetail)
+      })
       
       // 处理金额字段
       const totalAmount = parseAmount(orderDetail.totalAmount)
@@ -86,6 +92,10 @@ export function useOrderQuery(): UseOrderQueryReturn {
       }
       const normalizedStatus = statusMap[orderDetail.status as string] || orderDetail.status || 'pending'
       
+      console.log('📋 [查询] 订单原始状态:', orderDetail.status)
+      console.log('📋 [查询] 订单转换后状态:', normalizedStatus)
+      console.log('📋 [查询] 订单详情完整数据:', orderDetail)
+      
       // 构建扫描结果
       const result: ScanResult = {
         type: 'order',
@@ -101,6 +111,8 @@ export function useOrderQuery(): UseOrderQueryReturn {
           purchasedAt: orderDetail.createdAt || new Date().toISOString()
         }
       }
+      
+      console.log('📋 [查询] 构建的扫描结果:', result)
 
       // 关闭 loading toast
       closeToast()
