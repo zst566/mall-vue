@@ -478,8 +478,8 @@
             if (qrCode) {
               console.log('✅ [扫描] 识别到二维码:', qrCode.data)
               
-              // 停止扫描
-              stopScan()
+              // 立即关闭摄像头，减少资源消耗
+              closeCamera()
               
               // 处理扫描结果（只提取订单号）
               processQRCode(qrCode.data)
@@ -505,8 +505,34 @@
     }
   }
 
+  // 关闭摄像头
+  const closeCamera = () => {
+    console.log('📷 [扫描] 关闭摄像头...')
+    
+    // 停止扫描循环
+    stopScan()
+    
+    // 停止所有视频轨道
+    if (currentStream.value) {
+      currentStream.value.getTracks().forEach(track => {
+        track.stop()
+        console.log('✅ [扫描] 视频轨道已停止:', track.kind)
+      })
+      currentStream.value = null
+    }
+    
+    // 清空视频元素的源
+    if (videoRef.value) {
+      videoRef.value.srcObject = null
+    }
+    
+    // 更新状态
+    isCameraReady.value = false
+    console.log('✅ [扫描] 摄像头已关闭')
+  }
+
   // 处理二维码内容（只提取订单号，填入输入框）
-  const processQRCode = (qrData: string) => {
+  const processQRCode = async (qrData: string) => {
     try {
       console.log('📋 [扫描] 处理二维码内容:', qrData)
       
@@ -542,10 +568,18 @@
       // 显示成功提示
       showToast({ 
         type: 'success', 
-        message: '订单号已识别，请点击查询订单' 
+        message: '订单号已识别，正在查询订单...' 
       })
       
       console.log('✅ [扫描] 订单号已填入输入框:', orderNo)
+      
+      // 等待 DOM 更新后自动调用查询订单
+      await nextTick()
+      
+      // 稍微延迟一下，让用户看到成功提示，然后自动查询
+      setTimeout(() => {
+        queryOrderByNo()
+      }, 300)
     } catch (error: any) {
       console.error('❌ [扫描] 处理二维码失败:', error)
       showToast({ 
@@ -939,12 +973,8 @@
 
   // 组件卸载时清理
   onUnmounted(() => {
-    stopScan()
-
-    if (currentStream.value) {
-      currentStream.value.getTracks().forEach(track => track.stop())
-      currentStream.value = null
-    }
+    // 使用统一的关闭摄像头函数
+    closeCamera()
   })
 </script>
 
