@@ -47,7 +47,7 @@
 
           <div class="order-content">
             <div class="product-item" v-for="item in order.items" :key="item.id">
-              <img :src="item.productImage" :alt="item.productName" class="product-image" />
+              <img :src="getImageUrl(item.productImage)" :alt="item.productName" class="product-image" />
               <div class="product-info">
                 <h4 class="product-name">{{ item.productName }}</h4>
                 <p class="product-quantity">x {{ item.quantity }}</p>
@@ -93,6 +93,7 @@
   import type { Order } from '@/types'
   import { orderService } from '@/services/orders'
   import { useAuthStore } from '@/stores/auth'
+  import { getImageUrl } from '@/utils/image'
 
   const router = useRouter()
   const route = useRoute()

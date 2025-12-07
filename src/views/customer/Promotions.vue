@@ -92,12 +92,10 @@
         >
           <div class="promotion-image">
             <img
-              v-if="getPromotionImage(promotion)"
               :src="getPromotionImage(promotion)"
               :alt="promotion.name || promotion.title"
               class="promo-img"
             />
-            <PlaceholderImage v-else width="100%" height="100%" />
           </div>
           <div class="promotion-info">
             <p class="promotion-title">{{ promotion.name || promotion.title }}</p>
@@ -143,6 +141,7 @@ import PlaceholderImage from '@/components/common/PlaceholderImage.vue'
 import { promotionService } from '@/services/promotions'
 import type { NavigationCategoryConfig, NavigationCategoryBanner } from '@/types/homepage'
 import { formatMoney } from '@/utils/format'
+import { getImageUrl } from '@/utils/image'
 
 const router = useRouter()
 const route = useRoute()
@@ -272,21 +271,7 @@ const getSectionHeaderStyle = () => {
   }
 }
 
-// 获取图片URL
-const getImageUrl = (url: string): string => {
-  if (!url) return ''
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url
-  }
-  if (url.startsWith('/api/')) {
-    return url
-  }
-  if (url.startsWith('/')) {
-    const baseURL = import.meta.env.VITE_API_BASE_URL || '/api'
-    return `${baseURL}${url}`
-  }
-  return url
-}
+// 使用统一的 getImageUrl 函数（已从 @/utils/image 导入）
 
 // Banner轮播控制
 const goToBanner = (index: number) => {
@@ -379,20 +364,27 @@ const handleBannerClick = (banner: NavigationCategoryBanner) => {
 }
 
 // 获取促销图片
-const getPromotionImage = (promotion: any): string | undefined => {
-  if (!promotion.images) return undefined
+const getPromotionImage = (promotion: any): string => {
+  let imageUrl = ''
+  
+  if (!promotion.images) {
+    return getImageUrl('')
+  }
 
   if (Array.isArray(promotion.images) && promotion.images.length > 0) {
     const first = promotion.images[0]
-    if (typeof first === 'string') return first
-    if (first && typeof first === 'object' && 'url' in first) return first.url as string
+    if (typeof first === 'string') {
+      imageUrl = first
+    } else if (first && typeof first === 'object' && 'url' in first) {
+      imageUrl = first.url as string
+    }
+  } else if (typeof promotion.images === 'object' && promotion.images !== null) {
+    if ('url' in promotion.images) {
+      imageUrl = promotion.images.url as string
+    }
   }
-
-  if (typeof promotion.images === 'object' && promotion.images !== null) {
-    if ('url' in promotion.images) return promotion.images.url as string
-  }
-
-  return undefined
+  
+  return getImageUrl(imageUrl)
 }
 
 // 获取商户位置信息

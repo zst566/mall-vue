@@ -28,7 +28,7 @@
             />
             <img 
               v-else 
-              src="/wepark-logo.svg" 
+              src="/WePark.png" 
               alt="WePark Logo" 
               class="default-logo-img"
             />

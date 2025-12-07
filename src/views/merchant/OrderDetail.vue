@@ -10,78 +10,108 @@
 
       <!-- 订单内容 -->
       <template v-else>
-      <!-- 订单状态 -->
-      <div class="order-status">
+      <!-- 订单状态卡片 -->
+      <div class="order-status-card">
         <div class="status-header">
-          <h2>订单详情</h2>
-          <span class="order-no">订单号：{{ orderInfo.orderNo }}</span>
-        </div>
-        <div class="status-badge" :class="orderInfo.status">
-          {{ getStatusLabel(orderInfo.status) }}
+          <div class="status-title-group">
+            <h2 class="status-title">订单详情</h2>
+            <p class="order-no">订单号: {{ orderInfo.orderNo }}</p>
+          </div>
+          <div class="status-badge" :class="orderInfo.status">
+            {{ getStatusLabel(orderInfo.status) }}
+          </div>
         </div>
       </div>
 
       <!-- 时间线 -->
-      <div class="order-timeline">
-        <van-steps :active="getTimelineActiveStep" direction="vertical">
-          <van-step>
-            <span>订单已创建</span>
-            <div class="step-time">{{ formatDateTime(orderInfo.createdAt) }}</div>
-          </van-step>
-          <van-step v-if="orderInfo.paidAt">
-            <span>订单已支付</span>
-            <div class="step-time">{{ formatDateTime(orderInfo.paidAt) }}</div>
-          </van-step>
-          <van-step v-if="orderInfo.verifiedAt">
-            <span>订单已核销</span>
-            <div class="step-time">{{ formatDateTime(orderInfo.verifiedAt) }}</div>
-          </van-step>
-          <van-step v-if="orderInfo.confirmedAt">
-            <span>商户已确认</span>
-            <div class="step-time">{{ formatDateTime(orderInfo.confirmedAt) }}</div>
-          </van-step>
-          <van-step v-if="orderInfo.shippedAt">
-            <span>订单已发货</span>
-            <div class="step-time">{{ formatDateTime(orderInfo.shippedAt) }}</div>
-          </van-step>
-          <van-step v-if="orderInfo.deliveredAt">
-            <span>订单已送达</span>
-            <div class="step-time">{{ formatDateTime(orderInfo.deliveredAt) }}</div>
-          </van-step>
-          <van-step v-if="orderInfo.refundedAt">
-            <span>订单已退款</span>
-            <div class="step-time">{{ formatDateTime(orderInfo.refundedAt) }}</div>
-          </van-step>
-        </van-steps>
+      <div class="order-timeline-card">
+        <div class="timeline-container">
+          <!-- 订单已核销 -->
+          <div v-if="orderInfo.verifiedAt" class="timeline-item timeline-item-active">
+            <div class="timeline-dot timeline-dot-active"></div>
+            <div class="timeline-content">
+              <p class="timeline-title">订单已核销</p>
+              <p class="timeline-time">{{ formatDateTime(orderInfo.verifiedAt) }}</p>
+            </div>
+          </div>
+          <!-- 订单已支付 -->
+          <div v-if="orderInfo.paidAt" class="timeline-item" :class="{ 'timeline-item-active': !orderInfo.verifiedAt }">
+            <div class="timeline-dot" :class="{ 'timeline-dot-active': !orderInfo.verifiedAt }"></div>
+            <div class="timeline-content">
+              <p class="timeline-title">订单已支付</p>
+              <p class="timeline-time">{{ formatDateTime(orderInfo.paidAt) }}</p>
+            </div>
+          </div>
+          <!-- 商户已确认 -->
+          <div v-if="orderInfo.confirmedAt" class="timeline-item" :class="{ 'timeline-item-active': !orderInfo.verifiedAt && !orderInfo.paidAt }">
+            <div class="timeline-dot" :class="{ 'timeline-dot-active': !orderInfo.verifiedAt && !orderInfo.paidAt }"></div>
+            <div class="timeline-content">
+              <p class="timeline-title">商户已确认</p>
+              <p class="timeline-time">{{ formatDateTime(orderInfo.confirmedAt) }}</p>
+            </div>
+          </div>
+          <!-- 订单已发货 -->
+          <div v-if="orderInfo.shippedAt" class="timeline-item" :class="{ 'timeline-item-active': !orderInfo.verifiedAt && !orderInfo.paidAt && !orderInfo.confirmedAt }">
+            <div class="timeline-dot" :class="{ 'timeline-dot-active': !orderInfo.verifiedAt && !orderInfo.paidAt && !orderInfo.confirmedAt }"></div>
+            <div class="timeline-content">
+              <p class="timeline-title">订单已发货</p>
+              <p class="timeline-time">{{ formatDateTime(orderInfo.shippedAt) }}</p>
+            </div>
+          </div>
+          <!-- 订单已送达 -->
+          <div v-if="orderInfo.deliveredAt" class="timeline-item" :class="{ 'timeline-item-active': !orderInfo.verifiedAt && !orderInfo.paidAt && !orderInfo.confirmedAt && !orderInfo.shippedAt }">
+            <div class="timeline-dot" :class="{ 'timeline-dot-active': !orderInfo.verifiedAt && !orderInfo.paidAt && !orderInfo.confirmedAt && !orderInfo.shippedAt }"></div>
+            <div class="timeline-content">
+              <p class="timeline-title">订单已送达</p>
+              <p class="timeline-time">{{ formatDateTime(orderInfo.deliveredAt) }}</p>
+            </div>
+          </div>
+          <!-- 订单已退款 -->
+          <div v-if="orderInfo.refundedAt" class="timeline-item" :class="{ 'timeline-item-active': !orderInfo.verifiedAt && !orderInfo.paidAt && !orderInfo.confirmedAt && !orderInfo.shippedAt && !orderInfo.deliveredAt }">
+            <div class="timeline-dot" :class="{ 'timeline-dot-active': !orderInfo.verifiedAt && !orderInfo.paidAt && !orderInfo.confirmedAt && !orderInfo.shippedAt && !orderInfo.deliveredAt }"></div>
+            <div class="timeline-content">
+              <p class="timeline-title">订单已退款</p>
+              <p class="timeline-time">{{ formatDateTime(orderInfo.refundedAt) }}</p>
+            </div>
+          </div>
+          <!-- 订单已创建 -->
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <p class="timeline-title">订单已创建</p>
+              <p class="timeline-time">{{ formatDateTime(orderInfo.createdAt) }}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- 订单信息 -->
-      <div class="order-info-section">
+      <div class="order-info-card">
         <h3 class="section-title">订单信息</h3>
-        <div class="info-grid">
-          <div class="info-item">
-            <span class="label">订单编号</span>
-            <span class="value">{{ orderInfo.orderNo }}</span>
+        <div class="info-list">
+          <div class="info-row">
+            <span class="info-label">订单编号</span>
+            <span class="info-value">{{ orderInfo.orderNo }}</span>
           </div>
-          <div class="info-item">
-            <span class="label">下单时间</span>
-            <span class="value">{{ formatDateTime(orderInfo.createdAt) }}</span>
+          <div class="info-row">
+            <span class="info-label">下单时间</span>
+            <span class="info-value">{{ formatDateTime(orderInfo.createdAt) }}</span>
           </div>
-          <div class="info-item">
-            <span class="label">订单金额</span>
-            <span class="value price">¥{{ (orderInfo.finalAmount || orderInfo.totalAmount || 0).toFixed(2) }}</span>
+          <div class="info-row">
+            <span class="info-label">订单金额</span>
+            <span class="info-value info-price">¥{{ (orderInfo.finalAmount || orderInfo.totalAmount || 0).toFixed(2) }}</span>
           </div>
-          <div class="info-item" v-if="orderInfo.finalAmount && orderInfo.finalAmount !== orderInfo.totalAmount">
-            <span class="label">实付金额</span>
-            <span class="value price">¥{{ orderInfo.finalAmount.toFixed(2) }}</span>
+          <div class="info-row" v-if="orderInfo.finalAmount && orderInfo.finalAmount !== orderInfo.totalAmount">
+            <span class="info-label">实付金额</span>
+            <span class="info-value info-price">¥{{ orderInfo.finalAmount.toFixed(2) }}</span>
           </div>
-          <div class="info-item">
-            <span class="label">支付方式</span>
-            <span class="value">{{ getPaymentMethodText(orderInfo.paymentMethod) }}</span>
+          <div class="info-row">
+            <span class="info-label">支付方式</span>
+            <span class="info-value">{{ getPaymentMethodText(orderInfo.paymentMethod) }}</span>
           </div>
-          <div class="info-item">
-            <span class="label">支付状态</span>
-            <span class="value" :class="getPaymentStatusClass(orderInfo.paymentStatus)">
+          <div class="info-row">
+            <span class="info-label">支付状态</span>
+            <span class="info-value" :class="getPaymentStatusClass(orderInfo.paymentStatus)">
               {{ getPaymentStatusText(orderInfo.paymentStatus) }}
             </span>
           </div>
@@ -94,7 +124,7 @@
         <div class="customer-card">
           <div class="customer-avatar">
             <img
-              :src="orderInfo.customerAvatar || '/default-avatar.png'"
+              :src="getImageUrl(orderInfo.customerAvatar)"
               :alt="orderInfo.customerName"
               class="avatar-image"
             />
@@ -127,25 +157,21 @@
       </div>  -->
 
       <!-- 商品信息 -->
-      <div class="products-section">
+      <div class="products-card">
         <h3 class="section-title">商品信息</h3>
         <div class="product-list" v-if="orderInfo.items && orderInfo.items.length > 0">
           <div v-for="item in orderInfo.items" :key="item.id || item.productId" class="product-item">
             <img
-              :src="item.productImage || '/placeholder-product.png'"
+              :src="getImageUrl(item.productImage)"
               :alt="item.productName"
               class="product-image"
               @error="handleImageError"
             />
             <div class="product-info">
-              <h4 class="product-name">{{ item.productName || '未知商品' }}</h4>
-              <p class="product-spec" v-if="item.specification">{{ item.specification }}</p>
+              <p class="product-name">{{ item.productName || '未知商品' }}</p>
               <div class="product-footer">
                 <span class="product-price">¥{{ (item.price || 0).toFixed(2) }}</span>
                 <span class="product-quantity">x{{ item.quantity || 1 }}</span>
-                <span class="product-total" v-if="item.totalPrice && item.totalPrice !== item.price * item.quantity">
-                  小计：¥{{ (item.totalPrice || 0).toFixed(2) }}
-                </span>
               </div>
             </div>
           </div>
@@ -156,7 +182,7 @@
       </div>
 
       <!-- 订单备注 -->
-      <div class="notes-section" v-if="orderInfo.notes">
+      <div class="notes-card" v-if="orderInfo.notes">
         <h3 class="section-title">订单备注</h3>
         <div class="notes-content">
           {{ orderInfo.notes }}
@@ -166,7 +192,7 @@
     </div>
 
     <!-- 操作按钮 -->
-    <div class="order-actions">
+    <div class="order-actions" v-show="false">
       <template v-if="canCancelOrder">
         <van-button type="warning" block round @click="handleCancelOrder" :loading="isCanceling">
           {{ isCanceling ? '撤销中...' : '撤销订单' }}
@@ -302,8 +328,10 @@
   import AppHeader from '@/components/common/AppHeader.vue'
   import { useMerchantOrderStore } from '@/stores/merchantOrder'
   import type { MerchantOrderStatus } from '@/types'
+  import { getImageUrl, getDefaultImage } from '@/utils/image'
 
   interface OrderItem {
+    id?: string
     productId: string
     productName: string
     productImage: string
@@ -330,12 +358,15 @@
     paymentMethod: 'wechat' | 'alipay' | 'cash'
     paymentStatus: 'unpaid' | 'paid' | 'refunded'
     totalAmount: number
+    finalAmount?: number
     createdAt: string
     updatedAt: string
     paidAt?: string
     confirmedAt?: string
+    verifiedAt?: string
     shippedAt?: string
     deliveredAt?: string
+    refundedAt?: string
     receiverName: string
     receiverPhone: string
     shippingAddress: ShippingAddress
@@ -417,7 +448,7 @@
   const getTimelineActiveStep = computed(() => {
     const status = orderInfo.value.status
     if (status === 'cancelled') return 0
-    if (status === 'refunded' || status === 'refund_requested') return 5
+    if (status === 'refunded') return 5
     if (orderInfo.value.deliveredAt) return 5
     if (orderInfo.value.shippedAt) return 4
     if (orderInfo.value.confirmedAt) return 3
@@ -435,8 +466,7 @@
     return (
       ['paid', 'verified', 'confirmed', 'shipped'].includes(orderInfo.value.status) &&
       orderInfo.value.paymentStatus === 'paid' &&
-      orderInfo.value.status !== 'refunded' &&
-      orderInfo.value.status !== 'refund_requested'
+      orderInfo.value.status !== 'refunded'
     )
   })
 
@@ -496,7 +526,7 @@
   // 处理图片加载错误
   const handleImageError = (event: Event) => {
     const img = event.target as HTMLImageElement
-    img.src = '/placeholder-product.png'
+    img.src = getDefaultImage()
   }
 
   // 加载订单详情
@@ -670,136 +700,217 @@
     overflow-y: auto;
   }
 
-  .order-status {
-    background: var(--van-background-2);
-    padding: 20px 16px;
+  // 订单状态卡片
+  .order-status-card {
+    background: var(--van-background-2, $white);
+    padding: 16px;
     margin-bottom: 16px;
-    border-radius: var(--van-radius-lg);
+    border-radius: $border-radius-lg;
+    box-shadow: $shadow-sm;
 
     .status-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 16px;
 
-      h2 {
-        font-size: 18px;
-        font-weight: 600;
-        color: var(--van-text-color);
-        margin: 0;
+      .status-title-group {
+        flex: 1;
+
+        .status-title {
+          font-size: $font-size-xl;
+          font-weight: $font-weight-bold;
+          color: var(--van-text-color, $text-color-primary);
+          margin: 0 0 4px 0;
+        }
+
+        .order-no {
+          font-size: $font-size-xs;
+          color: var(--van-text-color-3, $text-color-tertiary);
+          margin: 0;
+        }
       }
 
-      .order-no {
-        font-size: 14px;
-        color: var(--van-text-color-3);
-      }
-    }
+      .status-badge {
+        font-size: $font-size-lg;
+        font-weight: $font-weight-semibold;
+        padding: 4px 12px;
+        border-radius: $border-radius-base;
+        white-space: nowrap;
 
-    .status-badge {
-      display: inline-block;
-      padding: 8px 16px;
-      border-radius: var(--van-radius-md);
-      font-size: 16px;
-      font-weight: 600;
+        &.pending,
+        &.pending_verification {
+          color: $warning;
+          background: rgba($warning, 0.1);
+        }
 
-      &.pending {
-        background: rgba(255, 151, 106, 0.1);
-        color: #ff976a;
-      }
+        &.paid {
+          color: $primary;
+          background: rgba($primary, 0.1);
+        }
 
-      &.confirmed {
-        background: rgba(25, 137, 250, 0.1);
-        color: #1989fa;
-      }
+        &.verified {
+          color: $success;
+          background: rgba($success, 0.1);
+        }
 
-      &.shipped {
-        background: rgba(255, 151, 106, 0.1);
-        color: #ff976a;
-      }
+        &.confirmed {
+          color: $primary;
+          background: rgba($primary, 0.1);
+        }
 
-      &.delivered {
-        background: rgba(7, 193, 96, 0.1);
-        color: #07c160;
-      }
+        &.shipped {
+          color: $warning;
+          background: rgba($warning, 0.1);
+        }
 
-      &.cancelled {
-        background: rgba(150, 151, 153, 0.1);
-        color: #969799;
-      }
+        &.delivered,
+        &.completed {
+          color: $success;
+          background: rgba($success, 0.1);
+        }
 
-      &.refunded {
-        background: rgba(25, 137, 250, 0.1);
-        color: #1989fa;
+        &.cancelled {
+          color: $default;
+          background: rgba($default, 0.1);
+        }
+
+        &.refunded,
+        &.refund_requested {
+          color: $primary;
+          background: rgba($primary, 0.1);
+        }
       }
     }
   }
 
-  .order-timeline {
-    background: var(--van-background-2);
-    padding: 20px 16px;
+  // 时间线卡片
+  .order-timeline-card {
+    background: var(--van-background-2, $white);
+    padding: 24px 16px;
     margin-bottom: 16px;
-    border-radius: var(--van-radius-lg);
+    border-radius: $border-radius-lg;
+    box-shadow: $shadow-sm;
 
-    .step-time {
-      font-size: 12px;
-      color: var(--van-text-color-3);
-      margin-top: 4px;
+    .timeline-container {
+      position: relative;
+      padding-left: 24px;
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 7px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--van-border-color, $gray-light);
+      }
+
+      .timeline-item {
+        position: relative;
+        margin-bottom: 32px;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        .timeline-dot {
+          position: absolute;
+          left: -21px;
+          top: 0;
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          background: var(--van-border-color, $gray-light);
+          border: 4px solid var(--van-background-2, $white);
+          z-index: 1;
+          transition: all $transition-base;
+
+          &.timeline-dot-active {
+            background: var(--van-primary-color, $primary);
+            border-color: var(--van-background-2, $white);
+          }
+        }
+
+        .timeline-content {
+          .timeline-title {
+            font-size: $font-size-base;
+            font-weight: $font-weight-semibold;
+            color: var(--van-text-color, $text-color-primary);
+            margin: 0 0 4px 0;
+          }
+
+          .timeline-time {
+            font-size: $font-size-sm;
+            color: var(--van-text-color-3, $text-color-tertiary);
+            margin: 0;
+          }
+        }
+
+        &.timeline-item-active {
+          .timeline-content {
+            .timeline-title {
+              color: var(--van-text-color, $text-color-primary);
+            }
+          }
+        }
+      }
     }
   }
 
   .section-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--van-text-color);
-    margin: 0 0 12px 0;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    color: var(--van-text-color, $text-color-primary);
+    margin: 0 0 16px 0;
   }
 
-  .order-info-section,
-  .customer-info-section,
-  .shipping-info-section,
-  .products-section,
-  .notes-section {
-    background: var(--van-background-2);
+  // 订单信息卡片
+  .order-info-card {
+    background: var(--van-background-2, $white);
     padding: 16px;
     margin-bottom: 16px;
-    border-radius: var(--van-radius-lg);
-  }
+    border-radius: $border-radius-lg;
+    box-shadow: $shadow-sm;
 
-  .info-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-
-    .info-item {
+    .info-list {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 12px;
 
-      .label {
-        font-size: 14px;
-        color: var(--van-text-color-3);
-      }
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: $font-size-sm;
 
-      .value {
-        font-size: 14px;
-        color: var(--van-text-color);
-
-        &.price {
-          font-size: 16px;
-          font-weight: 600;
-          color: var(--van-danger-color);
+        .info-label {
+          color: var(--van-text-color-3, $text-color-tertiary);
         }
 
-        &.status-unpaid {
-          color: #ff976a;
-        }
+        .info-value {
+          color: var(--van-text-color, $text-color-primary);
+          font-weight: $font-weight-normal;
 
-        &.status-paid {
-          color: #07c160;
-        }
+          &.info-price {
+            font-size: $font-size-base;
+            font-weight: $font-weight-bold;
+            color: var(--van-danger-color, $danger);
+          }
 
-        &.status-refunded {
-          color: #1989fa;
+          &.status-unpaid {
+            color: $warning;
+            font-weight: $font-weight-medium;
+          }
+
+          &.status-paid {
+            color: $success;
+            font-weight: $font-weight-medium;
+          }
+
+          &.status-refunded {
+            color: $primary;
+            font-weight: $font-weight-medium;
+          }
         }
       }
     }
@@ -875,17 +986,23 @@
     }
   }
 
-  .product-list {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+  // 商品信息卡片
+  .products-card {
+    background: var(--van-background-2, $white);
+    padding: 16px;
+    margin-bottom: 16px;
+    border-radius: $border-radius-lg;
+    box-shadow: $shadow-sm;
 
-    .product-item {
+    .product-list {
       display: flex;
-      gap: 12px;
-      padding: 16px;
-      background: var(--van-background);
-      border-radius: var(--van-radius-md);
+      flex-direction: column;
+      gap: 16px;
+
+      .product-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
 
       .product-image {
         width: 80px;
@@ -894,44 +1011,35 @@
         object-fit: cover;
       }
 
-      .product-info {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-
-        .product-name {
-          font-size: 16px;
-          font-weight: 600;
-          color: var(--van-text-color);
-        }
-
-        .product-spec {
-          font-size: 14px;
-          color: var(--van-text-color-3);
-        }
-
-        .product-footer {
+        .product-info {
+          flex: 1;
           display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-top: auto;
+          flex-direction: column;
+          gap: 8px;
 
-          .product-price {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--van-danger-color);
+          .product-name {
+            font-size: $font-size-base;
+            font-weight: $font-weight-medium;
+            color: var(--van-text-color, $text-color-primary);
+            margin: 0;
           }
 
-          .product-quantity {
-            font-size: 14px;
-            color: var(--van-text-color-3);
-          }
+          .product-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-top: 4px;
 
-          .product-total {
-            font-size: 14px;
-            color: var(--van-text-color-2);
-            margin-left: auto;
+            .product-price {
+              font-size: $font-size-base;
+              font-weight: $font-weight-bold;
+              color: var(--van-danger-color, $danger);
+            }
+
+            .product-quantity {
+              font-size: $font-size-sm;
+              color: var(--van-text-color-3, $text-color-tertiary);
+            }
           }
         }
       }
@@ -947,13 +1055,23 @@
     font-style: italic;
   }
 
-  .notes-content {
-    padding: 12px;
-    background: var(--van-background);
-    border-radius: var(--van-radius-md);
-    font-size: 14px;
-    color: var(--van-text-color-2);
-    line-height: 1.5;
+  // 订单备注卡片
+  .notes-card {
+    background: var(--van-background-2, $white);
+    padding: 16px;
+    margin-bottom: 16px;
+    border-radius: $border-radius-lg;
+    box-shadow: $shadow-sm;
+
+    .notes-content {
+      padding: 12px;
+      background: var(--van-background, $gray-lightest);
+      border-radius: $border-radius-base;
+      font-size: $font-size-sm;
+      color: var(--van-text-color, $text-color-primary);
+      line-height: $line-height-base;
+      margin-top: 8px;
+    }
   }
 
   .order-actions {
@@ -978,34 +1096,20 @@
   // 暗色模式支持
   @media (prefers-color-scheme: dark) {
     .merchant-order-detail-page {
-      background-color: #1a1a1a;
+      background-color: $dark;
     }
 
-    .order-status,
-    .order-timeline,
-    .order-info-section,
-    .customer-info-section,
-    .shipping-info-section,
-    .products-section,
-    .notes-section,
+    .order-status-card,
+    .order-timeline-card,
+    .order-info-card,
+    .products-card,
+    .notes-card,
     .order-actions {
-      background: #2a2a2a;
-    }
-
-    .section-title {
-      color: #fff;
-    }
-
-    .info-grid .info-item .value {
-      color: #fff;
-    }
-
-    .customer-card .customer-name {
-      color: #fff;
+      background: $gray-dark;
     }
 
     .notes-content {
-      background: #333;
+      background: rgba($white, 0.05);
     }
   }
 
@@ -1016,23 +1120,8 @@
       padding-bottom: 140px;
     }
 
-    .info-grid {
-      grid-template-columns: 1fr;
-      gap: 8px;
-    }
-
     .order-actions {
       padding: 12px;
-    }
-
-    .product-item {
-      flex-direction: column;
-      align-items: flex-start;
-
-      .product-image {
-        width: 100%;
-        height: 120px;
-      }
     }
   }
 

@@ -124,6 +124,7 @@ import { api } from '@/services/api'
 import { orderService } from '@/services/orders'
 import { PointsService } from '@/services/points'
 import { useAuthStore } from '@/stores/auth'
+import { getImageUrl, getDefaultImage } from '@/utils/image'
 
 const router = useRouter()
 const route = useRoute()
@@ -166,20 +167,21 @@ const remainingPoints = computed(() => {
 
 // 获取商品图片
 const productImage = computed(() => {
-  if (!promotionInfo.value.images) return ''
+  if (!promotionInfo.value.images) return getDefaultImage()
   
+  let imageUrl = ''
   if (Array.isArray(promotionInfo.value.images) && promotionInfo.value.images.length > 0) {
     const firstImg = promotionInfo.value.images[0]
     if (typeof firstImg === 'object' && firstImg !== null && firstImg.url) {
-      return firstImg.url
+      imageUrl = firstImg.url
     } else if (typeof firstImg === 'string') {
-      return firstImg
+      imageUrl = firstImg
     }
   } else if (typeof promotionInfo.value.images === 'string') {
-    return promotionInfo.value.images
+    imageUrl = promotionInfo.value.images
   }
   
-  return ''
+  return getImageUrl(imageUrl)
 })
 
 // 格式化数字（添加千分位）
@@ -190,7 +192,7 @@ const formatNumber = (num: number): string => {
 // 图片加载错误处理
 const handleImageError = (event: Event) => {
   const img = event.target as HTMLImageElement
-  img.src = '/placeholder-product.png'
+  img.src = getDefaultImage()
 }
 
 // 返回上一页

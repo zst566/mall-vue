@@ -53,7 +53,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { showToast } from 'vant'
+import { showToast, closeToast } from 'vant'
 import PromotionBanner from '@/components/customer/PromotionBanner.vue'
 import PromotionInfo from '@/components/customer/PromotionInfo.vue'
 import PromotionDetailImages from '@/components/customer/PromotionDetailImages.vue'
@@ -131,9 +131,15 @@ const handleTagClick = (tagId: string) => {
 
 // 支付结果处理
 const handlePaymentResult = (result: any) => {
+  // 关闭"跳转中..."的 loading 提示
+  closeToast()
+  
   if (result?.success) {
     loadPromotionDetail()
     showToast('支付成功！')
+  } else if (result?.errMsg) {
+    // 支付失败时也显示错误信息
+    showToast(result.errMsg || '支付失败，请重试')
   }
 }
 
@@ -141,6 +147,9 @@ const handlePaymentResult = (result: any) => {
 let lastRefreshTime = 0
 const REFRESH_INTERVAL = 2000 // 2秒内不重复刷新
 const handlePageActivated = () => {
+  // 页面激活时，关闭可能残留的 loading 提示（从支付页面返回时）
+  closeToast()
+  
   const now = Date.now()
   // 避免过于频繁的刷新
   if (now - lastRefreshTime < REFRESH_INTERVAL) {

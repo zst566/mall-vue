@@ -185,13 +185,16 @@ export interface MerchantOrder {
   shippingAddress: ShippingAddress
   items: OrderItem[]
   notes?: string
+  promotionId?: string | number // 促销活动ID
+  promotionImageUrl?: string // 促销活动主图URL（后端返回）
+  promotionMainImage?: string // 促销活动主图URL（兼容字段）
 }
 
 // 订单状态类型
 export type OrderStatus = 'pending' | 'paid' | 'verified' | 'cancelled' | 'refunded' | 'refund_requested'
 
 // 商户订单状态类型
-export type MerchantOrderStatus = 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'pending_verification' | 'verified' | 'completed'
+export type MerchantOrderStatus = 'pending' | 'paid' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'refund_requested' | 'pending_verification' | 'verified' | 'completed'
 
 // 支付方法类型
 export type PaymentMethod = 'wechat' | 'alipay' | 'cash' | 'other'

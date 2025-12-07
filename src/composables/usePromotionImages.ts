@@ -2,6 +2,7 @@
  * 促销活动图片处理 Composable
  */
 import { computed, type Ref, type ComputedRef } from 'vue'
+import { getDefaultImage } from '@/utils/image'
 
 export interface UsePromotionImagesOptions {
   images: Ref<any> | ComputedRef<any>
@@ -136,7 +137,7 @@ export function usePromotionImages(
   // 图片加载错误处理
   const handleImageError = (event: Event) => {
     const img = event.target as HTMLImageElement
-    img.src = '/placeholder-product.png'
+    img.src = getDefaultImage()
   }
 
   return {

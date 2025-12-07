@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { MerchantOrder, RefundRequest, MerchantOrderStatus } from '@/types'
+import type { MerchantOrder, RefundRequest, MerchantOrderStatus, ShippingAddress } from '@/types'
 import { merchantService } from '@/services/merchant'
+import { getDefaultImage } from '@/utils/image'
 
 interface MerchantOrderResponse {
   success: boolean
@@ -234,7 +235,7 @@ export const useMerchantOrderStore = defineStore('merchantOrder', () => {
         id: item.id || item.productId || '',
         productId: item.productId || '',
         productName: item.productName || item.name || '未知商品',
-        productImage: item.productImage || item.image || '/placeholder-product.png',
+        productImage: item.productImage || item.image || getDefaultImage(),
         specification: item.specification || item.sku || '',
         quantity: item.quantity || 1,
         price: typeof item.price === 'string' ? parseFloat(item.price) : (item.price || 0),
@@ -256,23 +257,33 @@ export const useMerchantOrderStore = defineStore('merchantOrder', () => {
           // 如果地址是字符串，尝试解析
           shippingAddress.detail = orderData.shippingAddress
         } else {
+          const addressData = orderData.shippingAddress as ShippingAddress & { address?: string }
           shippingAddress = {
-            province: orderData.shippingAddress.province || '',
-            city: orderData.shippingAddress.city || '',
-            district: orderData.shippingAddress.district || '',
-            detail: orderData.shippingAddress.detail || orderData.shippingAddress.address || ''
+            province: addressData.province || '',
+            city: addressData.city || '',
+            district: addressData.district || '',
+            detail: addressData.detail || addressData.address || ''
           }
         }
       }
 
       // 构建转换后的订单对象
+      // 使用类型断言处理后端可能返回的不同字段名
+      const orderDataWithAliases = orderData as MerchantOrder & {
+        orderCode?: string
+        userId?: string
+        contactName?: string
+        contactPhone?: string
+        remark?: string
+      }
+      
       const transformedOrder: MerchantOrder = {
         id: orderData.id || id,
-        orderNo: orderData.orderNo || orderData.orderCode || '',
-        customerId: orderData.customerId || orderData.userId || '',
-        customerName: orderData.customerName || orderData.contactName || '',
-        customerPhone: orderData.customerPhone || orderData.contactPhone || '',
-        customerAvatar: orderData.customerAvatar || '/default-avatar.png',
+        orderNo: orderData.orderNo || orderDataWithAliases.orderCode || '',
+        customerId: orderData.customerId || orderDataWithAliases.userId || '',
+        customerName: orderData.customerName || orderDataWithAliases.contactName || '',
+        customerPhone: orderData.customerPhone || orderDataWithAliases.contactPhone || '',
+        customerAvatar: orderData.customerAvatar || getDefaultImage(),
         status: normalizedStatus,
         paymentMethod: normalizedPaymentMethod,
         paymentStatus: normalizedPaymentStatus,
@@ -286,11 +297,11 @@ export const useMerchantOrderStore = defineStore('merchantOrder', () => {
         shippedAt: orderData.shippedAt || undefined,
         deliveredAt: orderData.deliveredAt || undefined,
         refundedAt: orderData.refundedAt || undefined,
-        receiverName: orderData.receiverName || orderData.contactName || orderData.customerName || '',
-        receiverPhone: orderData.receiverPhone || orderData.contactPhone || orderData.customerPhone || '',
+        receiverName: orderData.receiverName || orderDataWithAliases.contactName || orderData.customerName || '',
+        receiverPhone: orderData.receiverPhone || orderDataWithAliases.contactPhone || orderData.customerPhone || '',
         shippingAddress,
         items,
-        notes: orderData.notes || orderData.remark || undefined
+        notes: orderData.notes || orderDataWithAliases.remark || undefined
       }
 
       currentOrder.value = transformedOrder

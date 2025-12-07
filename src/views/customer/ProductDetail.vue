@@ -272,6 +272,7 @@
   import PlaceholderImage from '@/components/common/PlaceholderImage.vue'
   import { productService } from '@/services/products'
   import type { Product } from '@/types'
+  import { getImageUrl as getImageUrlFromUtils, getDefaultImage } from '@/utils/image'
 
   const router = useRouter()
   const route = useRoute()
@@ -367,34 +368,32 @@
 
   // 获取图片URL（从字符串）
   const getImageUrlFromString = (image: string | any): string => {
+    let url = ''
     if (typeof image === 'string') {
-      return image
+      url = image
+    } else if (image && typeof image === 'object') {
+      url = image.url || image.src || ''
     }
-    if (image && typeof image === 'object') {
-      return image.url || image.src || ''
-    }
-    return ''
+    return getImageUrlFromUtils(url)
   }
 
   // 获取图片URL
   const getImageUrl = (image: { url: string; position?: number; id?: string }): string => {
-    // 如果 URL 为空，直接返回占位图，避免触发 error 事件
-    return image.url || '/placeholder-product.png'
+    return getImageUrlFromUtils(image.url)
   }
 
   // 图片加载错误处理
   const handleImageError = (event: Event) => {
     const target = event.target as HTMLImageElement
     if (target) {
-      // 如果当前已经是占位图，或者占位图也加载失败，则不再处理，避免无限循环
-      if (target.src.includes('placeholder-product.png')) {
+      // 如果当前已经是默认占位图，则不再处理，避免无限循环
+      if (target.src.includes('WePark.png')) {
         // 移除 error 事件监听器，防止重复触发
         target.onerror = null
         return
       }
-      // 设置占位图，但只尝试一次
-      target.src = '/placeholder-product.png'
-      // 如果占位图也加载失败，移除监听器
+      // 设置为默认占位图
+      target.src = getDefaultImage()
       target.onerror = () => {
         target.onerror = null
       }
@@ -467,7 +466,7 @@
 
       // 如果没有图片，使用默认占位图
       if (!product.images || product.images.length === 0) {
-        product.images = ['/placeholder-product.png']
+        product.images = [getDefaultImage()]
       }
 
       // 加载产品图片（用于产品特点部分）
