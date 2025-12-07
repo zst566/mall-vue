@@ -1,6 +1,7 @@
 <template>
   <van-popup
-    v-model:show="isVisible"
+    :show="modelValue"
+    @update:show="handleVisibilityChange"
     position="bottom"
     closeable
     round
@@ -83,21 +84,18 @@ const emit = defineEmits<{
   (e: 'reset'): void
 }>()
 
-const isVisible = ref(props.modelValue)
 const showDatePicker = ref(false)
 const localFilterParams = ref<FilterParams>({ ...props.filterParams })
 
-watch(() => props.modelValue, (val) => {
-  isVisible.value = val
-})
+// 处理弹窗可见性变化
+const handleVisibilityChange = (show: boolean) => {
+  emit('update:modelValue', show)
+}
 
+// 监听 filterParams 变化，同步到本地状态
 watch(() => props.filterParams, (val) => {
   localFilterParams.value = { ...val }
 }, { deep: true })
-
-watch(isVisible, (val) => {
-  emit('update:modelValue', val)
-})
 
 const handleSubmit = () => {
   // 更新父组件的 filterParams
