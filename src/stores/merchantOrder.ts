@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { MerchantOrder, RefundRequest } from '@/types'
+import type { MerchantOrder, RefundRequest, MerchantOrderStatus } from '@/types'
+import { merchantService } from '@/services/merchant'
 
 interface MerchantOrderResponse {
   success: boolean
@@ -182,64 +183,131 @@ export const useMerchantOrderStore = defineStore('merchantOrder', () => {
       isLoading.value = true
       error.value = ''
 
-      // 这里应该调用实际的API
-      // const response = await api.get(`/merchant/orders/${id}`)
+      // 调用真实API获取订单详情
+      const orderData = await merchantService.getMerchantOrderDetail(id)
 
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // 状态映射：后端可能返回大写状态（如 PAID），需要映射为小写（如 paid）
+      const statusMap: Record<string, MerchantOrderStatus> = {
+        'PENDING': 'pending',
+        'PAID': 'paid',
+        'VERIFIED': 'verified',
+        'CANCELLED': 'cancelled',
+        'REFUNDED': 'refunded',
+        'REFUND_REQUESTED': 'refund_requested',
+        'PENDING_VERIFICATION': 'pending_verification',
+        'CONFIRMED': 'confirmed',
+        'SHIPPED': 'shipped',
+        'DELIVERED': 'delivered',
+        'COMPLETED': 'completed'
+      }
+      const normalizedStatus = statusMap[orderData.status as string] || orderData.status as MerchantOrderStatus
 
-      const mockOrder: MerchantOrder = {
-        id,
-        orderNo: `MERCHANT${id}00${Math.floor(Math.random() * 100)}`,
-        customerId: 'customer1',
-        customerName: '张三',
-        customerPhone: '13800138000',
-        customerAvatar: '/avatars/customer1.jpg',
-        status: 'confirmed',
-        paymentMethod: 'wechat',
-        paymentStatus: 'paid',
-        totalAmount: 8999.00,
-        createdAt: '2024-10-15T10:00:00Z',
-        updatedAt: '2024-10-18T15:00:00Z',
-        paidAt: '2024-10-15T10:30:00Z',
-        confirmedAt: '2024-10-18T10:35:00Z',
-        receiverName: '张三',
-        receiverPhone: '13800138000',
-        shippingAddress: {
-          province: '广东省',
-          city: '广州市',
-          district: '天河区',
-          detail: '天河路123号'
-        },
-        items: [
-          {
-            id: 'item4',
-            productId: 'product1',
-            productName: 'iPhone 15 Pro',
-            productImage: '/images/iphone15.jpg',
-            quantity: 1,
-            price: 8999.00,
-            totalPrice: 8999.00,
-            specification: '256GB 深空黑色'
+      // 支付方式映射：后端可能返回大写（WECHAT），前端使用小写（wechat）
+      const paymentMethodMap: Record<string, 'wechat' | 'alipay' | 'cash'> = {
+        'WECHAT': 'wechat',
+        'ALIPAY': 'alipay',
+        'CASH': 'cash'
+      }
+      const normalizedPaymentMethod = paymentMethodMap[orderData.paymentMethod as string] || orderData.paymentMethod as 'wechat' | 'alipay' | 'cash'
+
+      // 支付状态映射
+      const paymentStatusMap: Record<string, 'unpaid' | 'paid' | 'refunded'> = {
+        'UNPAID': 'unpaid',
+        'PAID': 'paid',
+        'REFUNDED': 'refunded',
+        'PENDING': 'unpaid',
+        'SUCCESS': 'paid'
+      }
+      const normalizedPaymentStatus = paymentStatusMap[orderData.paymentStatus as string] || orderData.paymentStatus as 'unpaid' | 'paid' | 'refunded'
+
+      // 转换金额：确保为数字类型
+      const totalAmount = typeof orderData.totalAmount === 'string' 
+        ? parseFloat(orderData.totalAmount) 
+        : (orderData.totalAmount || 0)
+      
+      const finalAmount = orderData.finalAmount !== undefined && orderData.finalAmount !== null
+        ? (typeof orderData.finalAmount === 'string' ? parseFloat(orderData.finalAmount) : orderData.finalAmount)
+        : totalAmount
+
+      // 处理商品列表：确保每个字段都存在
+      const items = (orderData.items || []).map((item: any) => ({
+        id: item.id || item.productId || '',
+        productId: item.productId || '',
+        productName: item.productName || item.name || '未知商品',
+        productImage: item.productImage || item.image || '/placeholder-product.png',
+        specification: item.specification || item.sku || '',
+        quantity: item.quantity || 1,
+        price: typeof item.price === 'string' ? parseFloat(item.price) : (item.price || 0),
+        totalPrice: typeof item.totalPrice === 'string' 
+          ? parseFloat(item.totalPrice) 
+          : (item.totalPrice !== undefined ? item.totalPrice : (item.price || 0) * (item.quantity || 1))
+      }))
+
+      // 处理收货地址：确保结构正确
+      let shippingAddress = {
+        province: '',
+        city: '',
+        district: '',
+        detail: ''
+      }
+      
+      if (orderData.shippingAddress) {
+        if (typeof orderData.shippingAddress === 'string') {
+          // 如果地址是字符串，尝试解析
+          shippingAddress.detail = orderData.shippingAddress
+        } else {
+          shippingAddress = {
+            province: orderData.shippingAddress.province || '',
+            city: orderData.shippingAddress.city || '',
+            district: orderData.shippingAddress.district || '',
+            detail: orderData.shippingAddress.detail || orderData.shippingAddress.address || ''
           }
-        ],
-        notes: '请尽快发货，谢谢'
+        }
       }
 
-      currentOrder.value = mockOrder
+      // 构建转换后的订单对象
+      const transformedOrder: MerchantOrder = {
+        id: orderData.id || id,
+        orderNo: orderData.orderNo || orderData.orderCode || '',
+        customerId: orderData.customerId || orderData.userId || '',
+        customerName: orderData.customerName || orderData.contactName || '',
+        customerPhone: orderData.customerPhone || orderData.contactPhone || '',
+        customerAvatar: orderData.customerAvatar || '/default-avatar.png',
+        status: normalizedStatus,
+        paymentMethod: normalizedPaymentMethod,
+        paymentStatus: normalizedPaymentStatus,
+        totalAmount,
+        finalAmount,
+        createdAt: orderData.createdAt || new Date().toISOString(),
+        updatedAt: orderData.updatedAt || new Date().toISOString(),
+        paidAt: orderData.paidAt || undefined,
+        confirmedAt: orderData.confirmedAt || undefined,
+        verifiedAt: orderData.verifiedAt || undefined,
+        shippedAt: orderData.shippedAt || undefined,
+        deliveredAt: orderData.deliveredAt || undefined,
+        refundedAt: orderData.refundedAt || undefined,
+        receiverName: orderData.receiverName || orderData.contactName || orderData.customerName || '',
+        receiverPhone: orderData.receiverPhone || orderData.contactPhone || orderData.customerPhone || '',
+        shippingAddress,
+        items,
+        notes: orderData.notes || orderData.remark || undefined
+      }
+
+      currentOrder.value = transformedOrder
 
       return {
         success: true,
-        data: mockOrder,
+        data: transformedOrder,
         message: '订单详情获取成功'
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('获取商户订单详情失败:', err)
-      error.value = '获取商户订单详情失败'
+      const errorMessage = err?.message || '获取商户订单详情失败'
+      error.value = errorMessage
       return {
         success: false,
         data: {} as MerchantOrder,
-        message: '获取商户订单详情失败'
+        message: errorMessage
       }
     } finally {
       isLoading.value = false

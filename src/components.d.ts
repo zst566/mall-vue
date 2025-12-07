@@ -9,6 +9,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     AppFooter: typeof import('./components/common/AppFooter.vue')['default']
     AppHeader: typeof import('./components/common/AppHeader.vue')['default']
+    AvatarUploadPopup: typeof import('./components/customer/AvatarUploadPopup.vue')['default']
     CameraPermissionDialog: typeof import('./components/merchant/CameraPermissionDialog.vue')['default']
     CategoryNavigation: typeof import('./components/customer/CategoryNavigation.vue')['default']
     CategoryPromotionBanner: typeof import('./components/customer/CategoryPromotionBanner.vue')['default']
@@ -19,6 +20,7 @@ declare module 'vue' {
     HomepageBannerCarousel: typeof import('./components/customer/HomepageBannerCarousel.vue')['default']
     HotPromotions: typeof import('./components/customer/HotPromotions.vue')['default']
     LoadingSpinner: typeof import('./components/common/LoadingSpinner.vue')['default']
+    LogoutConfirmDialog: typeof import('./components/customer/LogoutConfirmDialog.vue')['default']
     ManualOrderInput: typeof import('./components/merchant/ManualOrderInput.vue')['default']
     OrderActions: typeof import('./components/customer/OrderActions.vue')['default']
     OrderDialogs: typeof import('./components/customer/OrderDialogs.vue')['default']
@@ -31,6 +33,9 @@ declare module 'vue' {
     ProductCard: typeof import('./components/customer/ProductCard.vue')['default']
     ProductInfo: typeof import('./components/customer/ProductInfo.vue')['default']
     ProductList: typeof import('./components/customer/ProductList.vue')['default']
+    ProfileHeader: typeof import('./components/customer/ProfileHeader.vue')['default']
+    ProfileMenu: typeof import('./components/customer/ProfileMenu.vue')['default']
+    ProfileStats: typeof import('./components/customer/ProfileStats.vue')['default']
     PromotionBanner: typeof import('./components/customer/PromotionBanner.vue')['default']
     PromotionBottomBar: typeof import('./components/customer/PromotionBottomBar.vue')['default']
     PromotionDetailImages: typeof import('./components/customer/PromotionDetailImages.vue')['default']
@@ -88,6 +93,7 @@ declare module 'vue' {
     VanTag: typeof import('vant/es')['Tag']
     VanUploader: typeof import('vant/es')['Uploader']
     VariantSelector: typeof import('./components/customer/VariantSelector.vue')['default']
+    VersionInfoPopup: typeof import('./components/customer/VersionInfoPopup.vue')['default']
     VersionSwitcher: typeof import('./components/common/VersionSwitcher.vue')['default']
   }
 }

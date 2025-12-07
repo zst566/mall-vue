@@ -3,1194 +3,217 @@
     <!-- 加载状态 -->
     <van-loading v-if="isLoading && !hasUser" type="spinner" vertical>加载中...</van-loading>
 
-    <!-- 用户信息头部 -->
-    <div v-else class="profile-header">
-      <div class="user-info">
-        <div class="user-avatar" @click="changeAvatar">
-          <img :src="getUserAvatar()" :alt="getDisplayName()" @error="handleImageError" />
-          <van-icon v-if="user?.isVerified" name="passed" class="verified-icon" />
-        </div>
-        <div class="user-details">
-          <div class="username-row">
-            <h3 class="nickname">{{ getDisplayName() }}</h3>
-            <van-tag v-if="user?.isVerified" type="success" size="medium">已认证</van-tag>
-          </div>
-          <div class="user-meta">
-            <span class="phone" v-if="user?.phone">
-              <van-icon name="phone-o" size="14" />
-              {{ formatPhone(user.phone) }}
-            </span>
-            <span class="join-date" v-if="user?.createdAt">
-              <van-icon name="calendar-o" size="14" />
-              加入于 {{ formatDate(user.createdAt) }}
-            </span>
-          </div>
-        </div>
+    <template v-else>
+      <ProfileHeader
+        :user="user"
+        :is-loading="isLoading"
+        :get-display-name="getDisplayName"
+        :get-user-avatar="getUserAvatar"
+        :format-phone="formatPhone"
+        :format-date="formatDate"
+        :get-default-avatar="avatarUpload.getDefaultAvatar"
+        @avatar-click="avatarUpload.changeAvatar"
+      />
+      <ProfileStats :stats="userStats" />
+      <ProfileMenu
+        :has-unpaid-orders="hasUnpaidOrders"
+        :merchant-status="merchantStatus"
+        :merchant-status-text="merchantStatusText"
+        :merchant-status-tag-type="merchantStatusTagType"
+        :merchant-menu-title="merchantMenuTitle"
+        :app-version="appVersion"
+        @menu-click="handleMenuClick"
+      />
+      <div class="logout-section">
+        <van-button type="danger" block round @click="logout.handleLogout" :loading="logout.isLoggingOut.value">
+          退出登录
+        </van-button>
       </div>
+    </template>
 
-      <!-- 用户统计 -->
-      <div class="user-stats">
-        <div class="stat-item">
-          <div class="stat-value">{{ userStats.points || 0 }}</div>
-          <div class="stat-label">积分</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value">{{ userStats.coupons || 0 }}</div>
-          <div class="stat-label">优惠券</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value">{{ userStats.favorites || 0 }}</div>
-          <div class="stat-label">收藏</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 功能菜单 -->
-    <div class="menu-section">
-      <van-cell-group inset>
-        <!-- 账户管理 -->
-        <van-cell title="账户管理" is-link @click="goToAccount">
-          <template #icon>
-            <van-icon name="user-o" />
-          </template>
-        </van-cell>
-
-        <!-- 我的订单 -->
-        <van-cell title="我的订单" is-link @click="goToOrders">
-          <template #icon>
-            <van-icon name="orders-o" />
-          </template>
-          <template #right-icon>
-            <van-badge :dot="hasUnpaidOrders">
-              <van-icon name="arrow" />
-            </van-badge>
-          </template>
-        </van-cell>
-
-        <!-- 收藏管理 -->
-        <van-cell title="收藏管理" is-link @click="goToFavorites">
-          <template #icon>
-            <van-icon name="star-o" />
-          </template>
-        </van-cell>
-
-        <!-- 地址管理 -->
-        <van-cell title="地址管理" is-link @click="goToAddresses">
-          <template #icon>
-            <van-icon name="location-o" />
-          </template>
-        </van-cell>
-
-        <!-- 安全设置 -->
-        <van-cell title="安全设置" is-link @click="goToSecurity">
-          <template #icon>
-            <van-icon name="lock" />
-          </template>
-        </van-cell>
-
-        <!-- 通知设置 -->
-        <van-cell title="通知设置" is-link @click="goToNotifications">
-          <template #icon>
-            <van-icon name="bell" />
-          </template>
-        </van-cell>
-
-        <!-- 商户管理 -->
-        <van-cell :title="merchantMenuTitle" is-link @click="goToMerchantManagement">
-          <template #icon>
-            <van-icon name="shop-o" />
-          </template>
-          <template #right-icon>
-            <van-tag v-if="merchantStatus" :type="merchantStatusTagType">
-              {{ merchantStatusText }}
-            </van-tag>
-          </template>
-        </van-cell>
-      </van-cell-group>
-    </div>
-
-    <!-- 其他功能 -->
-    <div class="menu-section">
-      <van-cell-group inset>
-        <!-- 客服中心 -->
-        <van-cell title="客服中心" is-link @click="contactService">
-          <template #icon>
-            <van-icon name="service-o" />
-          </template>
-        </van-cell>
-
-        <!-- 帮助中心 -->
-        <van-cell title="帮助中心" is-link @click="goToHelp">
-          <template #icon>
-            <van-icon name="question-o" />
-          </template>
-        </van-cell>
-
-        <!-- 关于我们 -->
-        <van-cell title="关于我们" is-link @click="goToAbout">
-          <template #icon>
-            <van-icon name="info-o" />
-          </template>
-        </van-cell>
-
-        <!-- 版本信息 -->
-        <van-cell title="版本信息" is-link @click="showVersionInfo">
-          <template #icon>
-            <van-icon name="version" />
-          </template>
-          <template #value>
-            <span class="version-text">v{{ appVersion }}</span>
-          </template>
-        </van-cell>
-      </van-cell-group>
-    </div>
-
-    <!-- 退出登录按钮 -->
-    <div class="logout-section">
-      <van-button type="danger" block round @click="handleLogout" :loading="isLoggingOut">
-        退出登录
-      </van-button>
-    </div>
-
-    <!-- 图片上传弹窗 -->
-    <van-popup v-model:show="showAvatarPopup" position="bottom" round :style="{ height: '40%' }">
-      <div class="avatar-popup">
-        <div class="popup-header">
-          <h3>更换头像</h3>
-          <van-icon name="cross" @click="showAvatarPopup = false" />
-        </div>
-        <div class="popup-content">
-          <van-uploader
-            :after-read="handleAvatarUpload as any"
-            :max-size="5 * 1024 * 1024"
-            :before-read="beforeAvatarUpload as any"
-            preview-size="80"
-            multiple
-            :show-upload="false"
-          />
-          <div class="upload-tips">
-            <p>支持 JPG、PNG 格式</p>
-            <p>文件大小不超过 5MB</p>
-          </div>
-        </div>
-      </div>
-    </van-popup>
-
-    <!-- 版本信息弹窗 -->
-    <van-popup v-model:show="showVersionPopup" position="center" round :style="{ width: '80%' }">
-      <div class="version-popup">
-        <van-cell-group inset>
-          <van-cell title="当前版本" :value="appVersion" />
-          <van-cell title="更新时间" :value="updateTime" />
-          <van-cell title="版本号" :value="buildVersion" />
-        </van-cell-group>
-        <div class="version-info">
-          <h4>更新内容</h4>
-          <ul>
-            <li>优化用户界面体验</li>
-            <li>修复已知问题</li>
-            <li>提升系统性能</li>
-            <li>新增多项功能</li>
-          </ul>
-        </div>
-        <van-button type="primary" block round @click="showVersionPopup = false">确定</van-button>
-      </div>
-    </van-popup>
-
-    <!-- 确认对话框：退出登录 -->
-    <van-dialog
-      v-model:show="showLogoutDialog"
-      title=""
-      :show-cancel-button="true"
-      :confirm-button-text="'确定退出'"
-      :cancel-button-text="'取消'"
-      @confirm="confirmLogout"
-      @cancel="showLogoutDialog = false"
-      :close-on-click-overlay="false"
-      class="standard-confirm-dialog"
-      :width="320"
-    >
-      <div class="dialog-content">
-        <div class="dialog-icon">
-          <van-icon name="warning-o" size="48" />
-        </div>
-        <h3 class="dialog-title">确认退出</h3>
-        <p class="dialog-message">
-          确定要退出登录吗？
-        </p>
-      </div>
-    </van-dialog>
+    <AvatarUploadPopup
+      v-model:show="avatarUpload.showAvatarPopup.value"
+      :before-avatar-upload="avatarUpload.beforeAvatarUpload"
+      :handle-avatar-upload="avatarUpload.handleAvatarUpload"
+      @upload-success="handleAvatarUploadSuccess"
+    />
+    <VersionInfoPopup
+      v-model:show="showVersionPopup"
+      :app-version="appVersion"
+      :build-version="buildVersion"
+      :update-time="updateTime"
+    />
+    <LogoutConfirmDialog v-model:show="logout.showLogoutDialog.value" @confirm="logout.confirmLogout" />
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted } from 'vue'
-  import { useRouter } from 'vue-router'
-  import { showToast, showImagePreview } from 'vant'
-  import { useAuthStore } from '@/stores/auth'
-  import { useAppStore } from '@/stores/app'
-  import { authService } from '@/services/auth'
-  import { merchantOperatorService, type MerchantOperatorStatus } from '@/services/merchantOperator'
-  import type { User } from '@/types'
+import { computed, onMounted, ref } from 'vue'
+import { useProfileData } from '@/composables/useProfileData'
+import { useMerchantBinding } from '@/composables/useMerchantBinding'
+import { useAvatarUpload } from '@/composables/useAvatarUpload'
+import { useProfileNavigation } from '@/composables/useProfileNavigation'
+import { useProfileLogout } from '@/composables/useProfileLogout'
+import ProfileHeader from '@/components/customer/ProfileHeader.vue'
+import ProfileStats from '@/components/customer/ProfileStats.vue'
+import ProfileMenu from '@/components/customer/ProfileMenu.vue'
+import AvatarUploadPopup from '@/components/customer/AvatarUploadPopup.vue'
+import VersionInfoPopup from '@/components/customer/VersionInfoPopup.vue'
+import LogoutConfirmDialog from '@/components/customer/LogoutConfirmDialog.vue'
 
-  const router = useRouter()
-  const authStore = useAuthStore()
+// 使用 composables
+const {
+  user,
+  hasUser,
+  userStats,
+  isLoading,
+  loadUserData,
+  getDisplayName,
+  getUserAvatar,
+  formatPhone,
+  formatDate
+} = useProfileData()
 
-  // 用户数据
-  const user = computed(() => authStore.user || null)
+const {
+  merchantMenuTitle,
+  merchantStatus,
+  merchantStatusText,
+  merchantStatusTagType,
+  goToMerchantManagement,
+  refreshMerchantStatus
+} = useMerchantBinding()
 
-  // 判断是否有用户数据
-  const hasUser = computed(() => !!authStore.user)
+const avatarUpload = useAvatarUpload()
 
-  // 用户统计数据
-  const userStats = ref({
-    points: 0,
-    coupons: 0,
-    favorites: 0,
-    unpaidOrders: 0
-  })
+const navigation = useProfileNavigation()
 
-  // 加载状态
-  const isLoading = ref(false)
+const logout = useProfileLogout()
 
-  // 应用信息
-  const appVersion = ref('1.0.0')
-  const buildVersion = ref('20240101')
-  const updateTime = ref('2024-01-01')
+// 应用版本信息
+const appVersion = ref('1.0.0')
+const buildVersion = ref('20240101')
+const updateTime = ref('2024-01-01')
+const showVersionPopup = ref(false)
 
-  // 弹窗状态
-  const showAvatarPopup = ref(false)
-  const showVersionPopup = ref(false)
-  const isLoggingOut = ref(false)
-  const showLogoutDialog = ref(false)
+// 计算是否有未支付订单
+const hasUnpaidOrders = computed(() => (userStats.value.unpaidOrders || 0) > 0)
 
-  // 商户绑定状态
-  const merchantBindingStatus = ref<MerchantOperatorStatus | null>(null)
-
-  // 计算是否有未支付订单
-  const hasUnpaidOrders = computed(() => (userStats.value.unpaidOrders || 0) > 0)
-
-  // 获取用户显示名称
-  const getDisplayName = () => {
-    const currentUser = user.value
-
-    if (!currentUser) {
-      return '未登录用户'
-    }
-
-    // 优先使用 nickname
-    if (
-      currentUser.nickname &&
-      currentUser.nickname !== 'null' &&
-      currentUser.nickname.trim() !== ''
-    ) {
-      return currentUser.nickname
-    }
-
-    // 如果没有 nickname，使用 WePark- + 用户 ID 后四位
-    if (currentUser.id && currentUser.id.length >= 4) {
-      return `WePark-${currentUser.id.slice(-4)}`
-    }
-
-    return '未登录用户'
+// 处理菜单点击
+const handleMenuClick = async (menuType: string) => {
+  switch (menuType) {
+    case 'account':
+      navigation.goToAccount()
+      break
+    case 'orders':
+      navigation.goToOrders()
+      break
+    case 'favorites':
+      navigation.goToFavorites()
+      break
+    case 'addresses':
+      navigation.goToAddresses()
+      break
+    case 'security':
+      navigation.goToSecurity()
+      break
+    case 'notifications':
+      navigation.goToNotifications()
+      break
+    case 'merchant':
+      await goToMerchantManagement()
+      break
+    case 'service':
+      navigation.contactService()
+      break
+    case 'help':
+      navigation.goToHelp()
+      break
+    case 'about':
+      navigation.goToAbout()
+      break
+    case 'version':
+      showVersionPopup.value = true
+      break
+    default:
+      console.warn('未知的菜单类型:', menuType)
   }
+}
 
-  // 获取用户头像
-  const getUserAvatar = () => {
-    if (!user.value?.avatar) return getDefaultAvatar()
-    // 确保头像 URL 不为 null 或 'null' 字符串
-    const avatarUrl = String(user.value.avatar)
-    if (avatarUrl === 'null' || avatarUrl === '' || avatarUrl.trim() === '') {
-      return getDefaultAvatar()
-    }
-    return user.value.avatar
-  }
+// 处理头像上传成功
+const handleAvatarUploadSuccess = (avatarUrl: string) => {
+  // 头像上传成功后，useAvatarUpload 已经更新了用户信息
+  // 这里可以添加额外的处理逻辑
+  console.log('头像上传成功:', avatarUrl)
+}
 
-  // 获取默认头像（使用 Base64 编码的 SVG）
-  const getDefaultAvatar = () => {
-    return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iNDAiIGN5PSI0MCIgcj0iNDAiIGZpbGw9IiNlOGU4ZTgiLz4KPHBhdGggZD0iTTQwIDIwQzQ1LjUyMiAyMCA1MCAxOC41MjI4IDUwIDE2LjY2NjdDNTAgMTQuODExIDQ1LjUyMiAxMy4zMzMzIDQwIDEzLjMzMzNDMzQuNDc4IDEzLjMzMzMgMzAgMTQuODExIDMwIDE2LjY2NjdDMzAgMTguNTIyOCAzNC40NzggMjAgNDAgMjBaTTQwIDI2LjY2NjdDMjkuMDcyOSAyNi42NjY3IDIwLjMzMzMgMzAuMzMzMyAyMC4zMzMzIDM1TDIwLjMzMzMgMzguMzMzM0wyMC4zMzMzIDUwSDIwLjMzMzNDMjAuMzMzMyA1NS4wODg2IDI0Ljc0NTIgNTkuNSAzMCA1OS41SDM1QzM1LjU1MjMgNTkuNSAzNiA1OS4wNTIzIDM2IDU4LjVDMzYgNTcuOTQ3NyAzNS41NTIzIDU3LjUgMzUgNTcuNUgzMEMzMS45MzcxIDU3LjUgMjkuNTA4NiA1My41ODIzIDMwIDQ5LjY2NjdDMjkuMjkwMSA0Ni43MjE4IDMzLjYyNzMgNDIuODMzNCAzMy42MjczIDM4LjMzMzNDMzMuNjI3MyAzNi42NjY3IDMyIDE2LjY2NjcgMjAgMjAgQzI4IDIwIDMwIDE2LjY2NjcgMzAgMTYuNjY2N0MzMCAxNi42NjY3IDMwIDE2LjY2NjcgMzAgMTYuNjY2N0MzMCAxNi42NjY3IDMwIDE2LjY2NjcgMzAgMTYuNjY2N0MzMCAxNi42NjY3IDMwIDE2LjY2NjcgMzAgMTYuNjY2N0MzMCAxNi42NjY3IDMwIDE2LjY2NjcgMzAgMTYuNjY2N0MzMCAxNi42NjY3IDMwIDE2LjY2NjcgMzAgMTYuNjY2N0MzMCAxNi42NjY3IDMwIDE2LjY2NjcgMzAgMTYuNjY2N0MzMCAxNi42NjY3IDMwIDE2LjY2NjcgMzAgMTYuNjY2N0MzMCAxNi42NjY3IDMwIDE2LjY2NjcgMzAgMTYuNjY2N0MzMCAxNi42NjY3IDMwIDE2LjY2NjcgMzAgMTYuNjY2NyIgZmlsbD0iI2E0YTZhYSIvPgo8L3N2Zz4K'
-  }
-
-  // 处理图片加载错误
-  const handleImageError = (event: Event) => {
-    const img = event.target as HTMLImageElement
-    if (img.src !== getDefaultAvatar()) {
-      img.src = getDefaultAvatar()
-    }
-  }
-
-  // 格式化手机号
-  const formatPhone = (phone: string | undefined) => {
-    if (!phone) return ''
-    return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
-  }
-
-  // 格式化日期
-  const formatDate = (dateStr: string | undefined) => {
-    if (!dateStr) return ''
-    try {
-      return new Date(dateStr).toLocaleDateString('zh-CN')
-    } catch (error) {
-      console.error('日期格式化失败:', error)
-      return ''
-    }
-  }
-
-  // 更换头像
-  const changeAvatar = () => {
-    showAvatarPopup.value = true
-  }
-
-  // 上传前验证
-  const beforeAvatarUpload = (file: File) => {
-    const isValidType = ['image/jpeg', 'image/png'].includes(file.type)
-    const isValidSize = file.size <= 5 * 1024 * 1024
-
-    if (!isValidType) {
-      showToast('请上传 JPG 或 PNG 格式的图片')
-      return false
-    }
-
-    if (!isValidSize) {
-      showToast('图片大小不能超过 5MB')
-      return false
-    }
-
-    return true
-  }
-
-  // 处理头像上传
-  const handleAvatarUpload = async (file: File) => {
-    try {
-      showToast({ type: 'loading', message: '上传中...', duration: 0 })
-
-      // 调用真实API上传头像
-      const result = await authService.updateAvatar(file)
-
-      // 更新用户头像
-      authStore.updateUser({ avatar: result.avatarUrl })
-
-      showToast({ type: 'success', message: '头像更新成功' })
-      showAvatarPopup.value = false
-    } catch (error) {
-      console.error('上传头像失败:', error)
-      showToast({ type: 'fail', message: '上传失败，请重试' })
-    }
-  }
-
-  // 跳转到账户管理
-  const goToAccount = () => {
-    router.push('/customer/account')
-  }
-
-  // 跳转到订单页面
-  const goToOrders = () => {
-    router.push('/customer/orders')
-  }
-
-  // 跳转到收藏管理
-  const goToFavorites = () => {
-    router.push('/customer/favorites')
-  }
-
-  // 跳转到地址管理
-  const goToAddresses = () => {
-    router.push('/customer/addresses')
-  }
-
-  // 跳转到安全设置
-  const goToSecurity = () => {
-    router.push('/customer/security')
-  }
-
-  // 跳转到通知设置
-  const goToNotifications = () => {
-    router.push('/customer/notifications')
-  }
-
-  // 商户菜单标题和状态
-  const merchantMenuTitle = computed(() => {
-    if (!merchantBindingStatus.value) return '商户管理'
-    if (!merchantBindingStatus.value.hasBinding) return '申请绑定商户操作员'
-    
-    // 如果已绑定且审核通过，显示商户编号
-    const merchantUser = merchantBindingStatus.value.merchantUser
-    if (merchantUser?.approvalStatus === 'APPROVED' && merchantUser?.merchantCode) {
-      return `商户管理 (${merchantUser.merchantCode})`
-    }
-    
-    return '商户管理'
-  })
-
-  const merchantStatus = computed(() => {
-    if (!merchantBindingStatus.value?.hasBinding) return null
-    const merchantUser = merchantBindingStatus.value.merchantUser
-    // 🔥 优化：如果权限被取消（isActive 为 false 或 approvalStatus 不是 APPROVED），返回 null 使入口显示为申请状态
-    if (!merchantUser?.isActive || merchantUser?.approvalStatus !== 'APPROVED') {
-      return null
-    }
-    return merchantUser.approvalStatus
-  })
-
-  const merchantStatusText = computed(() => {
-    const status = merchantStatus.value
-    if (!status) return ''
-    const statusMap = {
-      PENDING: '审核中',
-      APPROVED: '已通过',
-      REJECTED: '已拒绝'
-    }
-    return statusMap[status] || ''
-  })
-
-  const merchantStatusTagType = computed(() => {
-    const status = merchantStatus.value
-    if (status === 'APPROVED') return 'success'
-    if (status === 'REJECTED') return 'danger'
-    return 'warning'
-  })
-
-  // 跳转到商户管理
-  // 防止循环跳转的标记
-  const isNavigatingToMerchant = ref(false)
-  
-  const goToMerchantManagement = async () => {
-    try {
-      // 防止重复点击
-      if (isNavigatingToMerchant.value) {
-        console.warn('⚠️ [个人中心] 正在跳转中，忽略重复点击')
-        return
-      }
-      
-      console.log('🚀 [个人中心] 准备进入商户管理页面')
-      console.log('📊 [个人中心] 当前商户绑定状态:', JSON.stringify(merchantBindingStatus.value, null, 2))
-      
-      // 检查循环跳转保护
-      const redirectKey = 'merchant_redirect_count'
-      const redirectCount = parseInt(sessionStorage.getItem(redirectKey) || '0', 10)
-      if (redirectCount >= 3) {
-        console.error('❌ [个人中心] 检测到循环跳转，中断跳转')
-        sessionStorage.removeItem(redirectKey)
-        showToast('跳转异常，请刷新页面重试')
-        return
-      }
-      
-      isNavigatingToMerchant.value = true
-      
-      // 已绑定且审核通过，直接跳转到商户管理页面
-      // 不需要再次检查状态，因为页面加载时已经检查过了
-      if (merchantBindingStatus.value?.hasBinding && 
-          merchantBindingStatus.value?.merchantUser?.approvalStatus === 'APPROVED' && 
-          merchantBindingStatus.value?.merchantUser?.isActive) {
-        console.log('✅ [个人中心] 状态检查通过，切换到商户模式')
-        
-        // 切换到商户模式
-        const appStore = useAppStore()
-        appStore.switchToMerchant()
-        
-        // 记录跳转次数
-        sessionStorage.setItem(redirectKey, String(redirectCount + 1))
-        
-        // 直接跳转到商户管理页面
-        router.push('/merchant').finally(() => {
-          // 清除标记，允许下次跳转
-          setTimeout(() => {
-            isNavigatingToMerchant.value = false
-            sessionStorage.removeItem(redirectKey)
-          }, 2000)
-        })
-        return
-      }
-      
-      // 如果状态不确定，先刷新状态
-      try {
-        const statusResult = await merchantOperatorService.getMyStatus()
-        merchantBindingStatus.value = statusResult
-        console.log('✅ [个人中心] 商户绑定状态已更新:', statusResult)
-        
-        // 刷新后再次检查
-        if (statusResult.hasBinding && 
-            statusResult.merchantUser?.approvalStatus === 'APPROVED' && 
-            statusResult.merchantUser?.isActive) {
-          console.log('✅ [个人中心] 刷新后状态检查通过，切换到商户模式')
-          const appStore = useAppStore()
-          appStore.switchToMerchant()
-          
-          // 记录跳转次数
-          const redirectKey = 'merchant_redirect_count'
-          const redirectCount = parseInt(sessionStorage.getItem(redirectKey) || '0', 10)
-          sessionStorage.setItem(redirectKey, String(redirectCount + 1))
-          
-          router.push('/merchant').finally(() => {
-            setTimeout(() => {
-              isNavigatingToMerchant.value = false
-              sessionStorage.removeItem(redirectKey)
-            }, 2000)
-          })
-          return
-        }
-      } catch (statusError) {
-        console.warn('⚠️ [个人中心] 获取商户绑定状态失败:', statusError)
-        isNavigatingToMerchant.value = false
-      }
-      
-      // 如果未绑定，跳转到申请页面
-      if (!merchantBindingStatus.value?.hasBinding) {
-        console.log('⚠️ [个人中心] 未绑定商户，跳转到申请页面')
-        router.push('/customer/merchant-binding')
-        return
-      }
-
-      const merchantUser = merchantBindingStatus.value.merchantUser
-      
-      // 如果已绑定但未审核通过，提示用户
-      if (merchantUser?.approvalStatus !== 'APPROVED' || !merchantUser?.isActive) {
-        console.log('⚠️ [个人中心] 商户状态未通过:', {
-          approvalStatus: merchantUser?.approvalStatus,
-          isActive: merchantUser?.isActive
-        })
-        
-        if (merchantUser?.approvalStatus === 'PENDING') {
-          showToast('您的申请正在审核中，请耐心等待')
-          router.push('/customer/merchant-binding')
-        } else if (merchantUser?.approvalStatus === 'REJECTED') {
-          showToast('您的申请已被拒绝，请重新申请')
-          router.push('/customer/merchant-binding')
-        } else {
-          showToast('您的商户权限已被取消')
-          router.push('/customer/merchant-binding')
-        }
-        return
-      }
-    } catch (error) {
-      console.error('❌ [个人中心] 跳转商户管理失败:', error)
-      showToast('跳转失败，请重试')
-      isNavigatingToMerchant.value = false
-    }
-  }
-
-  // 联系客服
-  const contactService = () => {
-    showToast('正在跳转到客服聊天...')
-    // 这里应该跳转到客服聊天页面或打开客服聊天窗口
-  }
-
-  // 跳转到帮助中心
-  const goToHelp = () => {
-    router.push('/customer/help')
-  }
-
-  // 跳转到关于我们
-  const goToAbout = () => {
-    router.push('/customer/about')
-  }
-
-  // 显示版本信息
-  const showVersionInfo = () => {
-    showVersionPopup.value = true
-  }
-
-  // 处理退出登录
-  const handleLogout = () => {
-    showLogoutDialog.value = true
-  }
-
-  const confirmLogout = async () => {
-    try {
-      showLogoutDialog.value = false
-      isLoggingOut.value = true
-
-      // 调用退出登录API
-      await authStore.logout()
-
-      showToast({ type: 'success', message: '退出成功' })
-
-      // 跳转到登录页
-      router.push('/login')
-    } catch (error) {
-      console.error('退出登录失败:', error)
-      showToast({ type: 'fail', message: '退出失败，请重试' })
-    } finally {
-      isLoggingOut.value = false
-    }
-  }
-
-  // 加载用户数据
-  const loadUserData = async () => {
-    try {
-      isLoading.value = true
-
-      // 🔥 修复：容错处理 - 即使获取用户信息失败，也不清除 token
-      // 可能是网络问题、服务器问题，或者用户信息暂时不可用
-      try {
-        const profileResult = await authService.getProfile()
-        console.log('📡 Profile API 响应:', profileResult)
-        console.log('👤 当前 authStore.user:', authStore.user)
-
-        if (profileResult.success && profileResult.data) {
-          console.log('📝 准备更新用户数据:', profileResult.data)
-          authStore.updateUser(profileResult.data)
-          console.log('✅ 用户详细信息已更新，新的 user:', authStore.user)
-          console.log('🎯 User ID:', authStore.user?.id)
-        } else {
-          console.warn('⚠️ 获取用户信息失败，但保留已登录状态:', profileResult.message)
-          // 不显示错误提示，因为用户可能已经有基本信息
-        }
-      } catch (profileError) {
-        // 🔥 关键修复：获取用户信息失败不应该清除 token
-        console.error('❌ 获取用户详细信息失败:', profileError)
-        // 不抛出错误，不显示错误提示，保持已登录状态
-        // 用户仍然可以使用已缓存的基本信息
-      }
-
-      // 获取用户统计数据（非关键操作，失败不影响）
-      try {
-        const statsResult = await authService.getUserStats()
-        if (statsResult.success && statsResult.data) {
-          userStats.value = {
-            points: statsResult.data.points,
-            coupons: statsResult.data.coupons,
-            favorites: statsResult.data.favorites,
-            unpaidOrders: statsResult.data.unpaidOrders || 0
-          }
-          console.log('✅ 用户统计数据已更新')
-        }
-      } catch (statsError) {
-        console.warn('⚠️ 获取用户统计数据失败，使用默认值:', statsError)
-        // 统计数据加载失败不影响页面展示
-      }
-
-      // 获取商户绑定状态（非关键操作，失败不影响）
-      try {
-        const statusResult = await merchantOperatorService.getMyStatus()
-        console.log('✅ 商户绑定状态已更新:', JSON.stringify(statusResult, null, 2))
-        
-        // 🔥 优化：如果用户已被商户取消权限，将入口重置为申请状态
-        if (statusResult.hasBinding && statusResult.merchantUser) {
-          const merchantUser = statusResult.merchantUser
-          // 检查是否被取消权限：审核状态不是 APPROVED 或 isActive 为 false
-          if (merchantUser.approvalStatus !== 'APPROVED' || !merchantUser.isActive) {
-            console.warn('⚠️ 检测到用户已被商户取消权限，重置为申请状态:', {
-              approvalStatus: merchantUser.approvalStatus,
-              isActive: merchantUser.isActive
-            })
-            // 重置为未绑定状态，使入口显示为"申请绑定商户操作员"
-            merchantBindingStatus.value = {
-              hasBinding: false
-            }
-          } else {
-            // 权限正常，保持原状态
-            merchantBindingStatus.value = statusResult
-          }
-        } else {
-          // 未绑定或没有商户用户信息，直接使用原状态
-          merchantBindingStatus.value = statusResult
-        }
-        console.log('📊 商户绑定状态详情:', {
-          hasBinding: statusResult.hasBinding,
-          merchantUser: statusResult.merchantUser ? {
-            id: statusResult.merchantUser.id,
-            merchantId: statusResult.merchantUser.merchantId,
-            merchantName: statusResult.merchantUser.merchantName,
-            merchantCode: statusResult.merchantUser.merchantCode,
-            role: statusResult.merchantUser.role,
-            approvalStatus: statusResult.merchantUser.approvalStatus,
-            isActive: statusResult.merchantUser.isActive,
-            appliedAt: statusResult.merchantUser.appliedAt,
-            approvedAt: statusResult.merchantUser.approvedAt
-          } : null
-        })
-      } catch (statusError) {
-        console.warn('⚠️ 获取商户绑定状态失败:', statusError)
-        // 绑定状态加载失败不影响页面展示
-      }
-
-      console.log('✅ 用户数据加载流程完成')
-    } catch (error) {
-      // 🔥 处理意外的错误
-      console.error('❌ 加载用户数据时发生意外错误:', error)
-      // 即使发生错误，也不清除 token，不强制跳转登录
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  // 初始化
-  onMounted(() => {
-    console.log('🚀 Profile 页面 onMounted 触发')
-    console.log('👤 初始 authStore.user:', authStore.user)
-    console.log('📦 localStorage user:', localStorage.getItem('user'))
-    loadUserData()
-  })
+// 初始化
+onMounted(async () => {
+  console.log('🚀 Profile 页面 onMounted 触发')
+  console.log('👤 初始 authStore.user:', user.value)
+  await loadUserData()
+  // 加载商户绑定状态
+  await refreshMerchantStatus()
+})
 </script>
 
 <style lang="scss" scoped>
-  @use '@/styles/variables.scss' as *;
-  @use '@/styles/mixins.scss' as *;
-  @use '@/styles/dialog-mixin.scss' as *;
+@use '@/styles/variables.scss' as *;
+@use '@/styles/mixins.scss' as *;
 
+.profile-page {
+  min-height: 100vh;
+  background: var(--theme-bg-gradient, $glass-bg-gradient);
+  background-attachment: fixed;
+  background-size: cover;
+  padding-bottom: 80px;
+}
+
+.logout-section {
+  padding: 24px 16px;
+
+  .van-button {
+    background: linear-gradient(135deg, #ee0a24 0%, #d90a1f 100%);
+    border: none;
+    font-weight: 600;
+    font-size: 16px;
+    height: 48px;
+    box-shadow: 0 4px 12px rgba(238, 10, 36, 0.2);
+    transition: all 0.3s ease;
+
+    &:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 8px rgba(238, 10, 36, 0.15);
+    }
+  }
+}
+
+// 暗色模式支持
+@media (prefers-color-scheme: dark) {
   .profile-page {
-    min-height: 100vh;
-    background: var(--theme-bg-gradient, $glass-bg-gradient);
-    background-attachment: fixed;
-    background-size: cover;
-    padding-bottom: 80px;
+    background-color: #1a1a1a;
   }
+}
 
-  .profile-header {
-    background: var(--theme-bg-gradient, linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%));
-    padding: 32px 20px 24px;
-    color: #ffffff;
-    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
-    position: relative;
-    overflow: hidden;
-
-    &::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      right: -20%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-      pointer-events: none;
-    }
-  }
-
-  .user-info {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 24px;
-    position: relative;
-    z-index: 1;
-
-    .user-avatar {
-      position: relative;
-      width: 88px;
-      height: 88px;
-      border-radius: 50%;
-      overflow: hidden;
-      cursor: pointer;
-      border: 4px solid rgba(255, 255, 255, 0.5);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      transition:
-        transform 0.3s ease,
-        box-shadow 0.3s ease;
-
-      &:active {
-        transform: scale(0.95);
-      }
-
-      img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        background: linear-gradient(135deg, #e8e8e8 0%, #f5f5f5 100%);
-      }
-
-      .verified-icon {
-        position: absolute;
-        bottom: 2px;
-        right: 2px;
-        background: var(--primary-color);
-        color: white;
-        border-radius: 50%;
-        padding: 3px;
-        font-size: 16px;
-        box-shadow: 0 2px 8px rgba(25, 137, 250, 0.3);
-      }
-    }
-
-    .user-details {
-      flex: 1;
-
-      .username-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 10px;
-
-        .nickname {
-          font-size: 22px;
-          font-weight: 700;
-          margin: 0;
-          color: #ffffff;
-          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-          letter-spacing: 0.3px;
-        }
-      }
-
-      .user-meta {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-
-        span {
-          font-size: 14px;
-          color: rgba(255, 255, 255, 0.95);
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-weight: 500;
-
-          .van-icon {
-            opacity: 0.9;
-          }
-        }
-      }
-    }
-  }
-
-  .user-stats {
-    display: flex;
-    justify-content: space-around;
-    @include glassmorphism-card(base);
-    padding: 20px 16px;
-    position: relative;
-    z-index: 1;
-
-    .stat-item {
-      text-align: center;
-      flex: 1;
-
-      .stat-value {
-        font-size: 24px;
-        font-weight: 700;
-        margin-bottom: 6px;
-        background: var(--theme-bg-gradient, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        color: var(--primary-color);
-      }
-
-      .stat-label {
-        font-size: 13px;
-        color: #666666;
-        font-weight: 500;
-        letter-spacing: 0.2px;
-      }
-    }
-  }
-
-  .menu-section {
-    margin: 16px 12px;
-
-    .van-cell-group {
-      @include glassmorphism-card(base);
-      overflow: hidden;
-
-      .van-cell {
-        padding: 16px 18px;
-        transition: background-color 0.2s ease;
-
-        &:active {
-          background-color: #f7f8fa;
-        }
-
-        .van-icon {
-          margin-right: 12px;
-          color: var(--primary-color);
-          font-size: 18px;
-        }
-      }
-    }
-  }
-
+// 响应式设计
+@media (max-width: 375px) {
   .logout-section {
-    padding: 24px 16px;
+    padding: 20px 12px;
 
     .van-button {
-      background: linear-gradient(135deg, #ee0a24 0%, #d90a1f 100%);
-      border: none;
-      font-weight: 600;
-      font-size: 16px;
-      height: 48px;
-      box-shadow: 0 4px 12px rgba(238, 10, 36, 0.2);
-      transition: all 0.3s ease;
-
-      &:active {
-        transform: translateY(1px);
-        box-shadow: 0 2px 8px rgba(238, 10, 36, 0.15);
-      }
+      height: 46px;
+      font-size: 15px;
     }
   }
+}
 
-  .version-text {
-    color: #969799;
-    font-size: 14px;
-    font-weight: 500;
-  }
+@media (max-width: 320px) {
+  .logout-section {
+    padding: 20px 12px;
 
-  .avatar-popup {
-    .popup-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 20px 18px;
-      border-bottom: 1px solid #ebedf0;
-      @include glassmorphism-card(light);
-
-      h3 {
-        margin: 0;
-        font-size: 18px;
-        font-weight: 700;
-        color: #323233;
-        letter-spacing: 0.3px;
-      }
-
-      .van-icon {
-        cursor: pointer;
-        font-size: 22px;
-        color: #969799;
-        transition: color 0.2s ease;
-
-        &:hover {
-          color: #323233;
-        }
-      }
-    }
-
-    .popup-content {
-      padding: 24px 18px;
-
-      .upload-tips {
-        margin-top: 20px;
-        padding: 14px 16px;
-        background: linear-gradient(135deg, #f7f9fc 0%, #ecf0f5 100%);
-        border-radius: 10px;
-        border: 1px solid #e6e9ef;
-
-        p {
-          font-size: 13px;
-          color: #646566;
-          margin-bottom: 6px;
-          font-weight: 500;
-
-          &:last-child {
-            margin-bottom: 0;
-          }
-        }
-      }
+    .van-button {
+      height: 46px;
+      font-size: 15px;
     }
   }
-
-  .version-popup {
-    .version-info {
-      padding: 20px;
-
-      h4 {
-        font-size: 17px;
-        font-weight: 700;
-        margin-bottom: 16px;
-        color: #323233;
-        letter-spacing: 0.2px;
-      }
-
-      ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-
-        li {
-          font-size: 14px;
-          color: #646566;
-          margin-bottom: 10px;
-          padding-left: 20px;
-          position: relative;
-          line-height: 1.6;
-
-          &:before {
-            content: '•';
-            position: absolute;
-            left: 0;
-            color: var(--primary-color);
-            font-weight: 700;
-            font-size: 16px;
-          }
-
-          &:last-child {
-            margin-bottom: 0;
-          }
-        }
-      }
-    }
-  }
-
-  // 暗色模式支持
-  @media (prefers-color-scheme: dark) {
-    .profile-page {
-      background-color: #1a1a1a;
-    }
-
-    .profile-header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-    }
-
-    .user-stats {
-      background: rgba(26, 26, 26, 0.95);
-      backdrop-filter: blur(10px);
-
-      .stat-label {
-        color: #b0b0b0;
-      }
-    }
-
-    .menu-section .van-cell-group {
-      background: #242424;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
-
-      .van-cell {
-        color: #e0e0e0;
-
-        &:active {
-          background-color: #2a2a2a;
-        }
-      }
-    }
-
-    .version-popup .version-info {
-      h4 {
-        color: #e0e0e0;
-      }
-
-      ul li {
-        color: #b0b0b0;
-      }
-    }
-  }
-
-  // 响应式设计
-  @media (max-width: 375px) {
-    .profile-header {
-      padding: 28px 16px 20px;
-
-      .user-info {
-        gap: 14px;
-
-        .user-avatar {
-          width: 72px;
-          height: 72px;
-          border-width: 3px;
-        }
-
-        .user-details {
-          .username-row .nickname {
-            font-size: 20px;
-          }
-
-          .user-meta span {
-            font-size: 13px;
-          }
-        }
-      }
-
-      .user-stats {
-        padding: 16px 12px;
-        border-radius: 14px;
-
-        .stat-value {
-          font-size: 22px;
-        }
-
-        .stat-label {
-          font-size: 12px;
-        }
-      }
-    }
-
-    .menu-section {
-      margin: 12px 10px;
-
-      .van-cell-group .van-cell {
-        padding: 14px 16px;
-      }
-    }
-
-    .logout-section {
-      padding: 20px 12px;
-
-      .van-button {
-        height: 46px;
-        font-size: 15px;
-      }
-    }
-  }
-
-  @media (max-width: 320px) {
-    .profile-header {
-      padding: 24px 14px 18px;
-
-      .user-info {
-        gap: 12px;
-        margin-bottom: 20px;
-
-        .user-avatar {
-          width: 68px;
-          height: 68px;
-          border-width: 3px;
-        }
-
-        .user-details {
-          .username-row .nickname {
-            font-size: 18px;
-          }
-
-          .user-meta span {
-            font-size: 12px;
-          }
-        }
-      }
-
-      .user-stats {
-        padding: 14px 10px;
-        border-radius: 12px;
-
-        .stat-item {
-          .stat-value {
-            font-size: 20px;
-          }
-
-          .stat-label {
-            font-size: 11px;
-          }
-        }
-      }
-    }
-
-    .menu-section {
-      margin: 10px 8px;
-
-      .van-cell-group .van-cell {
-        padding: 13px 14px;
-
-        .van-icon {
-          margin-right: 10px;
-          font-size: 16px;
-        }
-      }
-    }
-  }
-
-  // 统一对话框样式
-  .standard-confirm-dialog {
-    @include standard-dialog;
-  }
-
-  .dialog-content {
-    @include dialog-content;
-  }
-
-  .dialog-icon {
-    @include dialog-icon(#ff6b6b);
-  }
-
-  .dialog-title {
-    @include dialog-title;
-  }
-
-  .dialog-message {
-    @include dialog-message;
-  }
+}
 </style>

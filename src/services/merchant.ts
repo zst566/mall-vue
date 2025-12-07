@@ -13,6 +13,8 @@ export class MerchantService extends BaseApiService {
     limit?: number;
     dateRange?: { startDate: string; endDate: string };
     search?: string;
+    sortBy?: 'createdAt' | 'paidAt' | 'verifiedAt' | 'refundedAt';
+    sortOrder?: 'asc' | 'desc';
   }): Promise<{ orders: MerchantOrder[]; total: number; page: number; limit: number }> {
     try {
       // 使用正确的接口：/api/merchants/me/orders

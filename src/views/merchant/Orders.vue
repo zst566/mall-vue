@@ -16,40 +16,44 @@
     <!-- 订单统计 -->
     <div class="order-stats">
       <div class="stats-container">
-        <div class="stat-item">
-          <div class="stat-icon">
-            <van-icon name="orders" size="20" color="#3A82F6" />
-          </div>
+        <div 
+          class="stat-item" 
+          :class="{ active: activeStatFilter === 'total' }"
+          @click="filterByStat('total')"
+        >
           <div class="stat-info">
-            <div class="stat-number">{{ orderStats.total || 0 }}</div>
+            <div class="stat-number">{{ formatStatNumber(orderStats.total || 0) }}</div>
             <div class="stat-label">总订单</div>
           </div>
         </div>
-        <div class="stat-item">
-          <div class="stat-icon">
-            <van-icon name="waiting" size="20" color="#F59E0B" />
-          </div>
+        <div 
+          class="stat-item" 
+          :class="{ active: activeStatFilter === 'paid' }"
+          @click="filterByStat('paid')"
+        >
           <div class="stat-info">
-            <div class="stat-number">{{ orderStats.pending || 0 }}</div>
-            <div class="stat-label">待核销</div>
+            <div class="stat-number">{{ formatStatNumber(orderStats.paid || 0) }}</div>
+            <div class="stat-label">已支付</div>
           </div>
         </div>
-        <div class="stat-item">
-          <div class="stat-icon">
-            <van-icon name="success" size="20" color="#10B981" />
-          </div>
+        <div 
+          class="stat-item" 
+          :class="{ active: activeStatFilter === 'verified' }"
+          @click="filterByStat('verified')"
+        >
           <div class="stat-info">
-            <div class="stat-number">{{ orderStats.completed || 0 }}</div>
-            <div class="stat-label">已完成</div>
+            <div class="stat-number">{{ formatStatNumber(orderStats.verified || 0) }}</div>
+            <div class="stat-label">已核销</div>
           </div>
         </div>
-        <div class="stat-item">
-          <div class="stat-icon">
-            <van-icon name="close" size="20" color="#EF4444" />
-          </div>
+        <div 
+          class="stat-item" 
+          :class="{ active: activeStatFilter === 'refunded' }"
+          @click="filterByStat('refunded')"
+        >
           <div class="stat-info">
-            <div class="stat-number">{{ orderStats.cancelled || 0 }}</div>
-            <div class="stat-label">已取消</div>
+            <div class="stat-number">{{ formatStatNumber(orderStats.refunded || 0) }}</div>
+            <div class="stat-label">已退款</div>
           </div>
         </div>
       </div>
@@ -73,7 +77,7 @@
         >
           <div class="order-header">
             <span class="order-no">订单号: {{ order.orderNo }}</span>
-            <span :class="['order-status', order.status]">
+            <span :class="['order-status', normalizeStatusClass(order.status)]">
               {{ formatStatus(order.status) }}
             </span>
           </div>
@@ -204,21 +208,24 @@
   const finished = ref(false)
   const error = ref(false)
 
-  // 订单统计
+  // 订单统计（独立获取，不受过滤影响）
   const orderStats = ref({
     total: 0,
-    pending: 0,
-    completed: 0,
-    cancelled: 0
+    paid: 0,
+    verified: 0,
+    refunded: 0
   })
 
   // 筛选相关
   const showFilterPopup = ref(false)
   const showDatePicker = ref(false)
+  const activeStatFilter = ref<'total' | 'paid' | 'verified' | 'refunded' | null>(null)
   const filterParams = reactive({
     status: '' as MerchantOrderStatus | '',
     dateRange: [] as string[],
-    search: ''
+    search: '',
+    sortBy: 'createdAt' as 'createdAt' | 'paidAt' | 'verifiedAt' | 'refundedAt',
+    sortOrder: 'desc' as 'asc' | 'desc'
   })
 
   // 状态选项
@@ -242,16 +249,46 @@
     total: 0
   })
 
+  // 自动加载标记（用于过滤后无数据时自动加载下一页）
+  const autoLoadingRef = ref(false)
+
   // 工具方法
   const formatStatus = (status: string): string => {
     const statusMap: Record<string, string> = {
+      pending: '待支付',
+      paid: '已支付',
       pending_verification: '待核销',
       verified: '已核销',
       completed: '已完成',
       cancelled: '已取消',
-      refunded: '已退款'
+      refunded: '已退款',
+      refund_requested: '退款中',
+      // 处理大写状态
+      PENDING: '待支付',
+      PAID: '已支付',
+      PENDING_VERIFICATION: '待核销',
+      VERIFIED: '已核销',
+      COMPLETED: '已完成',
+      CANCELLED: '已取消',
+      REFUNDED: '已退款',
+      REFUND_REQUESTED: '退款中'
     }
     return statusMap[status] || status
+  }
+
+  // 格式化统计数字（最大显示99+）
+  const formatStatNumber = (num: number): string => {
+    if (num > 99) {
+      return '99+'
+    }
+    return num.toString()
+  }
+
+  // 规范化状态类名（用于CSS类名）
+  const normalizeStatusClass = (status: string): string => {
+    if (!status) return ''
+    // 将大写状态转换为小写，并处理下划线
+    return status.toLowerCase().replace(/_/g, '_')
   }
 
   const formatTime = (time: string): string => {
@@ -275,10 +312,14 @@
     error.value = false
 
     try {
+      // 构建 API 请求参数（不包含状态过滤，除非是筛选弹窗中的状态筛选）
+      // 注意：统计按钮的过滤只在前端进行，不传递给 API
       const params = {
         page: pagination.page,
         limit: pagination.limit,
-        status: filterParams.status || undefined,
+        // 只有在筛选弹窗中选择了状态时才传递 status 参数
+        // 统计按钮的过滤不传递 status，因为我们要获取所有订单然后前端过滤
+        status: (activeStatFilter.value === null && filterParams.status) ? filterParams.status : undefined,
         search: filterParams.search || undefined,
         dateRange:
           filterParams.dateRange.length > 0
@@ -286,26 +327,143 @@
                 startDate: filterParams.dateRange[0],
                 endDate: filterParams.dateRange[1]
               }
-            : undefined
+            : undefined,
+        sortBy: filterParams.sortBy,
+        sortOrder: filterParams.sortOrder
       }
 
       const response = await merchantService.getMerchantOrders(params as any)
 
-      if (pagination.page === 1) {
-        orderList.value = response.orders
-      } else {
-        orderList.value = [...orderList.value, ...response.orders]
+      // 前端排序和过滤
+      let orders = response.orders || []
+      if (orders.length > 0) {
+        // 根据当前筛选类型进行前端过滤
+        if (activeStatFilter.value === 'total') {
+          // 总订单：排除已取消的订单
+          orders = orders.filter(order => {
+            const status = order.status?.toLowerCase() || ''
+            return status !== 'cancelled' && status !== 'CANCELLED'
+          })
+        } else if (activeStatFilter.value === 'paid') {
+          // 已支付：筛选 paid、pending_verification、pending 状态
+          orders = orders.filter(order => {
+            const status = order.status?.toLowerCase() || ''
+            return status === 'paid' || status === 'pending_verification' || status === 'pending' || 
+                   status === 'PAID' || status === 'PENDING_VERIFICATION' || status === 'PENDING'
+          })
+        } else if (activeStatFilter.value === 'verified') {
+          // 已核销：筛选 verified、completed 状态
+          orders = orders.filter(order => {
+            const status = order.status?.toLowerCase() || ''
+            return status === 'verified' || status === 'completed' || 
+                   status === 'VERIFIED' || status === 'COMPLETED'
+          })
+        } else if (activeStatFilter.value === 'refunded') {
+          // 已退款：筛选 refunded、refund_requested 状态
+          orders = orders.filter(order => {
+            const status = order.status?.toLowerCase() || ''
+            return status === 'refunded' || status === 'refund_requested' || 
+                   status === 'REFUNDED' || status === 'REFUND_REQUESTED'
+          })
+        } else if (filterParams.status) {
+          // 如果是在筛选弹窗中选择了状态，则按状态过滤
+          orders = orders.filter(order => {
+            const status = order.status?.toLowerCase() || ''
+            const filterStatus = filterParams.status?.toLowerCase() || ''
+            return status === filterStatus
+          })
+        }
+        
+        // 排序
+        orders = sortOrders(orders, filterParams.sortBy, filterParams.sortOrder)
       }
 
-      pagination.total = response.total
+      // 更新总数（如果进行了前端过滤，需要调整总数）
+      // 注意：由于分页的原因，前端过滤后的总数可能不准确
+      // 但这是为了用户体验的折中方案
+      let adjustedTotal = response.total
+      if (activeStatFilter.value && orders.length !== response.orders.length) {
+        // 如果前端进行了过滤，总数需要根据过滤后的结果调整
+        // 这是一个近似值，因为分页的原因，实际总数可能不准确
+        // 如果过滤后的数量等于原始数量且等于每页限制，说明可能还有更多数据
+        if (orders.length === response.orders.length && orders.length === pagination.limit) {
+          // 保持原始总数，表示可能还有更多数据
+          adjustedTotal = response.total
+        } else {
+          // 如果过滤后数量减少，说明当前页已经过滤完成
+          // 但无法确定是否还有更多数据，所以保持原始总数
+          adjustedTotal = response.total
+        }
+      }
+
+      if (pagination.page === 1) {
+        orderList.value = orders
+      } else {
+        orderList.value = [...orderList.value, ...orders]
+      }
+
+      pagination.total = adjustedTotal
       pagination.page++
 
-      if (orderList.value.length >= response.total) {
+      // 判断是否加载完成
+      // 核心逻辑：如果当前页返回的订单数量少于每页限制，说明已经加载完所有数据
+      if (response.orders.length < pagination.limit) {
+        // API 返回的数据少于每页限制，说明已经没有更多数据了
         finished.value = true
+        autoLoadingRef.value = false // 停止自动加载
+      } else if (activeStatFilter.value) {
+        // 如果进行了前端过滤
+        // 如果过滤后的数量为0但原始数据还有，说明当前页没有符合条件的数据
+        if (orders.length === 0 && response.orders.length > 0) {
+          // 当前页过滤后没有数据，但原始数据还有
+          // 如果已经加载了很多页（例如 10 页）都没有符合条件的数据，停止加载
+          if (pagination.page > 10) {
+            finished.value = true
+            autoLoadingRef.value = false
+          } else {
+            // 继续加载，如果当前没有在自动加载，则自动加载下一页
+            finished.value = false
+            if (!autoLoadingRef.value) {
+              autoLoadingRef.value = true
+              // 延迟一下再加载，避免过于频繁的请求
+              setTimeout(() => {
+                if (!finished.value && !loading.value && autoLoadingRef.value) {
+                  loadOrders()
+                }
+              }, 200)
+            }
+          }
+        } else {
+          // 过滤后有数据，停止自动加载
+          autoLoadingRef.value = false
+          // 过滤后有数据，继续判断
+          // 如果已经加载的数据量达到或超过总数，说明加载完成
+          if (orderList.value.length >= adjustedTotal) {
+            finished.value = true
+          } else {
+            // 还有更多数据，继续加载
+            finished.value = false
+          }
+        }
+      } else {
+        // 没有前端过滤，停止自动加载
+        autoLoadingRef.value = false
+        // 没有前端过滤，直接判断是否加载完
+        // 如果已经加载的数据量达到或超过总数，或者当前页返回的数据少于每页限制，说明加载完成
+        if (orderList.value.length >= adjustedTotal || response.orders.length < pagination.limit) {
+          finished.value = true
+        } else {
+          finished.value = false
+        }
       }
 
-      // 更新统计
-      updateOrderStats(response)
+      // 只在第一次加载时异步更新统计（不阻塞订单列表显示）
+      if (pagination.page === 2) {
+        // 异步加载统计，不阻塞订单列表显示
+        loadOrderStats().catch(err => {
+          console.error('Failed to load order stats:', err)
+        })
+      }
     } catch (err) {
       error.value = true
       showToast('加载订单失败')
@@ -315,15 +473,128 @@
     }
   }
 
-  // 更新订单统计
-  const updateOrderStats = (response: any) => {
-    // 这里可以根据实际API响应的统计数据来更新
-    // 目前使用分页数据的统计
-    orderStats.value = {
-      total: response.total,
-      pending: orderList.value.filter(order => order.status === 'pending_verification').length,
-      completed: orderList.value.filter(order => order.status === 'completed').length,
-      cancelled: orderList.value.filter(order => order.status === 'cancelled').length
+  // 前端排序订单（确保排序正确）
+  const sortOrders = (orders: MerchantOrder[], sortBy: string, sortOrder: 'asc' | 'desc') => {
+    return [...orders].sort((a, b) => {
+      let dateA: Date | null = null
+      let dateB: Date | null = null
+
+      switch (sortBy) {
+        case 'paidAt':
+          // 已支付：按支付时间排序，如果没有支付时间则使用创建时间
+          dateA = a.paidAt ? new Date(a.paidAt) : (a.createdAt ? new Date(a.createdAt) : null)
+          dateB = b.paidAt ? new Date(b.paidAt) : (b.createdAt ? new Date(b.createdAt) : null)
+          break
+        case 'verifiedAt':
+          // 已核销：按核销时间排序，如果没有核销时间则使用创建时间
+          dateA = a.verifiedAt ? new Date(a.verifiedAt) : (a.createdAt ? new Date(a.createdAt) : null)
+          dateB = b.verifiedAt ? new Date(b.verifiedAt) : (b.createdAt ? new Date(b.createdAt) : null)
+          break
+        case 'refundedAt':
+          // 已退款：按退款时间排序，如果没有退款时间则使用创建时间
+          dateA = a.refundedAt ? new Date(a.refundedAt) : (a.createdAt ? new Date(a.createdAt) : null)
+          dateB = b.refundedAt ? new Date(b.refundedAt) : (b.createdAt ? new Date(b.createdAt) : null)
+          break
+        case 'createdAt':
+        default:
+          // 总订单：按创建时间排序
+          dateA = a.createdAt ? new Date(a.createdAt) : null
+          dateB = b.createdAt ? new Date(b.createdAt) : null
+          break
+      }
+
+      // 处理空值：没有对应时间的订单排在后面
+      if (!dateA && !dateB) return 0
+      if (!dateA) return 1
+      if (!dateB) return -1
+
+      // 倒序排列（最新的在前）
+      if (sortOrder === 'desc') {
+        return dateB.getTime() - dateA.getTime()
+      } else {
+        return dateA.getTime() - dateB.getTime()
+      }
+    })
+  }
+
+  // 加载订单统计（独立获取，不受过滤影响）
+  // 改为按需分页读取，而不是一次性读取 1000 条
+  const loadOrderStats = async () => {
+    try {
+      // 按需分页读取所有订单来计算统计
+      // 注意：统计数字应该显示所有订单的统计，不受筛选条件影响
+      // 理想情况下应该使用专门的统计 API，但目前后端可能没有提供
+      // 如果未来有统计 API，应该替换为：await merchantService.getMerchantStatistics()
+      
+      const allOrdersForStats: MerchantOrder[] = []
+      let currentPage = 1
+      const pageSize = 50 // 每页读取 50 条，避免一次性加载太多
+      let hasMore = true
+
+      // 分页读取所有订单
+      while (hasMore) {
+        const statsParams = {
+          page: currentPage,
+          limit: pageSize
+          // 不传任何筛选参数，获取所有订单的统计
+        }
+
+        const statsResponse = await merchantService.getMerchantOrders(statsParams as any)
+        const orders = statsResponse.orders || []
+        
+        if (orders.length > 0) {
+          allOrdersForStats.push(...orders)
+        }
+
+        // 判断是否还有更多数据
+        if (orders.length < pageSize || allOrdersForStats.length >= statsResponse.total) {
+          hasMore = false
+        } else {
+          currentPage++
+          // 设置一个最大页数限制，避免无限循环（例如最多读取 20 页，即 1000 条）
+          if (currentPage > 20) {
+            hasMore = false
+          }
+        }
+      }
+
+      // 统计总订单（排除已取消）
+      const totalOrders = allOrdersForStats.filter(order => {
+        const status = order.status?.toLowerCase() || ''
+        return status !== 'cancelled' && status !== 'CANCELLED'
+      })
+
+      // 统计已支付订单（包括 paid、pending_verification、pending 状态）
+      const paidOrders = allOrdersForStats.filter(order => {
+        const status = order.status?.toLowerCase() || ''
+        return status === 'paid' || status === 'pending_verification' || status === 'pending' ||
+               status === 'PAID' || status === 'PENDING_VERIFICATION' || status === 'PENDING'
+      })
+
+      // 统计已核销订单（包括 verified 和 completed 状态）
+      const verifiedOrders = allOrdersForStats.filter(order => {
+        const status = order.status?.toLowerCase() || ''
+        return status === 'verified' || status === 'completed' ||
+               status === 'VERIFIED' || status === 'COMPLETED'
+      })
+
+      // 统计已退款订单
+      const refundedOrders = allOrdersForStats.filter(order => {
+        const status = order.status?.toLowerCase() || ''
+        return status === 'refunded' || status === 'refund_requested' ||
+               status === 'REFUNDED' || status === 'REFUND_REQUESTED'
+      })
+
+      // 更新统计（使用实际统计的数量，而不是 API 返回的 total）
+      orderStats.value = {
+        total: totalOrders.length,
+        paid: paidOrders.length,
+        verified: verifiedOrders.length,
+        refunded: refundedOrders.length
+      }
+    } catch (err) {
+      console.error('Failed to load order stats:', err)
+      // 如果统计加载失败，不影响订单列表显示
     }
   }
 
@@ -352,8 +623,8 @@
         type: 'success'
       })
 
-      // 刷新订单列表
-      refreshOrders()
+      // 刷新订单列表（核销后需要更新统计）
+      refreshOrders(true)
     } catch (error) {
       showToast('核销失败')
       console.error('Failed to verify order:', error)
@@ -376,8 +647,8 @@
         type: 'success'
       })
 
-      // 刷新订单列表
-      refreshOrders()
+      // 刷新订单列表（取消后需要更新统计）
+      refreshOrders(true)
     } catch (error) {
       showToast('取消失败')
       console.error('Failed to cancel order:', error)
@@ -385,16 +656,71 @@
   }
 
   // 刷新订单列表
-  const refreshOrders = () => {
+  const refreshOrders = (updateStats: boolean = false) => {
     pagination.page = 1
     finished.value = false
     orderList.value = []
-    loadOrders()
+    autoLoadingRef.value = false // 重置自动加载标记
+    if (updateStats) {
+      // 如果订单状态发生变化（如核销、取消），需要更新统计
+      loadOrderStats().then(() => {
+        loadOrders()
+      })
+    } else {
+      loadOrders()
+    }
+  }
+
+  // 根据统计项过滤订单
+  const filterByStat = (statType: 'total' | 'paid' | 'verified' | 'refunded') => {
+    // 如果点击的是当前已选中的统计项，则取消筛选
+    if (activeStatFilter.value === statType) {
+      activeStatFilter.value = null
+      filterParams.status = ''
+      filterParams.sortBy = 'createdAt'
+      filterParams.sortOrder = 'desc'
+    } else {
+      activeStatFilter.value = statType
+      
+      // 根据统计类型设置排序（不设置 status，因为过滤只在前端进行）
+      switch (statType) {
+        case 'total':
+          // 总订单：排除已取消，按创建时间倒序
+          filterParams.status = '' // 不传 status 给 API，前端过滤排除已取消
+          filterParams.sortBy = 'createdAt'
+          filterParams.sortOrder = 'desc'
+          break
+        case 'paid':
+          // 已支付：前端过滤，按支付时间倒序
+          filterParams.status = '' // 不传 status 给 API，前端过滤已支付状态
+          filterParams.sortBy = 'paidAt'
+          filterParams.sortOrder = 'desc'
+          break
+        case 'verified':
+          // 已核销：前端过滤，按核销时间倒序
+          filterParams.status = '' // 不传 status 给 API，前端过滤已核销状态
+          filterParams.sortBy = 'verifiedAt'
+          filterParams.sortOrder = 'desc'
+          break
+        case 'refunded':
+          // 已退款：前端过滤，按退款时间倒序
+          filterParams.status = '' // 不传 status 给 API，前端过滤已退款状态
+          filterParams.sortBy = 'refundedAt'
+          filterParams.sortOrder = 'desc'
+          break
+      }
+    }
+    
+    // 刷新订单列表
+    refreshOrders()
   }
 
   // 筛选相关方法
   const onFilterSubmit = () => {
-    refreshOrders()
+    // 筛选弹窗中的状态筛选会传递给 API
+    // 使用筛选弹窗时，清空统计按钮的过滤
+    activeStatFilter.value = null
+    refreshOrders(false) // 筛选不更新统计
     showFilterPopup.value = false
   }
 
@@ -402,7 +728,10 @@
     filterParams.status = ''
     filterParams.dateRange = []
     filterParams.search = ''
-    refreshOrders()
+    filterParams.sortBy = 'createdAt'
+    filterParams.sortOrder = 'desc'
+    activeStatFilter.value = null
+    refreshOrders(false) // 重置筛选不更新统计
     showFilterPopup.value = false
   }
 
@@ -427,7 +756,12 @@
 
   // 生命周期钩子
   onMounted(() => {
+    // 先加载订单列表（立即显示），再异步加载统计（不阻塞）
     loadOrders()
+    // 异步加载统计，不阻塞订单列表显示
+    loadOrderStats().catch(err => {
+      console.error('Failed to load order stats:', err)
+    })
   })
 </script>
 
@@ -458,37 +792,48 @@
   .stat-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px;
+    justify-content: center;
+    padding: 12px 8px;
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     border-radius: 6px;
-  }
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
 
-  .stat-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: white;
-    border-radius: 50%;
+    &:active {
+      transform: scale(0.95);
+    }
+
+    &.active {
+      background: linear-gradient(135deg, #3A82F6 0%, #2563EB 100%);
+      box-shadow: 0 2px 8px rgba(58, 130, 246, 0.3);
+
+      .stat-number,
+      .stat-label {
+        color: white;
+      }
+    }
   }
 
   .stat-info {
-    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
   }
 
   .stat-number {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: bold;
     color: var(--theme-text-on-glass, $text-color-primary);
-    line-height: 1;
+    line-height: 1.2;
   }
 
   .stat-label {
     font-size: 12px;
     color: var(--theme-text-secondary, $text-color-secondary);
-    line-height: 1;
+    line-height: 1.2;
   }
 
   .order-list {
@@ -520,31 +865,55 @@
     padding: 2px 8px;
     border-radius: 12px;
     font-weight: 500;
+    text-transform: lowercase;
   }
 
-  .order-status.pending_verification {
+  .order-status.pending,
+  .order-status.PENDING {
     background: #fef3c7;
     color: #92400e;
   }
 
-  .order-status.verified {
+  .order-status.paid,
+  .order-status.PAID {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  .order-status.pending_verification,
+  .order-status.PENDING_VERIFICATION {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .order-status.verified,
+  .order-status.VERIFIED {
     background: #d1fae5;
     color: #065f46;
   }
 
-  .order-status.completed {
+  .order-status.completed,
+  .order-status.COMPLETED {
     background: #d1fae5;
     color: #065f46;
   }
 
-  .order-status.cancelled {
+  .order-status.cancelled,
+  .order-status.CANCELLED {
     background: #fee2e2;
     color: #991b1b;
   }
 
-  .order-status.refunded {
+  .order-status.refunded,
+  .order-status.REFUNDED {
     background: #e0e7ff;
     color: #3730a3;
+  }
+
+  .order-status.refund_requested,
+  .order-status.REFUND_REQUESTED {
+    background: #fef3c7;
+    color: #92400e;
   }
 
   .order-content {

@@ -3,6 +3,13 @@
     <AppHeader :title="pageTitle" :showBack="true" />
 
     <div class="order-detail-content">
+      <!-- 加载状态 -->
+      <van-loading v-if="loading" type="spinner" vertical style="padding: 50px 0;">
+        加载中...
+      </van-loading>
+
+      <!-- 订单内容 -->
+      <template v-else>
       <!-- 订单状态 -->
       <div class="order-status">
         <div class="status-header">
@@ -25,6 +32,10 @@
             <span>订单已支付</span>
             <div class="step-time">{{ formatDateTime(orderInfo.paidAt) }}</div>
           </van-step>
+          <van-step v-if="orderInfo.verifiedAt">
+            <span>订单已核销</span>
+            <div class="step-time">{{ formatDateTime(orderInfo.verifiedAt) }}</div>
+          </van-step>
           <van-step v-if="orderInfo.confirmedAt">
             <span>商户已确认</span>
             <div class="step-time">{{ formatDateTime(orderInfo.confirmedAt) }}</div>
@@ -36,6 +47,10 @@
           <van-step v-if="orderInfo.deliveredAt">
             <span>订单已送达</span>
             <div class="step-time">{{ formatDateTime(orderInfo.deliveredAt) }}</div>
+          </van-step>
+          <van-step v-if="orderInfo.refundedAt">
+            <span>订单已退款</span>
+            <div class="step-time">{{ formatDateTime(orderInfo.refundedAt) }}</div>
           </van-step>
         </van-steps>
       </div>
@@ -54,7 +69,11 @@
           </div>
           <div class="info-item">
             <span class="label">订单金额</span>
-            <span class="value price">¥{{ orderInfo.totalAmount.toFixed(2) }}</span>
+            <span class="value price">¥{{ (orderInfo.finalAmount || orderInfo.totalAmount || 0).toFixed(2) }}</span>
+          </div>
+          <div class="info-item" v-if="orderInfo.finalAmount && orderInfo.finalAmount !== orderInfo.totalAmount">
+            <span class="label">实付金额</span>
+            <span class="value price">¥{{ orderInfo.finalAmount.toFixed(2) }}</span>
           </div>
           <div class="info-item">
             <span class="label">支付方式</span>
@@ -69,7 +88,7 @@
         </div>
       </div>
 
-      <!-- 用户信息 -->
+      <!-- 用户信息
       <div class="customer-info-section">
         <h3 class="section-title">用户信息</h3>
         <div class="customer-card">
@@ -85,45 +104,54 @@
             <div class="customer-phone">{{ orderInfo.customerPhone }}</div>
           </div>
         </div>
-      </div>
+      </div>  -->
 
-      <!-- 收货地址 -->
-      <div class="shipping-info-section">
+      <!-- 收货地址 
+      <div class="shipping-info-section" v-if="orderInfo.receiverName || orderInfo.shippingAddress">
         <h3 class="section-title">收货地址</h3>
         <div class="address-card">
-          <div class="address-header">
+          <div class="address-header" v-if="orderInfo.receiverName || orderInfo.receiverPhone">
             <van-icon name="location-o" />
             <div class="address-contact">
-              <span class="name">{{ orderInfo.receiverName }}</span>
-              <span class="phone">{{ orderInfo.receiverPhone }}</span>
+              <span class="name">{{ orderInfo.receiverName || '未填写' }}</span>
+              <span class="phone" v-if="orderInfo.receiverPhone">{{ orderInfo.receiverPhone }}</span>
             </div>
           </div>
-          <div class="address-detail">
-            {{ orderInfo.shippingAddress.province }}{{ orderInfo.shippingAddress.city
-            }}{{ orderInfo.shippingAddress.district }}{{ orderInfo.shippingAddress.detail }}
+          <div class="address-detail" v-if="hasAddress">
+            {{ formatAddress(orderInfo.shippingAddress) }}
+          </div>
+          <div class="address-detail" v-else>
+            <span class="no-address">暂无收货地址</span>
           </div>
         </div>
-      </div>
+      </div>  -->
 
       <!-- 商品信息 -->
       <div class="products-section">
         <h3 class="section-title">商品信息</h3>
-        <div class="product-list">
-          <div v-for="item in orderInfo.items" :key="item.productId" class="product-item">
+        <div class="product-list" v-if="orderInfo.items && orderInfo.items.length > 0">
+          <div v-for="item in orderInfo.items" :key="item.id || item.productId" class="product-item">
             <img
               :src="item.productImage || '/placeholder-product.png'"
               :alt="item.productName"
               class="product-image"
+              @error="handleImageError"
             />
             <div class="product-info">
-              <h4 class="product-name">{{ item.productName }}</h4>
-              <p class="product-spec">{{ item.specification }}</p>
+              <h4 class="product-name">{{ item.productName || '未知商品' }}</h4>
+              <p class="product-spec" v-if="item.specification">{{ item.specification }}</p>
               <div class="product-footer">
-                <span class="product-price">¥{{ item.price.toFixed(2) }}</span>
-                <span class="product-quantity">x{{ item.quantity }}</span>
+                <span class="product-price">¥{{ (item.price || 0).toFixed(2) }}</span>
+                <span class="product-quantity">x{{ item.quantity || 1 }}</span>
+                <span class="product-total" v-if="item.totalPrice && item.totalPrice !== item.price * item.quantity">
+                  小计：¥{{ (item.totalPrice || 0).toFixed(2) }}
+                </span>
               </div>
             </div>
           </div>
+        </div>
+        <div class="empty-products" v-else>
+          <van-empty description="暂无商品信息" />
         </div>
       </div>
 
@@ -134,6 +162,7 @@
           {{ orderInfo.notes }}
         </div>
       </div>
+      </template>
     </div>
 
     <!-- 操作按钮 -->
@@ -319,6 +348,7 @@
   const merchantOrderStore = useMerchantOrderStore()
 
   const pageTitle = ref('订单详情')
+  const loading = ref(false)
   const isCanceling = ref(false)
   const isRefunding = ref(false)
   const isConfirming = ref(false)
@@ -356,12 +386,17 @@
 
   // 订单状态配置
   const orderStatusMap = {
-    pending: { label: '待确认', color: '#ff976a' },
+    pending: { label: '待支付', color: '#ff976a' },
+    paid: { label: '已支付', color: '#1989fa' },
+    pending_verification: { label: '待核销', color: '#ff976a' },
+    verified: { label: '已核销', color: '#07c160' },
     confirmed: { label: '已确认', color: '#1989fa' },
     shipped: { label: '已发货', color: '#ff976a' },
     delivered: { label: '已送达', color: '#07c160' },
+    completed: { label: '已完成', color: '#07c160' },
     cancelled: { label: '已取消', color: '#969799' },
-    refunded: { label: '已退款', color: '#ff976a' }
+    refunded: { label: '已退款', color: '#ff976a' },
+    refund_requested: { label: '退款中', color: '#ff976a' }
   }
 
   // 支付方式配置
@@ -380,42 +415,37 @@
 
   // 计算属性
   const getTimelineActiveStep = computed(() => {
-    switch (orderInfo.value.status) {
-      case 'pending':
-        return 0
-      case 'confirmed':
-        return 1
-      case 'shipped':
-        return 2
-      case 'delivered':
-        return 3
-      case 'cancelled':
-        return 0
-      case 'refunded':
-        return 4
-      default:
-        return 0
-    }
+    const status = orderInfo.value.status
+    if (status === 'cancelled') return 0
+    if (status === 'refunded' || status === 'refund_requested') return 5
+    if (orderInfo.value.deliveredAt) return 5
+    if (orderInfo.value.shippedAt) return 4
+    if (orderInfo.value.confirmedAt) return 3
+    if (orderInfo.value.verifiedAt) return 2
+    if (orderInfo.value.paidAt) return 1
+    return 0
   })
 
   // 权限判断
   const canCancelOrder = computed(() => {
-    return ['pending', 'confirmed'].includes(orderInfo.value.status)
+    return ['pending', 'paid', 'pending_verification', 'confirmed'].includes(orderInfo.value.status)
   })
 
   const canRefund = computed(() => {
     return (
-      ['confirmed', 'shipped'].includes(orderInfo.value.status) &&
-      orderInfo.value.paymentStatus === 'paid'
+      ['paid', 'verified', 'confirmed', 'shipped'].includes(orderInfo.value.status) &&
+      orderInfo.value.paymentStatus === 'paid' &&
+      orderInfo.value.status !== 'refunded' &&
+      orderInfo.value.status !== 'refund_requested'
     )
   })
 
   const canConfirm = computed(() => {
-    return orderInfo.value.status === 'pending'
+    return ['pending', 'paid', 'pending_verification'].includes(orderInfo.value.status)
   })
 
   const canShip = computed(() => {
-    return orderInfo.value.status === 'confirmed'
+    return ['confirmed', 'paid'].includes(orderInfo.value.status)
   })
 
   // 方法
@@ -436,31 +466,70 @@
   }
 
   const formatDateTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString('zh-CN')
+    if (!dateStr) return ''
+    try {
+      return new Date(dateStr).toLocaleString('zh-CN')
+    } catch {
+      return dateStr
+    }
+  }
+
+  // 格式化地址显示
+  const formatAddress = (address: any) => {
+    if (!address) return ''
+    const parts = [
+      address.province,
+      address.city,
+      address.district,
+      address.detail
+    ].filter(Boolean)
+    return parts.join('') || '暂无地址'
+  }
+
+  // 检查是否有地址
+  const hasAddress = computed(() => {
+    const addr = orderInfo.value.shippingAddress
+    if (!addr) return false
+    return !!(addr.province || addr.city || addr.district || addr.detail)
+  })
+
+  // 处理图片加载错误
+  const handleImageError = (event: Event) => {
+    const img = event.target as HTMLImageElement
+    img.src = '/placeholder-product.png'
   }
 
   // 加载订单详情
   const loadOrderDetail = async () => {
+    loading.value = true
     try {
-      showLoadingToast({
-        message: '加载中...',
-        forbidClick: true
-      })
-
       const orderId = route.params.id as string
+      if (!orderId) {
+        showToast('订单ID不存在')
+        router.go(-1)
+        return
+      }
+
       const response = await merchantOrderStore.getMerchantOrderDetail(orderId)
 
-      if (response.success) {
+      if (response.success && response.data) {
         orderInfo.value = response.data
-        showSuccessToast('加载成功')
+        // 不显示成功提示，避免干扰用户体验
       } else {
-        showToast('加载订单详情失败')
+        const errorMessage = response.message || '加载订单详情失败'
+        showToast(errorMessage)
         router.go(-1)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('加载订单详情失败:', error)
-      showToast('加载订单详情失败')
-      router.go(-1)
+      const errorMessage = error?.message || '加载订单详情失败，请稍后重试'
+      showToast(errorMessage)
+      // 延迟返回，让用户看到错误提示
+      setTimeout(() => {
+        router.go(-1)
+      }, 1500)
+    } finally {
+      loading.value = false
     }
   }
 
@@ -858,9 +927,24 @@
             font-size: 14px;
             color: var(--van-text-color-3);
           }
+
+          .product-total {
+            font-size: 14px;
+            color: var(--van-text-color-2);
+            margin-left: auto;
+          }
         }
       }
     }
+  }
+
+  .empty-products {
+    padding: 40px 0;
+  }
+
+  .no-address {
+    color: var(--van-text-color-3);
+    font-style: italic;
   }
 
   .notes-content {
