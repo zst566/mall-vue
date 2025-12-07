@@ -52,3 +52,4 @@ export interface VerifyOptions {
   operatorName: string
   notes: string
 }
+

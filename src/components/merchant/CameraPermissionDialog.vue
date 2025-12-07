@@ -39,3 +39,4 @@ defineEmits<{
 <style lang="scss" scoped>
 @use '@/styles/dialog-mixin.scss' as *;
 </style>
+

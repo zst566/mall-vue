@@ -54,3 +54,4 @@ export function useScanHistory(): UseScanHistoryReturn {
     loadRecentVerifications
   }
 }
+

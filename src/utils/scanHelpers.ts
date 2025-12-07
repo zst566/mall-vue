@@ -71,3 +71,4 @@ export function parseQRCodeData(qrData: string): string | null {
     return qrData
   }
 }
+
