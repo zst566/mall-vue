@@ -1,14 +1,14 @@
 <template>
   <div class="menu-section">
     <van-cell-group inset>
-      <!-- 账户管理 -->
+      <!-- 账户管理 
       <van-cell title="账户管理" is-link @click="handleMenuClick('account')">
         <template #icon>
           <van-icon name="user-o" />
         </template>
-      </van-cell>
+      </van-cell>-->
 
-      <!-- 我的订单 -->
+      <!-- 我的订单 
       <van-cell title="我的订单" is-link @click="handleMenuClick('orders')">
         <template #icon>
           <van-icon name="orders-o" />
@@ -18,35 +18,35 @@
             <van-icon name="arrow" />
           </van-badge>
         </template>
-      </van-cell>
+      </van-cell>-->
 
-      <!-- 收藏管理 -->
+      <!-- 收藏管理 
       <van-cell title="收藏管理" is-link @click="handleMenuClick('favorites')">
         <template #icon>
           <van-icon name="star-o" />
         </template>
-      </van-cell>
+      </van-cell>-->
 
-      <!-- 地址管理 -->
+      <!-- 地址管理 
       <van-cell title="地址管理" is-link @click="handleMenuClick('addresses')">
         <template #icon>
           <van-icon name="location-o" />
         </template>
-      </van-cell>
+      </van-cell>-->
 
-      <!-- 安全设置 -->
+      <!-- 安全设置 
       <van-cell title="安全设置" is-link @click="handleMenuClick('security')">
         <template #icon>
           <van-icon name="lock" />
         </template>
-      </van-cell>
+      </van-cell>-->
 
-      <!-- 通知设置 -->
+      <!-- 通知设置 
       <van-cell title="通知设置" is-link @click="handleMenuClick('notifications')">
         <template #icon>
           <van-icon name="bell" />
         </template>
-      </van-cell>
+      </van-cell>-->
 
       <!-- 商户管理 -->
       <van-cell :title="merchantMenuTitle" is-link @click="handleMenuClick('merchant')">
@@ -63,26 +63,26 @@
 
     <!-- 其他功能 -->
     <van-cell-group inset class="other-menu">
-      <!-- 客服中心 -->
+      <!-- 客服中心 
       <van-cell title="客服中心" is-link @click="handleMenuClick('service')">
         <template #icon>
           <van-icon name="service-o" />
         </template>
-      </van-cell>
+      </van-cell>-->
 
-      <!-- 帮助中心 -->
+      <!-- 帮助中心 
       <van-cell title="帮助中心" is-link @click="handleMenuClick('help')">
         <template #icon>
           <van-icon name="question-o" />
         </template>
-      </van-cell>
+      </van-cell>-->
 
-      <!-- 关于我们 -->
+      <!-- 关于我们 
       <van-cell title="关于我们" is-link @click="handleMenuClick('about')">
         <template #icon>
           <van-icon name="info-o" />
         </template>
-      </van-cell>
+      </van-cell>-->
 
       <!-- 版本信息 -->
       <van-cell title="版本信息" is-link @click="handleMenuClick('version')">

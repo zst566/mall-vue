@@ -52,6 +52,7 @@ export interface VerificationRecord {
   shopCode?: string
   promotionId: string
   promotionName: string
+  variantName?: string // 规格名称
   customerName: string
   amount: number
   verificationType: string
@@ -148,13 +149,16 @@ export class MerchantOperatorService extends BaseApiService {
 
   /**
    * 查询当前用户的商户绑定状态
+   * @param forceRefresh 是否强制刷新（添加时间戳参数防止缓存）
    */
-  async getMyStatus(): Promise<MerchantOperatorStatus> {
+  async getMyStatus(forceRefresh: boolean = true): Promise<MerchantOperatorStatus> {
     try {
+      // 🔥 强制刷新：添加时间戳参数防止浏览器或代理缓存
+      const params = forceRefresh ? { _t: Date.now() } : {}
       const response = await this.client.get<{
         success: boolean
         data: MerchantOperatorStatus
-      }>('/merchant-operators/my-status')
+      }>('/merchant-operators/my-status', { params })
       
       if (!response.data.success) {
         throw new Error('查询状态失败')

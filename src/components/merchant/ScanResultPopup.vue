@@ -3,7 +3,7 @@
     v-model:show="isVisible"
     position="bottom" 
     round 
-    :style="{ height: '75%', zIndex: 2000 }"
+    :style="{ height: '90%', zIndex: 2000 }"
     :close-on-click-overlay="false"
     :close-on-popstate="true"
     :overlay-style="overlayStyle"
@@ -35,6 +35,26 @@
             <van-icon name="orders-o" class="badge-icon" />
             <span class="badge-text">订单核销</span>
           </div>
+          <!-- 顶部操作按钮 -->
+          <div class="result-actions result-actions-top" @click.stop @mousedown.stop @touchstart.stop>
+            <van-button
+              v-if="canVerify(scanResult.data.status)"
+              type="primary"
+              block
+              round
+              @click.stop="handleVerify"
+              @mousedown.stop
+              @touchstart.stop
+              :loading="isVerifying"
+              :disabled="isVerifying"
+              class="verify-button"
+            >
+              {{ isVerifying ? '核销中...' : '确认核销' }}
+            </van-button>
+            <van-button v-else type="default" block round @click.stop="handleClose" @mousedown.stop @touchstart.stop class="close-button">
+              关闭 (状态: {{ scanResult.data.status }})
+            </van-button>
+          </div>
           <!-- 订单详情区 -->
           <div class="result-details">
             <div class="detail-item">
@@ -57,26 +77,6 @@
               <span class="detail-label">购买时间</span>
               <span class="detail-value">{{ formatTime(scanResult.data.purchasedAt) }}</span>
             </div>
-          </div>
-          <!-- 底部操作按钮 -->
-          <div class="result-actions" @click.stop @mousedown.stop @touchstart.stop>
-            <van-button
-              v-if="canVerify(scanResult.data.status)"
-              type="primary"
-              block
-              round
-              @click.stop="handleVerify"
-              @mousedown.stop
-              @touchstart.stop
-              :loading="isVerifying"
-              :disabled="isVerifying"
-              class="verify-button"
-            >
-              {{ isVerifying ? '核销中...' : '确认核销' }}
-            </van-button>
-            <van-button v-else type="default" block round @click.stop="handleClose" @mousedown.stop @touchstart.stop class="close-button">
-              关闭 (状态: {{ scanResult.data.status }})
-            </van-button>
           </div>
         </div>
         <div v-else class="no-data">
@@ -244,8 +244,10 @@ $purple-text: #6D28D9;         // 紫色文字
 
   .popup-content {
     padding: 24px;
+    padding-bottom: 120px; // 增加底部安全空间，确保核销按钮可以滚动上来
     flex: 1;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch; // iOS 平滑滚动
     background: #ffffff;
 
     .debug-info {
@@ -262,7 +264,7 @@ $purple-text: #6D28D9;         // 紫色文字
         display: flex;
         align-items: center;
         gap: 10px;
-        margin-bottom: 24px;
+        margin-bottom: 20px;
         padding: 14px 18px;
         background: $purple-light;
         border-radius: 12px;
@@ -314,11 +316,25 @@ $purple-text: #6D28D9;         // 紫色文字
       }
 
       .result-actions {
-        margin-top: 24px;
-        padding-top: 20px;
-        border-top: 1px solid rgba(0, 0, 0, 0.06);
         position: relative;
         z-index: 2010 !important;
+        
+        // 顶部按钮样式
+        &.result-actions-top {
+          margin-top: 0;
+          margin-bottom: 24px;
+          padding-top: 0;
+          padding-bottom: 0;
+          border-top: none;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+        
+        // 默认样式（如果以后需要底部按钮）
+        margin-top: 24px;
+        margin-bottom: 20px;
+        padding-top: 20px;
+        padding-bottom: env(safe-area-inset-bottom, 20px);
+        border-top: 1px solid rgba(0, 0, 0, 0.06);
         
         .verify-button {
           position: relative;

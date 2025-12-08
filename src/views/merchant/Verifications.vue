@@ -45,7 +45,7 @@
             <van-cell
               v-for="item in verifications"
               :key="item.id"
-              :title="item.promotionName"
+              :title="formatPromotionTitle(item)"
               :label="formatVerificationInfo(item)"
               is-link
               @click="viewDetail(item)"
@@ -75,7 +75,7 @@
     <van-popup
       v-model:show="showDetail"
       position="bottom"
-      :style="{ height: '70%' }"
+      :style="{ height: '90%' }"
       round
     >
       <div v-if="selectedVerification" class="detail-popup">
@@ -83,10 +83,25 @@
           <h3>核销详情</h3>
           <van-icon name="cross" @click="showDetail = false" />
         </div>
+        
+        <!-- 取消核销按钮移到顶部 -->
+        <div class="action-section-top">
+          <van-button
+            v-if="selectedVerification.canCancel"
+            type="danger"
+            block
+            round
+            @click="handleCancel"
+            :loading="isCancelling"
+          >
+            取消核销
+          </van-button>
+        </div>
+
         <div class="popup-content">
           <van-cell-group inset>
             <van-cell title="订单号" :value="selectedVerification.orderNo" />
-            <van-cell title="促销活动" :value="selectedVerification.promotionName" />
+            <van-cell title="促销活动" :value="formatPromotionTitle(selectedVerification)" />
             <van-cell
               v-if="selectedVerification.shopCode"
               title="商铺"
@@ -105,19 +120,6 @@
               </template>
             </van-cell>
           </van-cell-group>
-
-          <div class="action-section">
-            <van-button
-              v-if="selectedVerification.canCancel"
-              type="danger"
-              block
-              round
-              @click="handleCancel"
-              :loading="isCancelling"
-            >
-              取消核销
-            </van-button>
-          </div>
         </div>
       </div>
     </van-popup>
@@ -309,6 +311,25 @@
     }
   }
 
+  // 格式化促销活动标题（促销活动名称 + 规格）
+  // 格式：限时大促，吊龙一份，规格：250g/份
+  const formatPromotionTitle = (item: VerificationRecord) => {
+    if (!item.promotionName) {
+      return '商品'
+    }
+    
+    const parts = [item.promotionName]
+    if (item.variantName) {
+      // 如果规格名称不包含"规格："前缀，则添加
+      if (item.variantName.includes('规格：') || item.variantName.includes('规格:')) {
+        parts.push(item.variantName)
+      } else {
+        parts.push(`规格：${item.variantName}`)
+      }
+    }
+    return parts.join('，')
+  }
+
   // 格式化核销信息
   const formatVerificationInfo = (item: VerificationRecord) => {
     const parts = []
@@ -438,6 +459,7 @@
       align-items: center;
       padding: 20px;
       border-bottom: 1px solid #ebedf0;
+      flex-shrink: 0;
 
       h3 {
         margin: 0;
@@ -452,15 +474,17 @@
       }
     }
 
+    .action-section-top {
+      padding: 16px;
+      flex-shrink: 0;
+      border-bottom: 1px solid #ebedf0;
+    }
+
     .popup-content {
       flex: 1;
       overflow-y: auto;
       padding: 16px;
-
-      .action-section {
-        margin-top: 24px;
-        padding: 0 16px;
-      }
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
     }
   }
 

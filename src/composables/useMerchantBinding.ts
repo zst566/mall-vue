@@ -14,7 +14,7 @@ export interface UseMerchantBindingReturn {
   merchantStatusText: ComputedRef<string>
   merchantStatusTagType: ComputedRef<string>
   goToMerchantManagement: () => Promise<void>
-  refreshMerchantStatus: () => Promise<void>
+  refreshMerchantStatus: (forceRefresh?: boolean) => Promise<void>
 }
 
 export function useMerchantBinding(): UseMerchantBindingReturn {
@@ -27,10 +27,20 @@ export function useMerchantBinding(): UseMerchantBindingReturn {
   // 商户菜单标题
   const merchantMenuTitle = computed(() => {
     if (!merchantBindingStatus.value) return '商户管理'
-    if (!merchantBindingStatus.value.hasBinding) return '申请绑定商户操作员'
+    
+    // 如果没有有效绑定，或者状态是被拒绝的，显示申请入口
+    if (!merchantBindingStatus.value.hasBinding) {
+      return '申请绑定商户操作员'
+    }
+    
+    // 即使 hasBinding 为 true，也要检查状态是否为 REJECTED
+    const merchantUser = merchantBindingStatus.value.merchantUser
+    if (merchantUser?.approvalStatus === 'REJECTED' || 
+        (merchantUser?.approvalStatus !== 'APPROVED' && !merchantUser?.isActive)) {
+      return '申请绑定商户操作员'
+    }
     
     // 如果已绑定且审核通过，显示商户编号
-    const merchantUser = merchantBindingStatus.value.merchantUser
     if (merchantUser?.approvalStatus === 'APPROVED' && merchantUser?.merchantCode) {
       return `商户管理 (${merchantUser.merchantCode})`
     }
@@ -69,24 +79,32 @@ export function useMerchantBinding(): UseMerchantBindingReturn {
     return 'warning'
   })
 
-  // 刷新商户绑定状态
-  const refreshMerchantStatus = async () => {
+  // 刷新商户绑定状态（强制刷新，不使用缓存）
+  const refreshMerchantStatus = async (forceRefresh: boolean = true) => {
     try {
-      const statusResult = await merchantOperatorService.getMyStatus()
-      console.log('✅ 商户绑定状态已更新:', JSON.stringify(statusResult, null, 2))
+      // 🔥 强制刷新：先清空状态，确保不使用缓存数据
+      if (forceRefresh) {
+        merchantBindingStatus.value = null
+        console.log('🔄 [商户绑定] 强制刷新：已清空缓存状态')
+      }
       
-      // 🔥 优化：如果用户已被商户取消权限，将入口重置为申请状态
+      // 调用 API 获取最新状态（强制刷新时添加时间戳参数防止浏览器缓存）
+      const statusResult = await merchantOperatorService.getMyStatus(forceRefresh)
+      console.log('✅ [商户绑定] 状态已更新:', JSON.stringify(statusResult, null, 2))
+      
+      // 🔥 优化：如果用户已被商户取消权限或被拒绝，将入口重置为申请状态
       if (statusResult.hasBinding && statusResult.merchantUser) {
         const merchantUser = statusResult.merchantUser
         // 检查是否被取消权限：审核状态不是 APPROVED 或 isActive 为 false
         if (merchantUser.approvalStatus !== 'APPROVED' || !merchantUser.isActive) {
-          console.warn('⚠️ 检测到用户已被商户取消权限，重置为申请状态:', {
+          console.warn('⚠️ 检测到用户已被商户取消权限或被拒绝，重置为申请状态:', {
             approvalStatus: merchantUser.approvalStatus,
             isActive: merchantUser.isActive
           })
-          // 重置为未绑定状态，使入口显示为"申请绑定商户操作员"
+          // 保留 merchantUser 信息以便显示拒绝原因，但将 hasBinding 设为 false
           merchantBindingStatus.value = {
-            hasBinding: false
+            hasBinding: false,
+            merchantUser: statusResult.merchantUser // 保留历史信息
           }
         } else {
           // 权限正常，保持原状态
@@ -165,9 +183,10 @@ export function useMerchantBinding(): UseMerchantBindingReturn {
         return
       }
       
-      // 如果状态不确定，先刷新状态
+      // 如果状态不确定，先强制刷新状态
       try {
-        const statusResult = await merchantOperatorService.getMyStatus()
+        // 🔥 强制刷新，不使用缓存
+        const statusResult = await merchantOperatorService.getMyStatus(true)
         merchantBindingStatus.value = statusResult
         console.log('✅ [个人中心] 商户绑定状态已更新:', statusResult)
         

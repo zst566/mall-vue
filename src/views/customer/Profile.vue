@@ -24,11 +24,12 @@
         :app-version="appVersion"
         @menu-click="handleMenuClick"
       />
+      <!--
       <div class="logout-section">
         <van-button type="danger" block round @click="logout.handleLogout" :loading="logout.isLoggingOut.value">
           退出登录
         </van-button>
-      </div>
+      </div>-->
     </template>
 
     <AvatarUploadPopup
@@ -151,8 +152,9 @@ onMounted(async () => {
   console.log('🚀 Profile 页面 onMounted 触发')
   console.log('👤 初始 authStore.user:', user.value)
   await loadUserData()
-  // 加载商户绑定状态
-  await refreshMerchantStatus()
+  // 🔥 强制刷新商户绑定状态，不使用缓存数据
+  // 确保每次进入个人中心都能获取到最新的有效绑定状态
+  await refreshMerchantStatus(true)
 })
 </script>
 

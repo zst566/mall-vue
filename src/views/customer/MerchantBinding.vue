@@ -7,8 +7,8 @@
 
     <!-- 内容区域 -->
     <div v-else class="content">
-      <!-- 未绑定状态：申请表单 -->
-      <div v-if="!status?.hasBinding" class="apply-section">
+      <!-- 未绑定状态：申请表单（只有在没有任何商户用户记录时才显示） -->
+      <div v-if="!status?.hasBinding && !status?.merchantUser" class="apply-section">
         <div class="section-header">
           <van-icon name="shop-o" size="48" color="#1989fa" />
           <h2>申请成为商户操作员</h2>
@@ -76,7 +76,7 @@
         </div>
       </div>
 
-      <!-- 已绑定状态：显示申请信息 -->
+      <!-- 已绑定状态或历史记录：显示申请信息 -->
       <div v-else class="status-section">
         <div class="status-card">
           <div class="status-header">

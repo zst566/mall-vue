@@ -587,13 +587,6 @@ const confirmUnbindMerchant = async () => {
     // 调用解除绑定API
     await merchantOperatorService.unbindMerchant()
 
-    // 显示成功提示
-    showToast({
-      message: '已成功解除商户绑定',
-      type: 'success',
-      duration: 2000
-    })
-
     // 切换到客户端模式
     const appStore = useAppStore()
     appStore.switchToCustomer()
@@ -601,13 +594,20 @@ const confirmUnbindMerchant = async () => {
     // 等待状态更新完成
     await nextTick()
 
-    // 延迟跳转到个人中心，让用户看到状态变化
+    // 显示成功提示
+    showToast({
+      message: '解绑成功',
+      type: 'success',
+      duration: 1500
+    })
+
+    // 延迟跳转到个人中心，让用户看到成功提示
     setTimeout(() => {
-      router.push('/customer/profile').catch((error) => {
+      router.push('/profile').catch((error) => {
         console.warn('路由跳转失败，尝试使用 window.location:', error)
-        window.location.href = '/customer/profile'
+        window.location.href = '/profile'
       })
-    }, 500)
+    }, 1500)
   } catch (error: any) {
     console.error('解除绑定失败:', error)
     showToast({

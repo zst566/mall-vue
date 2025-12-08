@@ -40,6 +40,13 @@ export const createApiInstance = (): AxiosInstance => {
         config.headers.Authorization = `Bearer ${authStore.token}`
       }
 
+      // 🔥 对于商户绑定状态查询，强制不使用缓存
+      if (config.url?.includes('/merchant-operators/my-status')) {
+        config.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        config.headers['Pragma'] = 'no-cache'
+        config.headers['Expires'] = '0'
+      }
+
       // 添加请求ID用于追踪
       config.headers['X-Request-ID'] = generateRequestId()
 
