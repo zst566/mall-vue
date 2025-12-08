@@ -11,7 +11,7 @@
 
     <!-- 设置内容 -->
     <div class="settings-content">
-      <!-- 基本信息 -->
+      <!-- 基本信息 
       <div class="settings-section">
         <h3 class="section-title">基本信息</h3>
 
@@ -50,9 +50,9 @@
             编辑信息
           </van-button>
         </div>
-      </div>
+      </div> -->
 
-      <!-- 安全设置 -->
+      <!-- 安全设置 
       <div class="settings-section">
         <h3 class="section-title">安全设置</h3>
 
@@ -87,9 +87,9 @@
             />
           </div>
         </div>
-      </div>
+      </div>-->
 
-      <!-- 消息通知 -->
+      <!-- 消息通知 
       <div class="settings-section">
         <h3 class="section-title">消息通知</h3>
 
@@ -138,9 +138,9 @@
             />
           </div>
         </div>
-      </div>
+      </div>-->
 
-      <!-- 商户权限 -->
+      <!-- 商户权限 
       <div class="settings-section">
         <h3 class="section-title">商户权限</h3>
 
@@ -170,9 +170,9 @@
             <span>客服支持</span>
           </div>
         </div>
-      </div>
+      </div>-->
 
-      <!-- 关于我们 -->
+      <!-- 关于我们 
       <div class="settings-section">
         <h3 class="section-title">关于</h3>
 
@@ -197,7 +197,7 @@
             <div class="info-value">400-123-4567</div>
           </div>
         </div>
-      </div>
+      </div>-->
 
       <!-- 解除绑定 -->
       <div class="settings-section">
@@ -223,13 +223,14 @@
         >
           退出商户管理
         </van-button>
+        <!--
         <van-button
           type="danger"
           block
           @click="handleLogout"
         >
           退出登录
-        </van-button>
+        </van-button>-->
       </div>
     </div>
 

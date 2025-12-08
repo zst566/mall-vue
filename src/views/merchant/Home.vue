@@ -527,11 +527,13 @@
   }
 
   const goToQRManagement = () => {
-    router.push('/merchant/qr-management')
+    showToast('Coming Soon')
+    router.back()
   }
 
   const goToStatistics = () => {
-    router.push('/merchant/statistics')
+    showToast('Coming Soon')
+    router.back()
   }
 
   const goToVerifications = () => {
@@ -543,11 +545,13 @@
   }
 
   const goToCustomerService = () => {
-    router.push('/merchant/service')
+    showToast('Coming Soon')
+    router.back()
   }
 
   const goToSettlement = () => {
-    router.push('/merchant/settlement')
+    showToast('Coming Soon')
+    router.back()
   }
 
   const goToRefunds = () => {
@@ -555,7 +559,8 @@
   }
 
   const goToInvoices = () => {
-    router.push('/merchant/invoices')
+    showToast('Coming Soon')
+    router.back()
   }
 
   const viewOrderDetail = (orderId: string) => {
