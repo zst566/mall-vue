@@ -1,6 +1,11 @@
 <template>
   <div class="product-info" v-if="items && items.length > 0">
-    <h3>促销活动信息</h3>
+    <h3>
+      促销活动信息
+      <span v-if="getShopInfo(items[0])" class="shop-info">
+        - {{ getShopInfo(items[0]) }}
+      </span>
+    </h3>
     <div class="product-item" v-for="item in items" :key="item.id" @click="handleProductClick(item)">
       <img :src="getProductImageUrl(item.productImage)" :alt="item.productName" class="product-image" />
       <div class="product-details">
@@ -40,6 +45,8 @@ interface OrderItem {
   merchantName?: string
   merchantAddress?: string
   merchantFloor?: string
+  shopName?: string // 商铺名称
+  shopFloor?: string // 商铺楼层
 }
 
 interface Props {
@@ -76,6 +83,22 @@ const getProductImageUrl = (url: string | undefined | null): string => {
 const handleProductClick = (item: OrderItem) => {
   emit('product-click', item)
 }
+
+// 获取商铺信息显示文本
+const getShopInfo = (item: OrderItem): string | null => {
+  const shopName = (item as any).shopName
+  const shopFloor = (item as any).shopFloor
+  
+  if (shopName && shopFloor) {
+    return `${shopName}(${shopFloor})`
+  } else if (shopName) {
+    return shopName
+  } else if (shopFloor) {
+    return `(${shopFloor})`
+  }
+  
+  return null
+}
 </script>
 
 <style lang="scss" scoped>
@@ -94,6 +117,12 @@ const handleProductClick = (item: OrderItem) => {
     font-weight: 600;
     color: #323233;
     margin: 0 0 16px 0;
+    
+    .shop-info {
+      font-weight: 400;
+      color: #646566;
+      font-size: 14px;
+    }
   }
 }
 

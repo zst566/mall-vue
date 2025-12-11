@@ -122,3 +122,6 @@ const handleUpload = async (file: File) => {
   }
 }
 </style>
+
+
+

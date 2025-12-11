@@ -370,6 +370,12 @@
       // 暂时停用额外的 /promotions/{id} 请求，避免 404 干扰调试
       // 后续如需重新启用，可在此处基于 promotionId 调用促销详情接口
       let promotionEndTime: string | null = null
+      
+      // 从订单数据中提取商铺信息
+      const shop = (orderData as any).shop
+      const shopName = shop?.name || null
+      const shopFloor = shop?.floor || null
+      
       const itemsWithOriginalPrice = await Promise.all(
         (orderData.items || []).map(async (item: any) => {
           const existingPromotion = item.promotion
@@ -400,6 +406,8 @@
             merchantName: (item as any).merchantName || '',
             merchantAddress: (item as any).merchantAddress || '',
             merchantFloor: (item as any).merchantFloor || '',
+            shopName: shopName || '', // 商铺名称
+            shopFloor: shopFloor || '', // 商铺楼层
             promotion: existingPromotion || null
           }
         })
