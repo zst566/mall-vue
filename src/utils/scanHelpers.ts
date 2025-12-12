@@ -77,3 +77,4 @@ export function parseQRCodeData(qrData: string): string | null {
 
 
 
+
